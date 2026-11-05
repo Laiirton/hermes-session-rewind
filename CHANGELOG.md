@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Let the user check a recording that is still open. A session row with no end says "recording", and the host keeps such a row open whether the session is working, idle for six hours or finished without reporting - measured against the host's own store, which has no field that tells them apart. The selected session now says when its last event arrived: "15.114 tokens · recording · last event 15:50". The claim is the same, but it can be checked.
+
 - Ask the host for colours it actually defines. The dialog's panel and main text used `--ui-bg` and `--ui-text`, and neither name exists: the host ships 63 `--ui-*` tokens and those are not two of them, so the panel always fell through to its hardcoded fallback and the dialog looked palette-blind. It now asks for `--ui-panel-background` (then `--ui-bg-elevated`, then the hex) and `--ui-text-primary`, and switching to the Midnight palette in the running app turns the panel blue-violet instead of leaving it near-black. The limitation page had recorded the opposite conclusion - that the iframe does not expose host tokens - from an experiment that stopped half way: the panel did follow the chain, only the invented text token did not.
 
 - Count the sessions the list is showing. The branch row had said how many branches it held since the strip began

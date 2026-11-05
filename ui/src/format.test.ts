@@ -4,6 +4,7 @@ import {
   errorMessage,
   frozenOutcome,
   outcomeLabel,
+  openRecordingNote,
   plural,
   sessionsCountLabel,
   turnsEmptyMessage,
@@ -99,6 +100,16 @@ describe('sessionsCountLabel', () => {
 
   it('says nothing before the first page arrives', () => {
     expect(sessionsCountLabel(0, 100)).toBe('');
+  });
+});
+
+describe('openRecordingNote', () => {
+  it('names the last event time so a still-open row can be checked', () => {
+    expect(openRecordingNote(1_700_000_000)).toMatch(/^recording · last event \d{2}:\d{2}$/);
+  });
+
+  it('says so when nothing has been captured yet', () => {
+    expect(openRecordingNote(null)).toBe('recording, nothing captured yet');
   });
 });
 

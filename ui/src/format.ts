@@ -86,6 +86,17 @@ export function sessionsCountLabel(count: number, limit: number): string {
   return count >= limit ? `${limit}+` : `${count}`;
 }
 
+export function openRecordingNote(lastEventAt: number | null): string {
+  if (lastEventAt === null) {
+    return 'recording, nothing captured yet';
+  }
+  const clock = new Date(lastEventAt * 1000).toLocaleTimeString([], {
+    hour: '2-digit',
+    minute: '2-digit'
+  });
+  return `recording · last event ${clock}`;
+}
+
 export function turnsEmptyMessage(eventCount: number, error: string | null): string {
   if (error !== null) {
     return `The turns could not be loaded: ${error}`;

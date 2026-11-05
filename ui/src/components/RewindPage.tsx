@@ -33,6 +33,7 @@ import {
   formatTime,
   frozenOutcome,
   outcomeLabel,
+  openRecordingNote,
   plural,
   sessionsCountLabel,
   shortId,
@@ -855,6 +856,9 @@ export function RewindPage({ ctx }: { ctx: PluginContext }): ReactNode {
                   {selectedSession.model ?? 'unknown model'} ·{' '}
                   {plural(selectedSession.event_count, 'event')} ·{' '}
                   {formatNumber(selectedSession.tokens_in + selectedSession.tokens_out)} tokens
+                  {selectedSession.ended_at === null
+                    ? ` · ${openRecordingNote(selectedSession.last_event_at)}`
+                    : ''}
                 </div>
               </div>
               <div className="text-right text-xs text-(--ui-text-tertiary)">

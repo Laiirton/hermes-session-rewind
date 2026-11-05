@@ -99,6 +99,22 @@ the Python side cannot call desktop RPCs at all; and a timeout would be a guess 
 else's session, which is exactly the kind of invented semantic this plugin has been removing
 elsewhere. A threshold that is too short would also mislabel a long-running turn as ended.
 
-What is honest here is the wording, and it is under review: "recording" is true of the row and
-possibly false of the world. Until a trustworthy signal exists, the plugin reports what it was
-told and leaves the row open.
+What is honest here is the wording, and the wording was not enough until now. The
+selected session states when its last event arrived - "recording · last event 15:50" -
+so a row that has been open for six hours says so next to the claim, and the user can
+check it instead of taking the plugin's word for it.
+
+The three signals that were looked for, in the host's own store, and measured:
+
+1. `session_turn_leases`: polled for 25 seconds across a complete turn that a new session
+   had just run. Zero rows the whole time, so it arbitrates turn ownership between
+   processes rather than saying whether anything is working.
+2. `session_admissions`: reports `queue / terminal / completed` for the session created two
+   seconds before the poll, so "terminal" marks the admission being dispatched, not the
+   session finishing.
+3. `sessions.ended_at`, the host's own end field: NULL for the same three sessions the
+   plugin leaves open, with `archived = 0` and `hidden = 0`. The host does not know either.
+
+So the distinction the plugin cannot make is not a missing lookup; the host does not
+record it. A timeout would be a guess about someone else's session.
+
