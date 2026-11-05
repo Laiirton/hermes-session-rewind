@@ -39,4 +39,4 @@ platforms:
   - linux
   - macos
 version: "1.0.0"
-known_issues: Native fork requires a live session. Snapshots restore git-tracked files only, so a gitignored virtualenv is not carried into the worktree. Verify runs in the gateway environment; the dialog shows the exact interpreter it resolves.
+known_issues: A session that is not open in the app is rerun in a new chat carrying the recorded context pack rather than branched from its transcript. Snapshots restore git-tracked files only, so a gitignored virtualenv is not carried into the worktree. Verify runs in the gateway environment; the dialog shows the exact interpreter it resolves. The fork dialog follows light and dark but not a custom palette, because the plugin iframe does not expose the host colour tokens.
