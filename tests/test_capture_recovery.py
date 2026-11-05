@@ -16,6 +16,9 @@ class _FlakyService(CaptureService):
         super().__init__(database=database, settings=Settings())
         self._failures = failures
 
+    def allow_writes(self) -> None:
+        self._failures = 0
+
     def _write_batch(
         self,
         store: object,
@@ -75,6 +78,46 @@ def test_capture_stops_requeuing_after_repeated_failures(database: Database) -> 
         assert _wait_for_events(database, "s_broken", 0.2) == 0
     finally:
         service.close()
+
+
+def test_dropped_captures_are_reported_once_writes_resume(database: Database) -> None:
+    service = _FlakyService(database, failures=99)
+    service.start()
+    try:
+        for index in range(4):
+            service.submit(
+                CaptureItem(
+                    session_id="s_dropped",
+                    ts=time.time(),
+                    kind="user_turn",
+                    payload={"user_message": f"lost {index}"},
+                )
+            )
+        deadline = time.monotonic() + 5.0
+        while time.monotonic() < deadline and service.pending() > 0:
+            time.sleep(0.05)
+        service.allow_writes()
+        service.submit(
+            CaptureItem(
+                session_id="s_dropped",
+                ts=time.time(),
+                kind="user_turn",
+                payload={"user_message": "the survivor"},
+            )
+        )
+        assert _wait_for_kind(database, "s_dropped", "capture_dropped", 5.0)
+    finally:
+        service.close()
+
+
+def _wait_for_kind(database: Database, session_id: str, kind: str, seconds: float) -> bool:
+    deadline = time.monotonic() + seconds
+    while time.monotonic() < deadline:
+        rows = ReadStore(database).list_events(session_id, limit=50, kind=kind)
+        if rows:
+            return True
+        time.sleep(0.05)
+    return False
 
 
 def test_capture_survives_a_failing_event_sink(database: Database, git_repo: Path) -> None:
