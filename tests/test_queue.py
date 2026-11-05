@@ -65,6 +65,74 @@ def test_capture_service_writes_and_closes(database: Database) -> None:
     ]
 
 
+def test_nested_tool_call_is_recorded_under_the_session_of_its_task(
+    database: Database,
+) -> None:
+    service = CaptureService(database, Settings())
+    service.start()
+    now = time.time()
+    service.submit(
+        CaptureItem(
+            session_id="s1",
+            ts=now,
+            kind="session_start",
+            payload={"model": "model-a", "platform": "gateway"},
+        )
+    )
+    service.submit(
+        CaptureItem(
+            session_id="",
+            ts=now + 1,
+            kind="tool_call",
+            payload={"args": {"command": "ls"}},
+            task_id="s1",
+            name="terminal",
+            status="pending",
+        )
+    )
+    service.close()
+
+    read = ReadStore(database)
+    assert [session["session_id"] for session in read.list_sessions(10, 0)] == ["s1"]
+    assert [event["kind"] for event in read.list_events("s1", limit=10)] == [
+        "session_start",
+        "tool_call",
+    ]
+
+
+def test_event_without_a_session_and_without_a_known_task_is_dropped(
+    database: Database,
+) -> None:
+    service = CaptureService(database, Settings())
+    service.start()
+    service.submit(
+        CaptureItem(
+            session_id="",
+            ts=time.time(),
+            kind="tool_call",
+            payload={"args": {"command": "ls"}},
+            task_id="20b4ec42-4f31-4b0a-9e1c-1f2d3e4a5b6c",
+            name="terminal",
+            status="pending",
+        )
+    )
+    service.submit(
+        CaptureItem(
+            session_id="",
+            ts=time.time(),
+            kind="tool_call",
+            payload={"args": {"command": "ls"}},
+            name="terminal",
+            status="pending",
+        )
+    )
+    service.close()
+
+    read = ReadStore(database)
+    assert read.counts()["events"] == 0
+    assert read.counts()["sessions"] == 0
+
+
 def test_capture_service_paused(database: Database) -> None:
     service = CaptureService(database, Settings(record_paused=True))
     service.start()

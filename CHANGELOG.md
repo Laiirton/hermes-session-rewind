@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- Record nested tool calls under the session that made them. A terminal call issued from inside the code tool reached `pre_tool_call` with a task id but no session id, and the recorder filed it under a session literally named `unknown`, which then appeared in the list as a card with no model, no tokens and 77 events belonging to no conversation. The writer now files such an event under the session its task id names, and drops with a warning only when no such session was ever recorded, so nothing is filed somewhere false and nothing the recording can place is thrown away.
+
+
 - Name each rerun session after the branch that made it. Every fork of a turn was titled `↺ <session>`, and creating a session with a title that already exists returns the existing one, so rewinding the same turn twice was refused with "that session is already the rerun of another branch" and the branch stayed `prepared` with an unused workspace. The title now carries the branch id, and `local-e9` and `local-45` were each rewound a second time into genuinely new sessions.
 
 

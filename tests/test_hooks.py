@@ -95,10 +95,10 @@ def test_tool_hooks_and_result_omission() -> None:
     assert sink.items[1].duration_ms == 12.5
 
 
-def test_unknown_session_and_broken_sink() -> None:
+def test_session_without_an_id_reaches_the_writer_unnamed() -> None:
     recorder, sink = _recorder()
     recorder.on_session_start()
-    assert sink.items[0].session_id == "unknown"
+    assert [item.session_id for item in sink.items] == [""]
 
     broken = BrokenSink()
     recorder = HookRecorder(broken, Settings())
@@ -160,3 +160,20 @@ def test_tool_result_capture_enabled() -> None:
     recorder.post_tool_call(session_id="s1", tool_name="terminal", result="ok")
     assert sink.items[0].payload["result"] == "ok"
     assert sink.items[0].status == "ok"
+
+
+def test_hooks_keep_the_task_id_of_an_event_without_a_session_id() -> None:
+    recorder, sink = _recorder()
+    recorder.pre_tool_call(
+        tool_name="terminal",
+        args={"command": "ls"},
+        task_id="s1",
+    )
+    recorder.post_tool_call(
+        tool_name="terminal",
+        args={"command": "ls"},
+        result="ok",
+        task_id="s1",
+    )
+    assert [item.session_id for item in sink.items] == ["", ""]
+    assert [item.task_id for item in sink.items] == ["s1", "s1"]

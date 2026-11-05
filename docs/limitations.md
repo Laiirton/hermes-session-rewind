@@ -66,3 +66,23 @@ the parent or already claimed by another branch, and it runs before the prompt i
 submitted, so a mis-matched fork cannot start a rerun it would not be able to
 track. Branches recorded before that guard are marked in the comparison panel.
 Choosing the right tab when two share a key is not solvable from the plugin side.
+
+## A tool call can arrive without a session id
+
+A terminal call made from inside the code tool reaches `pre_tool_call` through a
+path that does not carry the agent object. The installed agent builds those
+kwargs in `agent/inline_tool_executors.py`, where `session_id` is read as
+`getattr(agent, "session_id", "")`: with no agent to read, the field arrives
+empty while `task_id` still names the session that made the call.
+
+The writer therefore files such an event under the session its task id names,
+after checking that the store already has that session, and drops the event with
+a warning when it does not. The check matters because `task_id` is not always a
+session id: `agent/turn_context.py` falls back to `effective_task_id = task_id or
+str(uuid.uuid4())`, so a background run has a task id that belongs to no session,
+and trusting it would put real work under a card the user never opened.
+
+What is lost is the tool result. The host fires `pre_tool_call` for these nested
+calls but the matching `post_tool_call` never reaches the plugin either, so a
+recovered call stays `pending`. The count of tools a session used is right; the
+outcome of each nested call is not knowable from the hooks.

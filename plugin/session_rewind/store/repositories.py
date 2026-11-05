@@ -68,6 +68,13 @@ class WriteStore:
                 ),
             )
 
+    def has_session(self, session_id: str) -> bool:
+        row = self._connection.execute(
+            "SELECT 1 FROM sessions WHERE session_id = ?",
+            (session_id,),
+        ).fetchone()
+        return row is not None
+
     def append_events(self, events: Iterable[EventRecord]) -> list[int]:
         inserted: list[int] = []
         next_seq: dict[str, int] = {}

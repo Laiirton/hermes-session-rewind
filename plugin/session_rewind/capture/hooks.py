@@ -338,7 +338,7 @@ class HookRecorder:
 
 
 def _session_id(value: str | None) -> str:
-    return value if isinstance(value, str) and value else "unknown"
+    return value if isinstance(value, str) else ""
 
 
 def _compact(payload: dict[str, Any]) -> dict[str, Any]:

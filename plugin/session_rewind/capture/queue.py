@@ -187,11 +187,16 @@ class CaptureService:
         sessions: dict[str, dict[str, Any]] = {}
         started: dict[str, float] = {}
         endings: list[tuple[str, float, str]] = []
+        known: set[str] = set()
         for item in batch:
+            session_id = _session_key(store, item, known)
+            if session_id is None:
+                continue
+            known.add(session_id)
             payload_json = normalizer.normalize(item.payload)
             records.append(
                 EventRecord(
-                    session_id=item.session_id,
+                    session_id=session_id,
                     ts=item.ts,
                     kind=item.kind,
                     payload_json=payload_json,
@@ -204,8 +209,8 @@ class CaptureService:
                     duration_ms=item.duration_ms,
                 )
             )
-            meta = sessions.setdefault(item.session_id, {})
-            started[item.session_id] = min(started.get(item.session_id, item.ts), item.ts)
+            meta = sessions.setdefault(session_id, {})
+            started[session_id] = min(started.get(session_id, item.ts), item.ts)
             for key in (
                 "stored_session_id",
                 "parent_session_id",
@@ -219,7 +224,7 @@ class CaptureService:
                 if value is not None and meta.get(key) is None:
                     meta[key] = value
             if item.kind == "session_finalize":
-                endings.append((item.session_id, item.ts, _outcome(item.payload)))
+                endings.append((session_id, item.ts, _outcome(item.payload)))
         dropped = self._take_dropped()
         if dropped and records:
             first = records[0]
@@ -252,6 +257,19 @@ class CaptureService:
                 self._event_sink(record, event_id)
             except Exception:
                 LOGGER.exception("capture event sink failed")
+
+
+def _session_key(store: WriteStore, item: CaptureItem, known: set[str]) -> str | None:
+    if item.session_id:
+        return item.session_id
+    if item.task_id and (item.task_id in known or store.has_session(item.task_id)):
+        return item.task_id
+    LOGGER.warning(
+        "dropped a %s event with no session id; task %s is not a recorded session",
+        item.kind,
+        item.task_id,
+    )
+    return None
 
 
 def _optional_text(value: Any) -> str | None:
