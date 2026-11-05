@@ -63,6 +63,33 @@ class EventPage(BaseModel):
     has_more: bool = False
 
 
+class TurnSummary(BaseModel):
+    id: int
+    session_id: str
+    seq: int
+    ts: float
+    kind: str
+    name: str | None = None
+    status: str | None = None
+    duration_ms: float | None = None
+    turn_id: str | None = None
+    tool_call_id: str | None = None
+    api_request_id: str | None = None
+    preview: str = ""
+    seq_to: int
+    last_ts: float
+    event_count: int
+    tool_calls: int
+    tool_errors: int
+    api_requests: int
+
+
+class TurnPage(BaseModel):
+    items: list[TurnSummary]
+    before_seq: int | None = None
+    has_more: bool = False
+
+
 class SearchResponse(BaseModel):
     query: str
     items: list[EventSummary]

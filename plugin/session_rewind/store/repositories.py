@@ -450,6 +450,7 @@ class ReadStore:
         session_id: str,
         *,
         after_seq: int | None = None,
+        before_seq: int | None = None,
         limit: int = 200,
         kind: str | None = None,
     ) -> list[dict[str, Any]]:
@@ -460,12 +461,67 @@ class ReadStore:
             if after_seq is not None:
                 sql += " AND seq > ?"
                 params.append(after_seq)
+            if before_seq is not None:
+                sql += " AND seq < ?"
+                params.append(before_seq)
             if kind is not None:
                 sql += " AND kind = ?"
                 params.append(kind)
             sql += " ORDER BY seq ASC LIMIT ?"
             params.append(limit)
             rows = connection.execute(sql, params).fetchall()
+            return [dict(row) for row in rows]
+        finally:
+            connection.close()
+
+    def list_turns(
+        self,
+        session_id: str,
+        *,
+        before_seq: int | None = None,
+        limit: int = 50,
+    ) -> list[dict[str, Any]]:
+        connection = self._connect()
+        try:
+            rows = connection.execute(
+                """
+                WITH ranked AS (
+                    SELECT id, seq, ts,
+                           LAG(seq) OVER (ORDER BY seq DESC) AS next_seq
+                    FROM events
+                    WHERE session_id = ? AND kind = 'user_turn'
+                ),
+                anchors AS (
+                    SELECT id, seq, ts, next_seq
+                    FROM ranked
+                    WHERE (? IS NULL OR seq < ?)
+                    ORDER BY seq DESC
+                    LIMIT ?
+                ),
+                stats AS (
+                    SELECT a.id AS anchor_id,
+                           COALESCE(MAX(e.seq), a.seq) AS seq_to,
+                           COALESCE(MAX(e.ts), a.ts) AS last_ts,
+                           COUNT(e.id) AS event_count,
+                           COALESCE(SUM(e.kind = 'tool_call'), 0) AS tool_calls,
+                           COALESCE(SUM(e.kind = 'tool_result' AND e.status = 'error'), 0)
+                               AS tool_errors,
+                           COALESCE(SUM(e.kind = 'api_request'), 0) AS api_requests
+                    FROM anchors a
+                    LEFT JOIN events e
+                        ON e.session_id = ?
+                       AND e.seq >= a.seq
+                       AND (a.next_seq IS NULL OR e.seq < a.next_seq)
+                    GROUP BY a.id, a.seq, a.ts
+                )
+                SELECT ev.*, st.seq_to, st.last_ts, st.event_count,
+                       st.tool_calls, st.tool_errors, st.api_requests
+                FROM stats st
+                JOIN events ev ON ev.id = st.anchor_id
+                ORDER BY st.seq_to DESC
+                """,
+                (session_id, before_seq, before_seq, limit, session_id),
+            ).fetchall()
             return [dict(row) for row in rows]
         finally:
             connection.close()

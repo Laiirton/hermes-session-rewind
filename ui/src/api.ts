@@ -51,6 +51,21 @@ export interface EventPage {
   has_more: boolean;
 }
 
+export interface TurnSummary extends EventSummary {
+  seq_to: number;
+  last_ts: number;
+  event_count: number;
+  tool_calls: number;
+  tool_errors: number;
+  api_requests: number;
+}
+
+export interface TurnPage {
+  items: TurnSummary[];
+  before_seq: number | null;
+  has_more: boolean;
+}
+
 export interface SnapshotSummary {
   id: number;
   session_id: string;
@@ -164,12 +179,26 @@ export async function getSessions(ctx: PluginContext): Promise<SessionSummary[]>
   return page.items;
 }
 
-export async function getEvents(
+export async function getTurns(
   ctx: PluginContext,
-  sessionId: string
+  sessionId: string,
+  beforeSeq: number | null = null
+): Promise<TurnPage> {
+  const cursor = beforeSeq === null ? '' : `&before_seq=${beforeSeq}`;
+  return ctx.rest<TurnPage>(
+    `/sessions/${encodeURIComponent(sessionId)}/turns?limit=40${cursor}`
+  );
+}
+
+export async function getTurnEvents(
+  ctx: PluginContext,
+  sessionId: string,
+  seqFrom: number,
+  seqTo: number
 ): Promise<EventSummary[]> {
   const page = await ctx.rest<EventPage>(
-    `/sessions/${encodeURIComponent(sessionId)}/events?limit=500`
+    `/sessions/${encodeURIComponent(sessionId)}/events` +
+      `?limit=200&after_seq=${seqFrom - 1}&before_seq=${seqTo + 1}`
   );
   return page.items;
 }

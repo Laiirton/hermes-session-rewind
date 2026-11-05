@@ -37,6 +37,8 @@ from .models import (
     SessionPage,
     SessionSummary,
     SnapshotSummary,
+    TurnPage,
+    TurnSummary,
     VerifyResponse,
 )
 
@@ -100,19 +102,35 @@ def create_router(database: Database, settings: Settings | None = None) -> APIRo
     def list_events(
         session_id: str,
         after_seq: int | None = Query(None, ge=0),
+        before_seq: int | None = Query(None, ge=0),
         limit: int = Query(200, ge=1, le=500),
         kind: str | None = Query(None, min_length=1, max_length=64),
     ) -> EventPage:
         rows = read_store().list_events(
             session_id,
             after_seq=after_seq,
-            limit=limit,
+            before_seq=before_seq,
+            limit=limit + 1,
             kind=kind,
         )
-        items = [EventSummary(**event_summary(row)) for row in rows]
-        has_more = len(rows) == limit
-        next_seq = int(rows[-1]["seq"]) if has_more and rows else None
+        has_more = len(rows) > limit
+        page = rows[:limit]
+        items = [EventSummary(**event_summary(row)) for row in page]
+        next_seq = int(page[-1]["seq"]) if has_more and page else None
         return EventPage(items=items, after_seq=next_seq, has_more=has_more)
+
+    @router.get("/sessions/{session_id}/turns", response_model=TurnPage)
+    def list_turns(
+        session_id: str,
+        before_seq: int | None = Query(None, ge=0),
+        limit: int = Query(40, ge=1, le=200),
+    ) -> TurnPage:
+        rows = read_store().list_turns(session_id, before_seq=before_seq, limit=limit + 1)
+        has_more = len(rows) > limit
+        page = rows[:limit]
+        items = [_turn_summary(row) for row in page]
+        cursor = int(page[-1]["seq"]) if has_more and page else None
+        return TurnPage(items=items, before_seq=cursor, has_more=has_more)
 
     @router.get("/events/{event_id}", response_model=EventDetail)
     def get_event(event_id: int) -> EventDetail:
@@ -266,6 +284,18 @@ def create_router(database: Database, settings: Settings | None = None) -> APIRo
         )
 
     return router
+
+
+def _turn_summary(row: dict[str, Any]) -> TurnSummary:
+    return TurnSummary(
+        **event_summary(row),
+        seq_to=int(row["seq_to"]),
+        last_ts=float(row["last_ts"]),
+        event_count=int(row["event_count"]),
+        tool_calls=int(row["tool_calls"]),
+        tool_errors=int(row["tool_errors"]),
+        api_requests=int(row["api_requests"]),
+    )
 
 
 def _branch_detail(branch: dict[str, Any], run: dict[str, Any] | None) -> BranchDetail:
