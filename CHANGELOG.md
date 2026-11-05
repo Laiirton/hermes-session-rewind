@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Ask the host for colours it actually defines. The dialog's panel and main text used `--ui-bg` and `--ui-text`, and neither name exists: the host ships 63 `--ui-*` tokens and those are not two of them, so the panel always fell through to its hardcoded fallback and the dialog looked palette-blind. It now asks for `--ui-panel-background` (then `--ui-bg-elevated`, then the hex) and `--ui-text-primary`, and switching to the Midnight palette in the running app turns the panel blue-violet instead of leaving it near-black. The limitation page had recorded the opposite conclusion - that the iframe does not expose host tokens - from an experiment that stopped half way: the panel did follow the chain, only the invented text token did not.
+
 - Count the sessions the list is showing. The branch row had said how many branches it held since the strip began
   hiding them, and the session column - the one that is always on screen - only said "Sessions". It now shows the
   number, and `100+` when the page is full, because the query asks for a hundred and the store may hold more: a count

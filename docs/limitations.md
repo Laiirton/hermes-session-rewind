@@ -1,31 +1,29 @@
 # Limitations
 
-## The fork dialog follows the mode, not the palette
+## The fork dialog follows the palette for its surface, not for its status colours
 
 `plugin/desktop/plugin.js` ships the dialog with its own scoped CSS because the
-plugin iframe does not inherit the host utility classes. Its colours come from
-`var(--ui-*)` with dark fallbacks, and inside the iframe `--ui-bg` does not
-resolve, so a token chain can lighten the panel while the text keeps its
-light-on-dark fallback, or the other way round. `prefers-color-scheme` was tested in the running
-app and does not change the iframe, so it is not a fix.
+plugin iframe does not inherit the host utility classes, so its colours are
+written out rather than composed from utility classes.
 
-The dialog reads the mode from the SDK (`useTheme().resolvedMode`) and switches
-both halves together, so it is readable in light and dark. It cannot follow a
-custom palette: Hermes offers several (Nous, GitHub, Catppuccin, Everforest,
-Solarized, Nous Alt, Classic Hermes, Midnight, Ember) and the dialog uses one
-fixed light and one fixed dark value set instead of the active palette's colours.
-The rest of the page keeps using host tokens directly, so a strongly tinted
-palette reads slightly differently in the dialog than in the page.
+An earlier version of this page said the dialog "cannot follow a custom palette".
+That was a wrong diagnosis. The host defines 63 `--ui-*` tokens, and the dialog
+was asking for two of them by names that do not exist - `--ui-bg` and `--ui-text` -
+so those two always fell through to their hardcoded fallbacks and the panel looked
+palette-blind. `--ui-accent`, `--ui-border` and `--ui-text-tertiary` were already
+correct, which is why the accent and the borders did follow the palette all along.
 
-What was tried in the running app and reverted:
+The dark half now asks for `--ui-panel-background` (with `--ui-bg-elevated` and a
+hex last), and for `--ui-text-primary` instead of the invented `--ui-text`. Verified
+in the running app at 14:41 by switching to the Midnight palette: the panel takes the
+palette's blue-violet surface and the page and the dialog read as one surface again;
+the app was switched back to Nous afterwards.
 
-1. A `prefers-color-scheme: light` block around the dialog colours: no effect inside the iframe.
-2. `background: var(--ui-surface, #15161a)`: the panel stayed dark, so that token is not defined there.
-3. A chain of `--ui-surface`, `--ui-bg-elevated`, `--ui-panel-background` and `--ui-bg`: the panel did turn light, but `--ui-text` is also undefined, so the title, inputs and buttons kept their light-on-light fallback and became unreadable.
-4. Making every dialog text colour `inherit`: the mirror image of the same problem, dark text on the still-dark panel.
+What is still fixed, and why:
 
-Both halves have to switch together, which is why the dialog carries an explicit
-light value set instead of a token chain, and why the mode comes from the SDK.
+1. The light half of the dialog is an explicit value set. `prefers-color-scheme` was tested in the running app and does not change the iframe, so the mode is read from the SDK (`useTheme().resolvedMode`) and both halves switch together.
+2. The status colours - success green, warning amber, error red - are fixed per half, because each is paired with an `rgba()` tint of the same hue for its background and border. Pointing only the text at `--ui-success` would leave the tint behind and produce a half-following badge.
+3. A strongly tinted palette therefore still reads slightly differently in the dialog's status badges than in the host's own surfaces.
 
 ## Session outcome codes
 

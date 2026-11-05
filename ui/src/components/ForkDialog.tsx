@@ -112,8 +112,8 @@ const DIALOG_CSS = `
   max-height: calc(100vh - 56px);
   margin: auto 0;
   overflow: hidden;
-  color: var(--ui-text, #ececf1);
-  background: var(--ui-bg, #15161a);
+  color: var(--ui-text-primary, #ececf1);
+  background: var(--ui-panel-background, var(--ui-bg-elevated, #15161a));
   border: 1px solid var(--ui-border, rgba(255, 255, 255, 0.14));
   border-radius: 14px;
   box-shadow: 0 24px 70px rgba(0, 0, 0, 0.62);
@@ -162,7 +162,7 @@ const DIALOG_CSS = `
   border-radius: 8px;
 }
 .rw-close:hover:not(:disabled) {
-  color: var(--ui-text, #ececf1);
+  color: var(--ui-text-primary, #ececf1);
   background: rgba(255, 255, 255, 0.06);
 }
 .rw-panel:focus-visible {
@@ -254,7 +254,7 @@ const DIALOG_CSS = `
   border-radius: 6px;
 }
 .rw-preset:hover {
-  color: var(--ui-text, #ececf1);
+  color: var(--ui-text-primary, #ececf1);
   border-color: var(--ui-accent, #6ea8fe);
 }
 .rw-resolved {
@@ -307,7 +307,7 @@ const DIALOG_CSS = `
   padding: 9px 10px;
   font: inherit;
   font-size: 12px;
-  color: var(--ui-text, #ececf1);
+  color: var(--ui-text-primary, #ececf1);
   outline: none;
   background: rgba(0, 0, 0, 0.24);
   border: 1px solid var(--ui-border, rgba(255, 255, 255, 0.14));
@@ -372,7 +372,7 @@ const DIALOG_CSS = `
   padding: 8px 14px;
   font: inherit;
   font-size: 12px;
-  color: var(--ui-text, #ececf1);
+  color: var(--ui-text-primary, #ececf1);
   cursor: pointer;
   background: transparent;
   border: 1px solid var(--ui-border, rgba(255, 255, 255, 0.14));
