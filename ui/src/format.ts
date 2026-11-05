@@ -56,3 +56,7 @@ export function shortId(value: string, length = 8): string {
 export function plural(value: number, word: string): string {
   return `${value} ${value === 1 ? word : `${word}s`}`;
 }
+
+export function verifyOutcome(exit: number): string {
+  return exit === 0 ? 'passed' : `failed (exit ${exit})`;
+}

@@ -25,7 +25,15 @@ import type {
   SnapshotSummary,
   TurnSummary
 } from '../api';
-import { errorMessage, formatDuration, formatNumber, formatTime, plural, shortId } from '../format';
+import {
+  errorMessage,
+  formatDuration,
+  formatNumber,
+  formatTime,
+  plural,
+  shortId,
+  verifyOutcome
+} from '../format';
 import { ForkDialog } from './ForkDialog';
 import { mergeTurnPages } from '../mergeTurnPages';
 
@@ -380,6 +388,7 @@ function ComparePanel({
 
   const branch = detail.branch;
   const run = detail.run;
+  const rerunVerifyExit = run?.verify_exit ?? compare?.right?.verify_exit ?? null;
   const verifyBlock = !branch.verify_cmd
     ? 'No verify command was recorded for this branch.'
     : !branch.worktree_path
@@ -396,7 +405,7 @@ function ComparePanel({
           <span className={`uppercase ${stateTone(branch.state)}`}>{branch.state}</span>
           {run !== null && run.verify_exit !== null ? (
             <span className={run.verify_exit === 0 ? 'text-emerald-500' : 'text-red-500'}>
-              verify: {run.verify_exit}
+              verify {verifyOutcome(run.verify_exit)}
             </span>
           ) : null}
         </div>
@@ -468,11 +477,7 @@ function ComparePanel({
             <Metric label="outcome" value={compare.right?.outcome ?? 'running'} />
             <Metric
               label="verify"
-              value={
-                compare.right?.verify_exit === null || compare.right?.verify_exit === undefined
-                  ? 'not run'
-                  : `exit ${compare.right.verify_exit}`
-              }
+              value={rerunVerifyExit === null ? 'not run' : verifyOutcome(rerunVerifyExit)}
             />
             <Metric
               label="tokens"

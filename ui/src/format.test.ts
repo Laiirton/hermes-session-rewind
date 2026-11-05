@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { errorMessage, plural } from './format';
+import { errorMessage, plural, verifyOutcome } from './format';
 
 describe('plural', () => {
   it('adds the suffix except for one', () => {
@@ -47,5 +47,13 @@ describe('errorMessage', () => {
       "Error invoking remote method 'hermes:api': Error: 422: " +
       '{"detail":[{"loc":["query","cmd"],"msg":"value is not a valid integer"}]}';
     expect(errorMessage(new Error(raw))).toBe(raw);
+  });
+});
+
+describe('verifyOutcome', () => {
+  it('says passed for a zero exit and names the code otherwise', () => {
+    expect(verifyOutcome(0)).toBe('passed');
+    expect(verifyOutcome(1)).toBe('failed (exit 1)');
+    expect(verifyOutcome(127)).toBe('failed (exit 127)');
   });
 });
