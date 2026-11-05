@@ -737,7 +737,7 @@ export function ForkDialog({
       await labelled(
         'could not record the branch',
         commitFork(ctx, plan.branch_id, {
-          child_session_id: childStoredId,
+          child_session_id: childId,
           child_stored_session_id: childStoredId,
           model: model.trim() || null,
           provider: null,

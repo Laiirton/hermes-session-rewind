@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- Record the rerun's runtime session id in `child_session_id` and the host session key only in `child_stored_session_id`. The dialog sent the same key for both, so every branch of a session whose key was shared pointed at one child record — the collision the claim guard has been refusing since.
+
+
 - Label the two event kinds the timeline had never learned: `turn_end` and `session_finalize` rendered as their raw uppercase names, long enough to run over the preview text in the column next to them. The kind column now truncates and carries the raw kind as its title, so a future kind cannot collide again.
 
 - Move the branch list from the bottom of the session picker, behind every session card, into the session header where it belongs, as a wrapped chip strip with id, state and row count. A branch whose rerun never started now says so instead of waiting forever for a run that cannot come.
