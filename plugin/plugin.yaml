@@ -36,6 +36,8 @@ config_schema:
     default: 30
     label: Retention
     description: Delete recorded events and snapshots older than this many days.
+    minimum: 1
+    maximum: 3650
   capture_results:
     type: bool
     default: true
@@ -51,6 +53,8 @@ config_schema:
     default: 50
     label: Payload limit
     description: Maximum size of each captured payload in kilobytes.
+    minimum: 1
+    maximum: 1024
   snapshot_enabled:
     type: bool
     default: true
@@ -61,6 +65,8 @@ config_schema:
     default: 120
     label: Verify timeout
     description: Maximum runtime of a verification command in seconds.
+    minimum: 5
+    maximum: 1800
   record_paused:
     type: bool
     default: false
