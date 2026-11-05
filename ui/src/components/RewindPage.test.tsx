@@ -204,13 +204,58 @@ describe('RewindPage fork dialog', () => {
     const dialog = await screen.findByRole('dialog');
     expect(within(dialog).getByText('Rewind to this turn')).toBeDefined();
     expect(within(dialog).getByText('Session Rewind')).toBeDefined();
-    expect(within(dialog).getByText('carries')).toBeDefined();
-    expect(within(dialog).getByText('isolation')).toBeDefined();
-    expect(within(dialog).getByText('not prepared')).toBeDefined();
+    expect(
+      within(dialog).getByText(
+        'Prepare reads the recorded context for this turn and drafts the rerun prompt. Nothing runs until you fork.'
+      )
+    ).toBeDefined();
     expect(within(dialog).getByRole('button', { name: /Prepare branch/ })).toBeDefined();
     expect(
       within(dialog).getByText('Original session and workspace stay untouched.')
     ).toBeDefined();
+  });
+
+  it('gives the dialog one primary action and no status chrome', async () => {
+    const turnsA = deferred<TurnPage>();
+    const turnsB = deferred<TurnPage>();
+    const host = harness(routeTurns(turnsA, turnsB));
+    render(<RewindPage ctx={host.ctx} />);
+    turnsA.resolve(page([turn('a', 'the a turn')]));
+    await screen.findByText('the a turn');
+
+    fireEvent.click(screen.getByRole('button', { name: 'Rewind' }));
+
+    const dialog = await screen.findByRole('dialog');
+    expect(dialog.querySelectorAll('.rw-primary')).toHaveLength(1);
+    expect(within(dialog).queryByText('Checkpoint')).toBeNull();
+    expect(within(dialog).queryByText('carries')).toBeNull();
+    expect(within(dialog).queryByText('isolation')).toBeNull();
+    expect(within(dialog).queryByText('not prepared')).toBeNull();
+  });
+
+  it('scopes every dialog control rule to the panel', async () => {
+    const turnsA = deferred<TurnPage>();
+    const turnsB = deferred<TurnPage>();
+    const host = harness(routeTurns(turnsA, turnsB));
+    render(<RewindPage ctx={host.ctx} />);
+    turnsA.resolve(page([turn('a', 'the a turn')]));
+    await screen.findByText('the a turn');
+
+    fireEvent.click(screen.getByRole('button', { name: 'Rewind' }));
+
+    const dialog = await screen.findByRole('dialog');
+    const css = dialog.parentElement?.querySelector('style')?.textContent ?? '';
+    const controls = ['rw-button', 'rw-primary', 'rw-close', 'rw-preset', 'rw-icon-button'];
+    const selectors = css
+      .split('\n')
+      .map((line) => line.trim())
+      .filter((line) => line.endsWith('{') || line.endsWith(','));
+    const bare = selectors.filter((line) => controls.some((name) => line.startsWith(`.${name}`)));
+    const scoped = selectors.filter((line) =>
+      controls.some((name) => line.startsWith(`.rw-panel .${name}`))
+    );
+    expect(bare).toEqual([]);
+    expect(scoped.length).toBeGreaterThan(0);
   });
 });
 

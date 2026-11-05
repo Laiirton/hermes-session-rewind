@@ -70,6 +70,36 @@ colour. Checking a colour therefore takes two greps, not one - the class in the
 stylesheet, and the token in `:root`. Anything that needs a `color-mix` tint has no
 utility class at all and belongs in the plugin's own scoped CSS.
 
+## A page-level element reset reaches into the dialog that shares its root
+
+`RewindPage.tsx` normalises its buttons with one rule, `.rw-page button { background:
+transparent; color: inherit; border: 0; font: inherit; cursor: pointer }`, because the
+page's own controls are all class-styled and should start from nothing. The fork dialog is
+rendered inside that same `.rw-page` element, so the reset applied to it too - and at
+specificity (0,1,1) it **out-ranked every single-class rule in the dialog's stylesheet**
+(0,1,0). Measured on the live element, not inferred:
+
+```
+.rw-panel .rw-primary  ->  bg=rgb(0, 0, 0)  color=rgba(201, 209, 217, 0.94)
+--dt-primary resolved locally to #c9b1d9, --dt-primary-foreground to #0d1117
+```
+
+Both declarations were present and both tokens resolved; neither applied. So the primary
+button had no fill and its label took the inherited page text colour, `Cancel` and the
+verify presets had no border, and the only reason this was ever visible was the pointer:
+`.rw-button:hover:not(:disabled)` is (0,2,1) and does win, which is why hovering the
+primary button painted it lavender and made its now-lavender label disappear.
+
+The dialog's control rules are scoped under `.rw-panel` now, which is (0,2,0) and beats the
+reset without depending on stylesheet order. Two things follow for anyone extending the UI:
+
+1. A rule that targets a bare element type inside `.rw-page` inherits the reset's
+   specificity, so plugin components must scope their own rules one level deeper than they
+   would need in isolation.
+2. A missing fill or border is not proof of a missing token. Read the computed value off
+   the element first - if the token resolves and the declaration does not apply, the cause
+   is the cascade, not the palette.
+
 ## Session outcome codes
 
 The session cards and the comparison panel used to print the `outcome` string

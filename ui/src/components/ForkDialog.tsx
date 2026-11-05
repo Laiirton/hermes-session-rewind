@@ -5,7 +5,7 @@ import type { ReactNode } from 'react';
 
 import { commitFork, prepareFork, resolveVerify } from '../api';
 import type { EventSummary, ForkPlan, SessionSummary, VerifyResolution } from '../api';
-import { errorMessage, formatTime, plural, shortId } from '../format';
+import { errorMessage, formatTime, shortId } from '../format';
 import { branchPoint } from '../forkPrefix';
 import { Icon } from './icons';
 import type { HistoryResult } from '../forkPrefix';
@@ -179,7 +179,7 @@ const DIALOG_CSS = `
   font-weight: 600;
   letter-spacing: -0.02em;
 }
-.rw-close {
+.rw-panel .rw-close {
   position: absolute;
   top: 16px;
   right: 14px;
@@ -196,21 +196,21 @@ const DIALOG_CSS = `
   border-radius: calc(var(--radius-scalar, 0.2) * .5rem);
   transition: color 120ms ease-out, background-color 120ms ease-out;
 }
-.rw-close:hover:not(:disabled) {
+.rw-panel .rw-close:hover:not(:disabled) {
   color: var(--ui-text-primary);
   background: var(--ui-control-hover-background);
 }
-.rw-close:disabled {
+.rw-panel .rw-close:disabled {
   cursor: default;
   opacity: 0.5;
 }
 .rw-panel:focus-visible {
   outline: none;
 }
-.rw-button:focus-visible,
-.rw-close:focus-visible,
-.rw-preset:focus-visible,
-.rw-icon-button:focus-visible {
+.rw-panel .rw-button:focus-visible,
+.rw-panel .rw-close:focus-visible,
+.rw-panel .rw-preset:focus-visible,
+.rw-panel .rw-icon-button:focus-visible {
   outline: 2px solid var(--ui-stroke-primary);
   outline-offset: 2px;
 }
@@ -248,95 +248,10 @@ const DIALOG_CSS = `
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-.rw-card {
-  padding: 12px;
-  background: var(--ui-bg-card);
-  border: 1px solid var(--ui-stroke-tertiary);
-  border-radius: calc(var(--radius-scalar, 0.2) * .625rem);
-}
-.rw-card-head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  margin-bottom: 10px;
-}
-.rw-card-title {
-  display: flex;
-  align-items: center;
-  gap: 7px;
-  font-size: 10px;
-  font-weight: 600;
-  letter-spacing: 0.11em;
-  text-transform: uppercase;
-  color: var(--ui-text-tertiary);
-}
-.rw-state-dot {
-  width: 6px;
-  height: 6px;
-  border-radius: 999px;
-  background: var(--ui-text-tertiary);
-}
-.rw-state-dot[data-tone="ok"] {
-  background: var(--ui-green);
-}
-.rw-state-dot[data-tone="warn"] {
-  background: var(--ui-yellow);
-}
-.rw-badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 2px 8px;
-  font-size: 11px;
-  line-height: 1.6;
-  color: var(--ui-text-secondary);
-  border: 1px solid var(--ui-stroke-tertiary);
-  border-radius: calc(var(--radius-scalar, 0.2) * .5rem);
-}
-.rw-badge-ok {
-  color: var(--ui-green);
-  background: color-mix(in srgb, var(--ui-green) 10%, transparent);
-  border-color: color-mix(in srgb, var(--ui-green) 32%, transparent);
-}
-.rw-badge-warn {
-  color: var(--ui-yellow);
-  background: color-mix(in srgb, var(--ui-yellow) 10%, transparent);
-  border-color: color-mix(in srgb, var(--ui-yellow) 32%, transparent);
-}
-.rw-stats {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 1px;
-  margin: 0 0 10px;
-  padding: 0;
-  list-style: none;
-  background: var(--ui-stroke-tertiary);
-  border: 1px solid var(--ui-stroke-tertiary);
-  border-radius: calc(var(--radius-scalar, 0.2) * .5rem);
-  overflow: hidden;
-}
-.rw-stat {
+.rw-notes {
   display: flex;
   flex-direction: column;
-  gap: 3px;
-  min-width: 0;
-  padding: 8px 10px;
-  background: var(--ui-bg-card);
-}
-.rw-stat-label {
-  font-size: 10px;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--ui-text-tertiary);
-}
-.rw-stat-value {
-  overflow: hidden;
-  font-family: var(--dt-font-mono, ui-monospace, SFMono-Regular, Menlo, Consolas, monospace);
-  font-size: 11px;
-  color: var(--ui-text-primary);
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  gap: 7px;
 }
 .rw-note {
   display: flex;
@@ -349,7 +264,7 @@ const DIALOG_CSS = `
 .rw-note svg {
   flex: none;
   margin-top: 2px;
-  color: var(--ui-accent);
+  color: var(--ui-text-tertiary);
 }
 .rw-note-warn {
   color: var(--ui-yellow);
@@ -374,7 +289,7 @@ const DIALOG_CSS = `
   direction: rtl;
   text-align: left;
 }
-.rw-icon-button {
+.rw-panel .rw-icon-button {
   flex: none;
   display: inline-grid;
   place-items: center;
@@ -388,7 +303,7 @@ const DIALOG_CSS = `
   border-radius: calc(var(--radius-scalar, 0.2) * .5rem);
   transition: color 120ms ease-out, background-color 120ms ease-out;
 }
-.rw-icon-button:hover:not(:disabled) {
+.rw-panel .rw-icon-button:hover:not(:disabled) {
   color: var(--ui-text-primary);
   background: var(--ui-control-hover-background);
 }
@@ -455,7 +370,7 @@ const DIALOG_CSS = `
   flex-wrap: wrap;
   gap: 6px;
 }
-.rw-preset {
+.rw-panel .rw-preset {
   padding: 3px 8px;
   font: inherit;
   font-family: var(--dt-font-mono, ui-monospace, SFMono-Regular, Menlo, Consolas, monospace);
@@ -467,12 +382,12 @@ const DIALOG_CSS = `
   border-radius: calc(var(--radius-scalar, 0.2) * .5rem);
   transition: color 120ms ease-out, background-color 120ms ease-out, border-color 120ms ease-out;
 }
-.rw-preset:hover:not(:disabled) {
+.rw-panel .rw-preset:hover:not(:disabled) {
   color: var(--ui-text-primary);
   background: var(--ui-control-hover-background);
   border-color: var(--ui-stroke-secondary);
 }
-.rw-preset[aria-pressed="true"] {
+.rw-panel .rw-preset[aria-pressed="true"] {
   color: var(--ui-text-primary);
   background: color-mix(in srgb, var(--ui-accent) 14%, transparent);
   border-color: var(--ui-stroke-primary);
@@ -483,11 +398,20 @@ const DIALOG_CSS = `
   color: var(--ui-text-tertiary);
 }
 .rw-resolved {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
   font-family: var(--dt-font-mono, ui-monospace, SFMono-Regular, Menlo, Consolas, monospace);
   font-size: 10px;
   line-height: 1.5;
-  overflow-wrap: anywhere;
   color: var(--ui-text-tertiary);
+}
+.rw-resolved-path {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  direction: rtl;
+  text-align: left;
 }
 .rw-banner {
   padding: 9px 11px;
@@ -533,7 +457,7 @@ const DIALOG_CSS = `
   flex: none;
   gap: 8px;
 }
-.rw-button {
+.rw-panel .rw-button {
   display: inline-flex;
   align-items: center;
   gap: 7px;
@@ -547,20 +471,20 @@ const DIALOG_CSS = `
   border-radius: calc(var(--radius-scalar, 0.2) * .5rem);
   transition: color 120ms ease-out, background-color 120ms ease-out, border-color 120ms ease-out;
 }
-.rw-button:hover:not(:disabled) {
+.rw-panel .rw-button:hover:not(:disabled) {
   background: var(--ui-control-hover-background);
 }
-.rw-button:disabled {
+.rw-panel .rw-button:disabled {
   cursor: default;
   opacity: 0.5;
 }
-.rw-primary {
+.rw-panel .rw-primary {
   font-weight: 600;
   color: var(--dt-primary-foreground, #fcfcfc);
   background: var(--dt-primary, var(--ui-accent));
   border-color: transparent;
 }
-.rw-primary:hover:not(:disabled) {
+.rw-panel .rw-primary:hover:not(:disabled) {
   background: color-mix(in srgb, var(--dt-primary, var(--ui-accent)) 88%, var(--ui-base));
 }
 .rw-kbd {
@@ -597,18 +521,8 @@ const DIALOG_CSS = `
   .rw-panel {
     max-height: calc(100vh - 24px);
   }
-  .rw-grid,
-  .rw-stats {
+  .rw-grid {
     grid-template-columns: 1fr;
-  }
-  .rw-stats {
-    gap: 6px;
-    background: transparent;
-    border: 0;
-  }
-  .rw-stat {
-    border: 1px solid var(--ui-stroke-tertiary);
-    border-radius: calc(var(--radius-scalar, 0.2) * .5rem);
   }
   .rw-footer {
     align-items: flex-start;
@@ -889,17 +803,39 @@ export function ForkDialog({
   };
 
   const prepared = plan !== null;
-  const tone = !prepared ? 'idle' : plan.fidelity === 'full' ? 'ok' : 'warn';
-  const badgeClass = `rw-badge ${
-    tone === 'ok' ? 'rw-badge-ok' : tone === 'warn' ? 'rw-badge-warn' : ''
-  }`;
-  const carries = !prepared
-    ? '—'
-    : plan.fork_row_count > 0
-      ? `${plural(plan.fork_row_count, 'message')}`
-      : 'context pack';
-  const isolation = !prepared ? '—' : plan.worktree_path ? 'git worktree' : 'shared workspace';
   const activePreset = verifyCmd.trim();
+  const notes: { warn: boolean; text: string }[] = [];
+  if (prepared) {
+    if (plan.fidelity !== 'full') {
+      notes.push({
+        warn: true,
+        text: 'No workspace snapshot matched this turn. The rerun starts from the current workspace.'
+      });
+    }
+    if (plan.context_rows === null) {
+      notes.push({
+        warn: true,
+        text: 'The live transcript prefix is unavailable. The context pack is the only context.'
+      });
+    }
+    if (session.ended_at !== null) {
+      notes.push({
+        warn: false,
+        text: 'This session is closed, so the rerun starts a new chat carrying the recorded context instead of branching the original transcript.'
+      });
+    }
+    if (plan.fork_row_count === 0 && session.ended_at === null) {
+      notes.push({
+        warn: false,
+        text: 'This is the first turn. The rerun starts a fresh chat in the restored workspace.'
+      });
+    }
+  } else {
+    notes.push({
+      warn: false,
+      text: 'Prepare reads the recorded context for this turn and drafts the rerun prompt. Nothing runs until you fork.'
+    });
+  }
 
   return (
     <div
@@ -959,96 +895,39 @@ export function ForkDialog({
             </div>
           ) : null}
 
-          <section className="rw-card">
-            <div className="rw-card-head">
-              <span className="rw-card-title">
-                <span className="rw-state-dot" data-tone={tone === 'idle' ? undefined : tone} />
-                Checkpoint
+          {prepared && plan.worktree_path ? (
+            <div className="rw-path">
+              <span className="rw-path-text" title={plan.worktree_path}>
+                {plan.worktree_path}
               </span>
-              <span className={badgeClass}>
-                {prepared ? (tone === 'ok' ? 'workspace ready' : 'context pack') : 'not prepared'}
-              </span>
+              <button
+                type="button"
+                className="rw-icon-button"
+                onClick={() => {
+                  ctx.os.revealPath(plan.worktree_path ?? '');
+                }}
+                disabled={busy}
+                aria-label="Reveal the isolated workspace"
+              >
+                <Icon name="folder" size={13} />
+              </button>
             </div>
-            <ul className="rw-stats">
-              <li className="rw-stat">
-                <span className="rw-stat-label">carries</span>
-                <span className="rw-stat-value">{carries}</span>
-              </li>
-              <li className="rw-stat">
-                <span className="rw-stat-label">verify timeout</span>
-                <span className="rw-stat-value">
-                  {prepared ? `${plan.verify_timeout_seconds}s` : '—'}
-                </span>
-              </li>
-              <li className="rw-stat">
-                <span className="rw-stat-label">isolation</span>
-                <span className="rw-stat-value">{isolation}</span>
-              </li>
-            </ul>
-            {prepared && plan.worktree_path ? (
-              <div className="rw-path">
-                <span className="rw-path-text" title={plan.worktree_path}>
-                  {plan.worktree_path}
-                </span>
-                <button
-                  type="button"
-                  className="rw-icon-button"
-                  onClick={() => {
-                    ctx.os.revealPath(plan.worktree_path ?? '');
-                  }}
-                  disabled={busy}
-                  aria-label="Reveal the isolated workspace"
+          ) : null}
+
+          {notes.length > 0 ? (
+            <div className="rw-notes">
+              {notes.map((note) => (
+                <div
+                  className={`rw-note${note.warn ? ' rw-note-warn' : ''}`}
+                  key={note.text}
+                  role={note.warn ? 'status' : undefined}
                 >
-                  <Icon name="folder" size={13} />
-                </button>
-                {plan.snapshot_commit ? (
-                  <span className="rw-count">snapshot {plan.snapshot_commit.slice(0, 8)}</span>
-                ) : null}
-              </div>
-            ) : (
-              <div className="rw-note">
-                <Icon name="branch" />
-                <span>
-                  Prepares an isolated worktree from the nearest snapshot. The original workspace is
-                  not changed.
-                </span>
-              </div>
-            )}
-            {prepared && plan.fidelity !== 'full' ? (
-              <div className="rw-note rw-note-warn">
-                <Icon name="branch" />
-                <span>
-                  No workspace snapshot matched this turn. The rerun starts from the current
-                  workspace.
-                </span>
-              </div>
-            ) : null}
-            {prepared && plan.context_rows === null ? (
-              <div className="rw-note rw-note-warn">
-                <Icon name="branch" />
-                <span>
-                  The live transcript prefix is unavailable. The context pack is the only context.
-                </span>
-              </div>
-            ) : null}
-            {prepared && session.ended_at !== null ? (
-              <div className="rw-note">
-                <Icon name="branch" />
-                <span>
-                  This session is closed, so the rerun starts a new chat carrying the recorded
-                  context instead of branching the original transcript.
-                </span>
-              </div>
-            ) : null}
-            {prepared && plan.fork_row_count === 0 && session.ended_at === null ? (
-              <div className="rw-note">
-                <Icon name="branch" />
-                <span>
-                  This is the first turn. The rerun starts a fresh chat in the restored workspace.
-                </span>
-              </div>
-            ) : null}
-          </section>
+                  <Icon name="info" />
+                  <span>{note.text}</span>
+                </div>
+              ))}
+            </div>
+          ) : null}
 
           <div className="rw-grid">
             <label className="rw-field">
@@ -1097,9 +976,16 @@ export function ForkDialog({
               </span>
               {resolution !== null && resolution.command === verifyCmd.trim() ? (
                 <span className="rw-resolved">
-                  {resolution.resolved === null
-                    ? 'Not found in the gateway environment. Use the full interpreter path.'
-                    : `Resolves to ${resolution.resolved}`}
+                  {resolution.resolved === null ? (
+                    'Not found in the gateway environment. Use the full interpreter path.'
+                  ) : (
+                    <>
+                      <span>Resolves to</span>
+                      <span className="rw-resolved-path" title={resolution.resolved}>
+                        {resolution.resolved}
+                      </span>
+                    </>
+                  )}
                 </span>
               ) : null}
             </label>
@@ -1118,11 +1004,8 @@ export function ForkDialog({
               onChange={(changeEvent) => {
                 setPrompt(changeEvent.target.value);
               }}
-              placeholder="Prepare the branch to generate a context prompt, or write your own."
+              placeholder="Prepare the branch to draft the rerun prompt, or write your own."
             />
-            <span className="rw-help">
-              Prepared from the recorded context. Edit it before running the fork.
-            </span>
           </label>
         </div>
 

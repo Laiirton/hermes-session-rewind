@@ -77,7 +77,7 @@ The command runs without a shell, except a Windows `.cmd` or `.bat` shim, which 
 
 1. Open the Rewind page from the sidebar or the status bar chip.
 2. Select a recorded session and a user turn in the timeline.
-3. Choose Rewind and prepare the branch. Review the restored workspace, what the rerun carries (the transcript prefix or the context pack) and the prompt.
+3. Choose Rewind and prepare the branch. The dialog drafts the prompt and shows the isolated workspace; anything that changes the shape of the fork - no matching snapshot, no live transcript, a closed session - is said out loud before you run it.
 4. Adjust the model or prompt, enter the verify command and choose Fork & run. The verify command runs in the gateway environment; use an absolute interpreter path when the tool is not globally on `PATH`.
 5. The child session opens in a new tab. The comparison panel follows the branch.
 6. Run Verify in the isolated worktree, inspect the output and compare both runs.
@@ -90,7 +90,7 @@ A session that is not open in the app cannot be branched from its transcript, so
 You do not need a prepared repository: any session the plugin has already recorded works.
 
 1. Open the Rewind page and pick a session with at least one user turn in the timeline.
-2. Choose Rewind on a turn and Prepare branch. The checkpoint card shows the snapshot, the verify timeout and what the rerun carries; preparing measured about 0.6 s end to end on a live gateway.
+2. Choose Rewind on a turn and Prepare branch. The dialog drafts the rerun prompt and says, in one line, what the fork will carry; preparing measured about 0.6 s end to end on a live gateway.
 3. Choose Fork & run, or press Ctrl+Enter. A new tab opens for the rerun session, named after the branch, in the restored workspace.
 4. Open the branch chip to compare the frozen original with the rerun, and run Verify in the isolated worktree when you want the command re-checked.
 
