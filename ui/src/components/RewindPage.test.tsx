@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { afterEach, describe, expect, it } from 'vitest';
 
 import { RewindPage } from './RewindPage';
@@ -187,6 +187,30 @@ describe('RewindPage timeline panel', () => {
     render(<RewindPage ctx={host.ctx} />);
     await screen.findByText('the a turn');
     expect(performance.now() - started).toBeLessThan(1000);
+  });
+});
+
+describe('RewindPage fork dialog', () => {
+  it('opens the fork dialog from a turn row', async () => {
+    const turnsA = deferred<TurnPage>();
+    const turnsB = deferred<TurnPage>();
+    const host = harness(routeTurns(turnsA, turnsB));
+    render(<RewindPage ctx={host.ctx} />);
+    turnsA.resolve(page([turn('a', 'the a turn')]));
+    await screen.findByText('the a turn');
+
+    fireEvent.click(screen.getByRole('button', { name: 'Rewind' }));
+
+    const dialog = await screen.findByRole('dialog');
+    expect(within(dialog).getByText('Rewind to this turn')).toBeDefined();
+    expect(within(dialog).getByText('Session Rewind')).toBeDefined();
+    expect(within(dialog).getByText('carries')).toBeDefined();
+    expect(within(dialog).getByText('isolation')).toBeDefined();
+    expect(within(dialog).getByText('not prepared')).toBeDefined();
+    expect(within(dialog).getByRole('button', { name: /Prepare branch/ })).toBeDefined();
+    expect(
+      within(dialog).getByText('Original session and workspace stay untouched.')
+    ).toBeDefined();
   });
 });
 

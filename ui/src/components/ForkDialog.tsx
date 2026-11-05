@@ -1,6 +1,6 @@
 import { host } from '@hermes/plugin-sdk';
 import type { PluginContext } from '@hermes/plugin-sdk';
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
 
 import { commitFork, prepareFork, resolveVerify } from '../api';
@@ -92,6 +92,36 @@ function trapFocus(panel: HTMLElement | null, keyEvent: KeyboardEvent): void {
   }
 }
 
+const ICON_PATHS: Record<string, string> = {
+  rewind: 'M3 12a9 9 0 1 0 3-6.7M3 4v5h5',
+  branch:
+    'M6 3v12M6 21a3 3 0 1 0 0-6 3 3 0 0 0 0 6ZM6 6a3 3 0 1 0 0-6 3 3 0 0 0 0 6ZM18 9a3 3 0 1 0-3-3M15 9v3a3 3 0 0 0 3 3h3',
+  lock: 'M7 11V8a5 5 0 0 1 10 0v3M5 11h14v10H5z',
+  folder: 'M3 7h6l2 2h10v11H3z',
+  close: 'M5 5l14 14M19 5L5 19',
+  dot: 'M12 12h.01'
+};
+
+function Icon({ name, size = 14 }: { name: string; size?: number }): ReactNode {
+  return (
+    <svg
+      aria-hidden="true"
+      className="rw-icon"
+      viewBox="0 0 24 24"
+      width={size}
+      height={size}
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={1.75}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      focusable="false"
+    >
+      <path d={ICON_PATHS[name]} />
+    </svg>
+  );
+}
+
 const DIALOG_CSS = `
 .rw-overlay {
   position: fixed;
@@ -104,60 +134,90 @@ const DIALOG_CSS = `
   overflow-y: auto;
   background: rgba(0, 0, 0, 0.22);
   backdrop-filter: blur(0.125rem);
+  animation: rw-fade 140ms ease-out;
+}
+.rw-overlay[data-closing="true"] {
+  animation: rw-fade 100ms ease-in reverse;
 }
 .rw-panel {
   position: relative;
   display: flex;
   flex-direction: column;
-  width: min(760px, 100%);
+  width: min(560px, 100%);
   max-height: calc(100vh - 56px);
   margin: auto 0;
   overflow: hidden;
   color: var(--ui-text-primary);
   background: var(--ui-bg-elevated);
   border: 1px solid var(--ui-stroke-secondary);
-  border-radius: 12px;
+  border-radius: 14px;
   box-shadow: var(--shadow-md);
+  animation: rw-rise 180ms cubic-bezier(0.22, 1, 0.36, 1);
 }
-.rw-header {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 16px;
-  padding: 18px 48px 16px 20px;
-  border-bottom: 1px solid var(--ui-stroke-tertiary);
+.rw-overlay[data-closing="true"] .rw-panel {
+  animation: rw-rise 100ms ease-in reverse;
+}
+@keyframes rw-fade {
+  from {
+    opacity: 0;
+  }
+}
+@keyframes rw-rise {
+  from {
+    opacity: 0;
+    transform: translateY(6px) scale(0.985);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .rw-overlay,
+  .rw-panel,
+  .rw-overlay[data-closing="true"],
+  .rw-overlay[data-closing="true"] .rw-panel {
+    animation: none;
+  }
+}
+.rw-head {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 12px;
+  padding: 18px 48px 14px 18px;
+}
+.rw-mark {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  color: var(--ui-accent);
+  background: var(--ui-bg-card);
+  border: 1px solid var(--ui-stroke-tertiary);
+  border-radius: 10px;
 }
 .rw-heading {
   min-width: 0;
 }
-.rw-title {
-  font-size: 15px;
+.rw-eyebrow {
+  font-size: 10px;
   font-weight: 600;
-  letter-spacing: -0.01em;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--ui-accent);
 }
-.rw-subtitle {
-  max-width: 560px;
-  margin-top: 4px;
-  overflow: hidden;
-  font-size: 12px;
-  line-height: 1.45;
-  color: var(--ui-text-tertiary);
-  text-overflow: ellipsis;
-  white-space: nowrap;
+.rw-title {
+  margin-top: 3px;
+  font-size: 17px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
 }
 .rw-close {
   position: absolute;
-  top: 10px;
-  right: 10px;
+  top: 16px;
+  right: 14px;
   z-index: 1;
   display: inline-grid;
   place-items: center;
   width: 26px;
   height: 26px;
   padding: 0;
-  font: inherit;
-  font-size: 16px;
-  line-height: 1;
   color: var(--ui-text-tertiary);
   cursor: pointer;
   background: transparent;
@@ -169,12 +229,17 @@ const DIALOG_CSS = `
   color: var(--ui-text-primary);
   background: var(--ui-control-hover-background);
 }
+.rw-close:disabled {
+  cursor: default;
+  opacity: 0.5;
+}
 .rw-panel:focus-visible {
   outline: none;
 }
 .rw-button:focus-visible,
 .rw-close:focus-visible,
-.rw-preset:focus-visible {
+.rw-preset:focus-visible,
+.rw-icon-button:focus-visible {
   outline: 2px solid var(--ui-stroke-primary);
   outline-offset: 2px;
 }
@@ -182,19 +247,38 @@ const DIALOG_CSS = `
 .rw-textarea:focus-visible {
   outline: none;
 }
-.rw-close:disabled {
-  cursor: default;
-  opacity: 0.5;
-}
 .rw-body {
   display: flex;
   flex-direction: column;
-  gap: 16px;
-  padding: 18px 20px;
+  gap: 14px;
+  padding: 0 18px 18px;
   overflow-y: auto;
 }
+.rw-turn {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  min-width: 0;
+  padding: 8px 10px;
+  font-size: 12px;
+  background: var(--ui-bg-card);
+  border: 1px solid var(--ui-stroke-tertiary);
+  border-radius: 8px;
+}
+.rw-turn-time {
+  flex: none;
+  font-family: var(--dt-font-mono, ui-monospace, SFMono-Regular, Menlo, Consolas, monospace);
+  font-variant-numeric: tabular-nums;
+  color: var(--ui-text-secondary);
+}
+.rw-turn-text {
+  overflow: hidden;
+  color: var(--ui-text-primary);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
 .rw-card {
-  padding: 14px;
+  padding: 12px;
   background: var(--ui-bg-card);
   border: 1px solid var(--ui-stroke-tertiary);
   border-radius: 10px;
@@ -207,22 +291,37 @@ const DIALOG_CSS = `
   margin-bottom: 10px;
 }
 .rw-card-title {
-  font-size: 11px;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 10px;
   font-weight: 600;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.11em;
   text-transform: uppercase;
   color: var(--ui-text-tertiary);
 }
+.rw-state-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 999px;
+  background: var(--ui-text-tertiary);
+}
+.rw-state-dot[data-tone="ok"] {
+  background: var(--ui-green);
+}
+.rw-state-dot[data-tone="warn"] {
+  background: var(--ui-yellow);
+}
 .rw-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
   padding: 2px 8px;
   font-size: 11px;
   line-height: 1.6;
   color: var(--ui-text-secondary);
   border: 1px solid var(--ui-stroke-tertiary);
   border-radius: 999px;
-}
-.rw-badge-idle {
-  color: var(--ui-text-tertiary);
 }
 .rw-badge-ok {
   color: var(--ui-green);
@@ -234,65 +333,98 @@ const DIALOG_CSS = `
   background: color-mix(in srgb, var(--ui-yellow) 10%, transparent);
   border-color: color-mix(in srgb, var(--ui-yellow) 32%, transparent);
 }
-.rw-chips {
+.rw-stats {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1px;
+  margin: 0 0 10px;
+  padding: 0;
+  list-style: none;
+  background: var(--ui-stroke-tertiary);
+  border: 1px solid var(--ui-stroke-tertiary);
+  border-radius: 8px;
+  overflow: hidden;
+}
+.rw-stat {
   display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+  padding: 8px 10px;
+  background: var(--ui-bg-card);
 }
-.rw-chip {
-  padding: 3px 8px;
-  font-size: 11px;
-  font-variant-numeric: tabular-nums;
-  color: var(--ui-text-secondary);
-  border: 1px solid var(--ui-stroke-tertiary);
-  border-radius: 6px;
+.rw-stat-label {
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ui-text-tertiary);
 }
-.rw-preset {
-  padding: 3px 8px;
-  font: inherit;
+.rw-stat-value {
+  overflow: hidden;
   font-family: var(--dt-font-mono, ui-monospace, SFMono-Regular, Menlo, Consolas, monospace);
   font-size: 11px;
-  color: var(--ui-text-secondary);
-  cursor: pointer;
-  background: transparent;
-  border: 1px solid var(--ui-stroke-tertiary);
-  border-radius: 6px;
-  transition: color 120ms ease-out, background-color 120ms ease-out, border-color 120ms ease-out;
-}
-.rw-preset:hover {
   color: var(--ui-text-primary);
-  background: var(--ui-control-hover-background);
-  border-color: var(--ui-stroke-secondary);
-}
-.rw-resolved {
-  margin-top: 6px;
-  font-family: var(--dt-font-mono, ui-monospace, SFMono-Regular, Menlo, Consolas, monospace);
-  font-size: 11px;
-  line-height: 1.5;
-  overflow-wrap: anywhere;
-  color: var(--ui-text-tertiary);
-}
-.rw-path {
-  margin-top: 10px;
-  font-family: var(--dt-font-mono, ui-monospace, SFMono-Regular, Menlo, Consolas, monospace);
-  font-size: 11px;
-  line-height: 1.5;
-  color: var(--ui-text-tertiary);
-  word-break: break-all;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 .rw-note {
-  margin-top: 10px;
-  font-size: 12px;
+  display: flex;
+  align-items: flex-start;
+  gap: 7px;
+  font-size: 11px;
   line-height: 1.5;
+  color: var(--ui-text-secondary);
+}
+.rw-note .rw-icon {
+  flex: none;
+  margin-top: 2px;
+  color: var(--ui-accent);
+}
+.rw-note-warn {
   color: var(--ui-yellow);
 }
-.rw-note-muted {
+.rw-note-warn .rw-icon {
+  color: var(--ui-yellow);
+}
+.rw-path {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  margin-top: 2px;
+  font-family: var(--dt-font-mono, ui-monospace, SFMono-Regular, Menlo, Consolas, monospace);
+  font-size: 11px;
   color: var(--ui-text-tertiary);
+}
+.rw-path-text {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  direction: rtl;
+  text-align: left;
+}
+.rw-icon-button {
+  flex: none;
+  display: inline-grid;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  color: var(--ui-text-tertiary);
+  cursor: pointer;
+  background: transparent;
+  border: 0;
+  border-radius: 6px;
+  transition: color 120ms ease-out, background-color 120ms ease-out;
+}
+.rw-icon-button:hover:not(:disabled) {
+  color: var(--ui-text-primary);
+  background: var(--ui-control-hover-background);
 }
 .rw-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 14px;
+  gap: 12px;
 }
 .rw-field {
   display: flex;
@@ -300,18 +432,30 @@ const DIALOG_CSS = `
   gap: 6px;
   min-width: 0;
 }
+.rw-label-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+}
 .rw-label {
-  font-size: 11px;
+  font-size: 10px;
   font-weight: 600;
-  letter-spacing: 0.07em;
+  letter-spacing: 0.1em;
   text-transform: uppercase;
+  color: var(--ui-text-tertiary);
+}
+.rw-count {
+  font-family: var(--dt-font-mono, ui-monospace, SFMono-Regular, Menlo, Consolas, monospace);
+  font-variant-numeric: tabular-nums;
+  font-size: 10px;
   color: var(--ui-text-tertiary);
 }
 .rw-input,
 .rw-textarea {
   box-sizing: border-box;
   width: 100%;
-  padding: 9px 10px;
+  padding: 8px 10px;
   font: inherit;
   font-size: 12px;
   color: var(--ui-text-primary);
@@ -330,14 +474,48 @@ const DIALOG_CSS = `
   box-shadow: 0 0 0 3px color-mix(in srgb, var(--ui-stroke-primary) 20%, transparent);
 }
 .rw-textarea {
-  min-height: 170px;
+  min-height: 132px;
   font-family: var(--dt-font-mono, ui-monospace, SFMono-Regular, Menlo, Consolas, monospace);
   line-height: 1.55;
   resize: vertical;
 }
+.rw-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.rw-preset {
+  padding: 3px 8px;
+  font: inherit;
+  font-family: var(--dt-font-mono, ui-monospace, SFMono-Regular, Menlo, Consolas, monospace);
+  font-size: 11px;
+  color: var(--ui-text-secondary);
+  cursor: pointer;
+  background: transparent;
+  border: 1px solid var(--ui-stroke-tertiary);
+  border-radius: 6px;
+  transition: color 120ms ease-out, background-color 120ms ease-out, border-color 120ms ease-out;
+}
+.rw-preset:hover:not(:disabled) {
+  color: var(--ui-text-primary);
+  background: var(--ui-control-hover-background);
+  border-color: var(--ui-stroke-secondary);
+}
+.rw-preset[aria-pressed="true"] {
+  color: var(--ui-text-primary);
+  background: color-mix(in srgb, var(--ui-accent) 14%, transparent);
+  border-color: var(--ui-stroke-primary);
+}
 .rw-help {
   font-size: 11px;
   line-height: 1.45;
+  color: var(--ui-text-tertiary);
+}
+.rw-resolved {
+  font-family: var(--dt-font-mono, ui-monospace, SFMono-Regular, Menlo, Consolas, monospace);
+  font-size: 10px;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
   color: var(--ui-text-tertiary);
 }
 .rw-banner {
@@ -361,15 +539,23 @@ const DIALOG_CSS = `
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 16px;
-  padding: 14px 20px;
+  gap: 12px;
+  padding: 13px 18px;
   background: var(--ui-bg-card);
   border-top: 1px solid var(--ui-stroke-tertiary);
 }
-.rw-hint {
+.rw-reassure {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
   font-size: 11px;
-  line-height: 1.45;
+  line-height: 1.4;
   color: var(--ui-text-tertiary);
+}
+.rw-reassure .rw-icon {
+  flex: none;
+  color: var(--ui-green);
 }
 .rw-actions {
   display: flex;
@@ -377,7 +563,10 @@ const DIALOG_CSS = `
   gap: 8px;
 }
 .rw-button {
-  padding: 8px 14px;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 8px 12px;
   font: inherit;
   font-size: 12px;
   color: var(--ui-text-primary);
@@ -403,15 +592,52 @@ const DIALOG_CSS = `
 .rw-primary:hover:not(:disabled) {
   background: color-mix(in srgb, var(--dt-primary, var(--ui-accent)) 88%, var(--ui-base));
 }
-@media (max-width: 620px) {
+.rw-kbd {
+  padding: 1px 5px;
+  font-family: var(--dt-font-mono, ui-monospace, SFMono-Regular, Menlo, Consolas, monospace);
+  font-size: 10px;
+  line-height: 1.5;
+  color: color-mix(in srgb, var(--dt-primary-foreground, #fcfcfc) 78%, transparent);
+  background: color-mix(in srgb, var(--dt-primary-foreground, #fcfcfc) 18%, transparent);
+  border-radius: 4px;
+}
+.rw-spinner {
+  width: 12px;
+  height: 12px;
+  border: 2px solid color-mix(in srgb, var(--dt-primary-foreground, #fcfcfc) 35%, transparent);
+  border-top-color: var(--dt-primary-foreground, #fcfcfc);
+  border-radius: 999px;
+  animation: rw-spin 700ms linear infinite;
+}
+@keyframes rw-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .rw-spinner {
+    animation-duration: 2.4s;
+  }
+}
+@media (max-width: 520px) {
   .rw-overlay {
     padding: 12px;
   }
   .rw-panel {
     max-height: calc(100vh - 24px);
   }
-  .rw-grid {
+  .rw-grid,
+  .rw-stats {
     grid-template-columns: 1fr;
+  }
+  .rw-stats {
+    gap: 6px;
+    background: transparent;
+    border: 0;
+  }
+  .rw-stat {
+    border: 1px solid var(--ui-stroke-tertiary);
+    border-radius: 8px;
   }
   .rw-footer {
     align-items: flex-start;
@@ -422,6 +648,7 @@ const DIALOG_CSS = `
   }
   .rw-actions .rw-button {
     flex: 1;
+    justify-content: center;
   }
 }
 `;
@@ -441,9 +668,27 @@ export function ForkDialog({
   const [busyAction, setBusyAction] = useState<'prepare' | 'run' | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
+  const [closing, setClosing] = useState(false);
+  const disposers = useRef<(() => void)[]>([]);
   const busy = busyAction !== null;
   const panelRef = useRef<HTMLDivElement | null>(null);
   const submitRef = useRef<() => void>(() => {});
+  const close = useCallback((): void => {
+    if (busy) {
+      return;
+    }
+    setClosing(true);
+    disposers.current.push(ctx.setTimeout(onClose, 100));
+  }, [busy, ctx, onClose]);
+
+  useEffect(() => {
+    const stops = disposers.current;
+    return (): void => {
+      for (const stop of stops) {
+        stop();
+      }
+    };
+  }, []);
 
   useEffect(() => {
     const previous = document.activeElement as HTMLElement | null;
@@ -456,7 +701,7 @@ export function ForkDialog({
   useEffect(() => {
     const onKeyDown = (keyEvent: KeyboardEvent): void => {
       if (keyEvent.key === 'Escape' && !busy) {
-        onClose();
+        close();
         return;
       }
       if (keyEvent.key === 'Tab') {
@@ -472,7 +717,7 @@ export function ForkDialog({
     return (): void => {
       window.removeEventListener('keydown', onKeyDown);
     };
-  }, [busy, onClose]);
+  }, [busy, close]);
 
   useEffect(() => {
     const command = verifyCmd.trim();
@@ -672,20 +917,26 @@ export function ForkDialog({
     }
   };
 
-  const fidelity = plan === null ? 'not prepared' : plan.fidelity;
-  const badgeClass =
-    plan === null
-      ? 'rw-badge rw-badge-idle'
-      : plan.fidelity === 'full'
-        ? 'rw-badge rw-badge-ok'
-        : 'rw-badge rw-badge-warn';
+  const prepared = plan !== null;
+  const tone = !prepared ? 'idle' : plan.fidelity === 'full' ? 'ok' : 'warn';
+  const badgeClass = `rw-badge ${
+    tone === 'ok' ? 'rw-badge-ok' : tone === 'warn' ? 'rw-badge-warn' : ''
+  }`;
+  const carries = !prepared
+    ? '—'
+    : plan.fork_row_count > 0
+      ? `${plural(plan.fork_row_count, 'message')}`
+      : 'context pack';
+  const isolation = !prepared ? '—' : plan.worktree_path ? 'git worktree' : 'shared workspace';
+  const activePreset = verifyCmd.trim();
 
   return (
     <div
       className="rw-overlay"
+      data-closing={closing ? 'true' : 'false'}
       onMouseDown={(mouseEvent) => {
-        if (mouseEvent.target === mouseEvent.currentTarget && !busy) {
-          onClose();
+        if (mouseEvent.target === mouseEvent.currentTarget) {
+          close();
         }
       }}
     >
@@ -695,30 +946,37 @@ export function ForkDialog({
         role="dialog"
         aria-modal="true"
         aria-labelledby="rw-title"
+        aria-describedby="rw-reassure"
         tabIndex={-1}
         ref={panelRef}
       >
-        <header className="rw-header">
+        <header className="rw-head">
+          <span className="rw-mark">
+            <Icon name="rewind" size={16} />
+          </span>
           <div className="rw-heading">
+            <div className="rw-eyebrow">Session Rewind</div>
             <div className="rw-title" id="rw-title">
               Rewind to this turn
-            </div>
-            <div className="rw-subtitle">
-              {formatTime(event.ts)} · {event.preview || 'user turn'}
             </div>
           </div>
           <button
             type="button"
             className="rw-close"
-            onClick={onClose}
+            onClick={close}
             disabled={busy}
             aria-label="Close"
           >
-            ×
+            <Icon name="close" size={15} />
           </button>
         </header>
 
         <div className="rw-body">
+          <div className="rw-turn">
+            <span className="rw-turn-time">{formatTime(event.ts)}</span>
+            <span className="rw-turn-text">{event.preview || 'user turn'}</span>
+          </div>
+
           {error !== null ? (
             <div className="rw-banner rw-banner-error" role="alert">
               {error}
@@ -729,56 +987,94 @@ export function ForkDialog({
               {notice}
             </div>
           ) : null}
+
           <section className="rw-card">
             <div className="rw-card-head">
-              <span className="rw-card-title">Checkpoint</span>
+              <span className="rw-card-title">
+                <span className="rw-state-dot" data-tone={tone === 'idle' ? undefined : tone} />
+                Checkpoint
+              </span>
               <span className={badgeClass}>
-                {fidelity === 'full' ? 'workspace ready' : fidelity}
+                {prepared ? (tone === 'ok' ? 'workspace ready' : 'context pack') : 'not prepared'}
               </span>
             </div>
-            <div className="rw-chips">
-              <span className="rw-chip">
-                {plan === null
-                  ? 'carries —'
-                  : plan.fork_row_count > 0
-                    ? `carries ${plural(plan.fork_row_count, 'message')}`
-                    : 'carries the context pack'}
-              </span>
-              <span className="rw-chip">
-                verify timeout {plan === null ? '—' : `${plan.verify_timeout_seconds}s`}
-              </span>
-              {plan?.snapshot_commit ? (
-                <span className="rw-chip">snapshot {plan.snapshot_commit.slice(0, 8)}</span>
-              ) : null}
-            </div>
-            {plan?.worktree_path ? (
-              <div className="rw-path">{plan.worktree_path}</div>
+            <ul className="rw-stats">
+              <li className="rw-stat">
+                <span className="rw-stat-label">carries</span>
+                <span className="rw-stat-value">{carries}</span>
+              </li>
+              <li className="rw-stat">
+                <span className="rw-stat-label">verify timeout</span>
+                <span className="rw-stat-value">
+                  {prepared ? `${plan.verify_timeout_seconds}s` : '—'}
+                </span>
+              </li>
+              <li className="rw-stat">
+                <span className="rw-stat-label">isolation</span>
+                <span className="rw-stat-value">{isolation}</span>
+              </li>
+            </ul>
+            {prepared && plan.worktree_path ? (
+              <div className="rw-path">
+                <span className="rw-path-text" title={plan.worktree_path}>
+                  {plan.worktree_path}
+                </span>
+                <button
+                  type="button"
+                  className="rw-icon-button"
+                  onClick={() => {
+                    ctx.os.revealPath(plan.worktree_path ?? '');
+                  }}
+                  disabled={busy}
+                  aria-label="Reveal the isolated workspace"
+                >
+                  <Icon name="folder" size={13} />
+                </button>
+                {plan.snapshot_commit ? (
+                  <span className="rw-count">snapshot {plan.snapshot_commit.slice(0, 8)}</span>
+                ) : null}
+              </div>
             ) : (
-              <div className="rw-note rw-note-muted">
-                Prepares an isolated worktree from the nearest snapshot. The original workspace is
-                not changed.
+              <div className="rw-note">
+                <Icon name="branch" />
+                <span>
+                  Prepares an isolated worktree from the nearest snapshot. The original workspace is
+                  not changed.
+                </span>
               </div>
             )}
-            {plan !== null && plan.fidelity !== 'full' ? (
+            {prepared && plan.fidelity !== 'full' ? (
+              <div className="rw-note rw-note-warn">
+                <Icon name="branch" />
+                <span>
+                  No workspace snapshot matched this turn. The rerun starts from the current
+                  workspace.
+                </span>
+              </div>
+            ) : null}
+            {prepared && plan.context_rows === null ? (
+              <div className="rw-note rw-note-warn">
+                <Icon name="branch" />
+                <span>
+                  The live transcript prefix is unavailable. The context pack is the only context.
+                </span>
+              </div>
+            ) : null}
+            {prepared && session.ended_at !== null ? (
               <div className="rw-note">
-                No workspace snapshot matched this turn. The rerun starts from the current
-                workspace.
+                <Icon name="branch" />
+                <span>
+                  This session is closed, so the rerun starts a new chat carrying the recorded
+                  context instead of branching the original transcript.
+                </span>
               </div>
             ) : null}
-            {plan !== null && plan.context_rows === null ? (
+            {prepared && plan.fork_row_count === 0 && session.ended_at === null ? (
               <div className="rw-note">
-                The live transcript prefix is unavailable. The context pack is the only context.
-              </div>
-            ) : null}
-            {plan !== null && session.ended_at !== null ? (
-              <div className="rw-note rw-note-muted">
-                This session is closed, so the rerun starts a new chat carrying the recorded context
-                instead of branching the original transcript.
-              </div>
-            ) : null}
-            {plan !== null && plan.fork_row_count === 0 && session.ended_at === null ? (
-              <div className="rw-note rw-note-muted">
-                This is the first turn. The rerun starts a fresh chat in the restored workspace.
+                <Icon name="branch" />
+                <span>
+                  This is the first turn. The rerun starts a fresh chat in the restored workspace.
+                </span>
               </div>
             ) : null}
           </section>
@@ -814,6 +1110,7 @@ export function ForkDialog({
                       type="button"
                       key={preset}
                       className="rw-preset"
+                      aria-pressed={preset === activePreset}
                       onClick={() => {
                         setVerifyCmd(preset);
                       }}
@@ -838,7 +1135,12 @@ export function ForkDialog({
           </div>
 
           <label className="rw-field">
-            <span className="rw-label">Prompt for the rerun</span>
+            <span className="rw-label-row">
+              <span className="rw-label">Prompt for the rerun</span>
+              <span className="rw-count" aria-live="polite">
+                {prompt.length} chars
+              </span>
+            </span>
             <textarea
               className="rw-textarea"
               value={prompt}
@@ -854,14 +1156,15 @@ export function ForkDialog({
         </div>
 
         <footer className="rw-footer">
-          <span className="rw-hint">
-            The original session and workspace stay untouched. Ctrl+Enter runs the primary action.
+          <span className="rw-reassure" id="rw-reassure">
+            <Icon name="lock" size={13} />
+            <span>Original session and workspace stay untouched.</span>
           </span>
           <div className="rw-actions">
-            <button type="button" className="rw-button" onClick={onClose} disabled={busy}>
+            <button type="button" className="rw-button" onClick={close} disabled={busy}>
               Cancel
             </button>
-            {plan === null ? (
+            {!prepared ? (
               <button
                 type="button"
                 className="rw-button rw-primary"
@@ -869,8 +1172,11 @@ export function ForkDialog({
                   void prepare();
                 }}
                 disabled={busy}
+                aria-busy={busyAction === 'prepare'}
               >
-                {busyAction === 'prepare' ? 'Preparing...' : 'Prepare branch'}
+                {busyAction === 'prepare' ? <span className="rw-spinner" /> : null}
+                {busyAction === 'prepare' ? 'Preparing' : 'Prepare branch'}
+                {busyAction === 'prepare' ? null : <span className="rw-kbd">Ctrl ↵</span>}
               </button>
             ) : (
               <button
@@ -880,8 +1186,11 @@ export function ForkDialog({
                   void run();
                 }}
                 disabled={busy}
+                aria-busy={busyAction === 'run'}
               >
-                {busyAction === 'run' ? 'Forking...' : 'Fork & run'}
+                {busyAction === 'run' ? <span className="rw-spinner" /> : null}
+                {busyAction === 'run' ? 'Forking' : 'Fork & run'}
+                {busyAction === 'run' ? null : <span className="rw-kbd">Ctrl ↵</span>}
               </button>
             )}
           </div>
