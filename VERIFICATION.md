@@ -169,6 +169,7 @@ from 53.6 ms to 30.8 ms over 100,000 rows in isolation, so the `GROUP BY` scan
 dominates and the JSON extraction is not the bottleneck. That did not justify a
 versioned schema change plus write-path coupling, so it was not done.
 
+| Display limit | this machine is 1366x768, so a true 1920x1080 window cannot be captured here; 1366x720 is the largest available and the smallest realistic laptop height |
 | Window size 1366x720 | page and dialog both fit: no overflow, no clipped row, footer and primary action visible, dialog body scrolls internally |
 | Live session badge | widened to accept the focused stored session id as well as the runtime id, because the two differ in this build. **Not visually confirmed**: no recorded session in the app was simultaneously unfinished and focused during two attempts, so the condition could not be exercised |
 
