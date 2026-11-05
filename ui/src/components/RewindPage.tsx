@@ -562,13 +562,24 @@ export function RewindPage({ ctx }: { ctx: PluginContext }): ReactNode {
   const [turnsLoaded, setTurnsLoaded] = useState(false);
   const [turnsError, setTurnsError] = useState<string | null>(null);
 
-  useEffect(
-    () =>
-      ctx.onEvent('*', () => {
+  useEffect(() => {
+    let cancelTimer: (() => void) | null = null;
+    const stop = ctx.onEvent('*', () => {
+      if (cancelTimer !== null) {
+        return;
+      }
+      cancelTimer = ctx.setTimeout(() => {
+        cancelTimer = null;
         setLiveTick((value) => value + 1);
-      }),
-    [ctx]
-  );
+      }, 1500);
+    });
+    return (): void => {
+      stop();
+      if (cancelTimer !== null) {
+        cancelTimer();
+      }
+    };
+  }, [ctx]);
 
   useEffect(() => {
     if (selectedBranchId === null || forkTarget !== null) {

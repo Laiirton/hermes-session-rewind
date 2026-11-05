@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- Let the timeline finish loading while something else is recording. Every captured host event re-ran the page's data effects, and each re-run cancelled the request that was in flight; with a rerun streaming events the selected session could sit on "no user turns came back" until Refresh was pressed. Host events are now coalesced into one refresh every 1.5 seconds.
+
+
 - Stop showing a gateway internal as if it were a failure. Sessions the host reaped after their window went away read `ws_orphan_reap`, which looks like a crash; the installed agent defines those reasons as recoverable viewer closes, so the cards now say "ended with its window". Reasons the host has not documented are still shown exactly as written.
 
 
