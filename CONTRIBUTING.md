@@ -36,6 +36,7 @@ The UI build must be committed. CI fails when `plugin/desktop/plugin.js` differs
 - Python uses type hints, Ruff formatting, mypy strict and pytest.
 - The Desktop half uses strict TypeScript, the Hermes plugin SDK and React only.
 - Keep modules small and responsibilities explicit. Avoid premature abstractions.
+- Do not assert locale-rendered output in tests. A clock from `toLocaleTimeString` is `22:13` on one runner and `10:13 PM` on another, and a thousands separator is `.` or `,`; CI runs three locales. Assert the composition against the app's own formatter, or a shape every locale satisfies.
 
 ## Commits
 
