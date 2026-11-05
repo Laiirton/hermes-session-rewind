@@ -52,3 +52,11 @@ The plugin never approves tool calls, never disables guards and never creates un
 ## Retention and deletion
 
 Delete `$HERMES_HOME/plugin-data/session-rewind/` to remove the plugin database. Remove `refs/hermes-rewind/*` and `.hermes-rewind/` worktrees from repositories to remove snapshot and worktree data. Use the comparison panel's Cleanup action to remove a worktree.
+
+## Replayed recordings are marked as data
+
+The generated context pack quotes the recorded task, summary and last error inside
+`<recorded-task>`, `<recorded-summary>` and `<recorded-error>` delimiters and states that
+the quotation describes what was asked rather than issuing new instructions. A task that is
+itself a rewind context pack is unwrapped first, so replaying a forked turn does not stack
+older claims about earlier turns into the new prompt.

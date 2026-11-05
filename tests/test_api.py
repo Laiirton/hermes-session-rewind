@@ -94,8 +94,18 @@ def test_get_branch_does_not_mutate_state(seeded_database: Database) -> None:
     store = WriteStore(seeded_database.connect())
     try:
         store.create_branch(
-            "branch-read", "sess_child", 20.0, 1, None, None, None, None, "rerun", None,
-            "running", 30.0,
+            "branch-read",
+            "sess_child",
+            20.0,
+            1,
+            None,
+            None,
+            None,
+            None,
+            "rerun",
+            None,
+            "running",
+            30.0,
         )
         store.set_branch_child("branch-read", "sess_child", "sess_child", None, 30.0)
     finally:
