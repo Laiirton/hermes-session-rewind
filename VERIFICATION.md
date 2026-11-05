@@ -127,5 +127,20 @@ Observed in the real Hermes Desktop app through Computer Use; screenshots are ke
 | Branch refresh | `GET /branches/{id}` no longer writes; the panel refreshes through `POST /branches/{id}/reconcile`, verified live |
 | Stale run repair | live branch `3c29d531`, stuck `running` for hours, flipped to `FAILED` on the first panel refresh |
 | Frozen baseline in the app | comparison panel shows "Original · frozen 03:13:34" with 422.368 tokens instead of the session total 447.220 |
+| Context pack of a rewind child | one preamble only, with `Original user task:` quoting "Diga apenas: pronto"; the earlier nesting duplicated the preamble and replayed stale claims |
+
+## Scale measurements (synthetic stores, same machine)
+
+| Query | 10,000 events | 100,000 events |
+| --- | --- | --- |
+| `list_sessions(limit=100)` | 12.3 ms | 96.0 ms |
+| `list_events(limit=500)` | 1.9 ms / 75 KB payloads | 2.5 ms / 150 KB |
+| `list_turns(limit=40)` | 7.7 ms | 1.3 ms |
+
+A candidate optimisation was measured before adopting it: adding extracted
+`tokens_in`/`tokens_out` columns and backfilling changed the session aggregate
+from 53.6 ms to 30.8 ms over 100,000 rows in isolation, so the `GROUP BY` scan
+dominates and the JSON extraction is not the bottleneck. That did not justify a
+versioned schema change plus write-path coupling, so it was not done.
 
 Not yet verified live: light theme, 1920x1080 and 1280x720 layouts, ten consecutive forks, and a fork of a session that is itself a rewind child (observed to fail above).
