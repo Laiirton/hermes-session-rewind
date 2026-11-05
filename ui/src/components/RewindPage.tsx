@@ -494,6 +494,8 @@ export function RewindPage({ ctx }: { ctx: PluginContext }): ReactNode {
   const [refreshTick, setRefreshTick] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const [liveTick, setLiveTick] = useState(0);
+  const [sessionsLoaded, setSessionsLoaded] = useState(false);
+  const [turnsLoaded, setTurnsLoaded] = useState(false);
 
   useEffect(
     () =>
@@ -512,6 +514,7 @@ export function RewindPage({ ctx }: { ctx: PluginContext }): ReactNode {
           return;
         }
         setSessions(items);
+        setSessionsLoaded(true);
         setError(null);
         setSelectedSessionId((current) => {
           if (current !== null && items.some((item) => item.session_id === current)) {
@@ -538,6 +541,7 @@ export function RewindPage({ ctx }: { ctx: PluginContext }): ReactNode {
   useEffect(() => {
     if (selectedSessionId === null) {
       setTurns([]);
+      setTurnsLoaded(false);
       setTurnsHasMore(false);
       setSnapshots([]);
       setBranches([]);
@@ -560,6 +564,7 @@ export function RewindPage({ ctx }: { ctx: PluginContext }): ReactNode {
           return [...turnPage.items, ...older];
         });
         setTurnsHasMore(turnPage.has_more);
+        setTurnsLoaded(true);
         setSnapshots(snapshotItems);
         setBranches(branchItems);
         setError(null);
@@ -692,7 +697,9 @@ export function RewindPage({ ctx }: { ctx: PluginContext }): ReactNode {
         <aside className="flex w-64 shrink-0 flex-col gap-3 overflow-auto border-r border-(--ui-border) pr-2">
           <div className="flex flex-col gap-1">
             <div className="text-xs uppercase text-(--ui-text-tertiary)">Sessions</div>
-            {sessions.length === 0 ? (
+            {!sessionsLoaded ? (
+              <div className="text-xs text-(--ui-text-tertiary)">Loading sessions...</div>
+            ) : sessions.length === 0 ? (
               <div className="text-xs text-(--ui-text-tertiary)">
                 Start a chat and Rewind will record every turn.
               </div>
@@ -788,6 +795,8 @@ export function RewindPage({ ctx }: { ctx: PluginContext }): ReactNode {
             <div className="min-w-0 flex-1 overflow-auto">
               {selectedSession === null ? (
                 <div className="text-xs text-(--ui-text-tertiary)">Select a recorded session.</div>
+              ) : !turnsLoaded ? (
+                <div className="text-xs text-(--ui-text-tertiary)">Loading turns...</div>
               ) : turns.length === 0 ? (
                 <div className="text-xs text-(--ui-text-tertiary)">
                   No user turns recorded yet for this session.

@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Show an explicit loading state for sessions and turns instead of the empty-state copy while the first fetch is in flight.
+
 - Move the fork prefix selection out of the dialog component and cover it with nine vitest cases, so the row the child session branches from is now tested rather than assumed.
 
 - Keep recording when the store fails: a batch that cannot be written is retried after reopening the database, and only after three consecutive failures is it counted as dropped rather than silently ending the writer thread.
