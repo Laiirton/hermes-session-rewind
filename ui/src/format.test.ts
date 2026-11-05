@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { errorMessage, outcomeLabel, plural, verifyOutcome } from './format';
+import { errorMessage, outcomeLabel, plural, turnsEmptyMessage, verifyOutcome } from './format';
 
 describe('plural', () => {
   it('adds the suffix except for one', () => {
@@ -65,5 +65,24 @@ describe('verifyOutcome', () => {
     expect(verifyOutcome(0)).toBe('passed');
     expect(verifyOutcome(1)).toBe('failed (exit 1)');
     expect(verifyOutcome(127)).toBe('failed (exit 127)');
+  });
+});
+
+describe('turnsEmptyMessage', () => {
+  it('names the failure when the query failed', () => {
+    expect(turnsEmptyMessage(74, 'HTTP 500')).toBe('The turns could not be loaded: HTTP 500');
+  });
+
+  it('waits for more of the recording when there is nothing yet', () => {
+    expect(turnsEmptyMessage(0, null)).toBe('No user turns recorded yet for this session.');
+  });
+
+  it('states what a recording without user turns holds, without sending the user to Refresh', () => {
+    expect(turnsEmptyMessage(77, null)).toBe(
+      'The recording holds 77 events but no user turn.'
+    );
+    expect(turnsEmptyMessage(1, null)).toBe(
+      'The recording holds 1 event but no user turn.'
+    );
   });
 });
