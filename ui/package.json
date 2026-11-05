@@ -1,0 +1,17 @@
+{
+  "name": "hermes-session-rewind-ui",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "author": "Lairton",
+  "license": "MIT",
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "build": "node esbuild.config.mjs"
+  },
+  "devDependencies": {
+    "@types/react": "^19.0.0",
+    "esbuild": "^0.25.0",
+    "typescript": "^5.7.0"
+  }
+}

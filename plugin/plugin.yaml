@@ -1,0 +1,72 @@
+name: session-rewind
+version: 1.0.0
+manifest_version: 2
+api_version: 1
+description: Record Hermes sessions, fork at a user turn with an isolated worktree, rerun with a different model or prompt, and compare outcomes.
+author: Lairton
+license: MIT
+homepage: https://github.com/Laiirton/hermes-session-rewind
+requires_hermes: ">=0.22.7"
+tags:
+  - session
+  - replay
+  - fork
+  - git
+  - debug
+  - desktop
+provides_tools:
+  - rewind_search
+  - rewind_inspect
+  - rewind_compare
+  - rewind_bookmark
+provides_hooks:
+  - on_session_start
+  - on_session_end
+  - pre_llm_call
+  - post_llm_call
+  - pre_api_request
+  - post_api_request
+  - pre_tool_call
+  - post_tool_call
+  - post_compaction
+config_schema:
+  retention_days:
+    type: int
+    default: 30
+    label: Retention
+    description: Delete recorded events and snapshots older than this many days.
+  capture_results:
+    type: bool
+    default: true
+    label: Capture tool results
+    description: Store tool result previews in the local timeline.
+  redact_secrets:
+    type: bool
+    default: true
+    label: Redact secrets
+    description: Replace detected credentials before anything is stored.
+  max_payload_kb:
+    type: int
+    default: 50
+    label: Payload limit
+    description: Maximum size of each captured payload in kilobytes.
+  snapshot_enabled:
+    type: bool
+    default: true
+    label: Workspace snapshots
+    description: Snapshot git workspaces so a fork can restore the exact state.
+  verify_timeout_seconds:
+    type: int
+    default: 120
+    label: Verify timeout
+    description: Maximum runtime of a verification command in seconds.
+  record_paused:
+    type: bool
+    default: false
+    label: Pause recording
+    description: Keep the plugin loaded without recording new events.
+  workspace_root:
+    type: str
+    default: ""
+    label: Workspace root
+    description: Git repository to snapshot for forks. Empty uses the session working directory.

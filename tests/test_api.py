@@ -1,0 +1,88 @@
+from __future__ import annotations
+
+from fastapi import FastAPI
+from fastapi.testclient import TestClient
+from session_rewind.dashboard.api import create_router
+from session_rewind.store.db import Database
+
+PREFIX = "/api/plugins/session-rewind"
+
+
+def _client(database: Database) -> TestClient:
+    app = FastAPI()
+    app.include_router(create_router(database), prefix=PREFIX)
+    return TestClient(app)
+
+
+def test_health_and_sessions(seeded_database: Database) -> None:
+    client = _client(seeded_database)
+    health = client.get(f"{PREFIX}/health")
+    assert health.status_code == 200
+    assert health.json()["status"] == "ok"
+    assert health.json()["sessions"] == 2
+    assert health.json()["events"] > 0
+
+    sessions = client.get(f"{PREFIX}/sessions")
+    assert sessions.status_code == 200
+    assert len(sessions.json()["items"]) == 2
+
+    session = client.get(f"{PREFIX}/sessions/sess_baseline")
+    assert session.status_code == 200
+    assert session.json()["session_id"] == "sess_baseline"
+    assert session.json()["model"] == "model-a"
+
+    assert client.get(f"{PREFIX}/sessions/missing").status_code == 404
+
+
+def test_events_search_and_detail(seeded_database: Database) -> None:
+    client = _client(seeded_database)
+    events = client.get(f"{PREFIX}/sessions/sess_baseline/events")
+    assert events.status_code == 200
+    body = events.json()
+    assert len(body["items"]) == 7
+    assert body["items"][0]["kind"] == "session_start"
+    event_id = body["items"][1]["id"]
+
+    detail = client.get(f"{PREFIX}/events/{event_id}")
+    assert detail.status_code == 200
+    assert detail.json()["payload"]["user_message"].startswith("Fix")
+    assert client.get(f"{PREFIX}/events/99999").status_code == 404
+
+    search = client.get(f"{PREFIX}/search", params={"q": "pytest"})
+    assert search.status_code == 200
+    items = search.json()["items"]
+    assert len(items) >= 2
+    assert {item["session_id"] for item in items} == {"sess_baseline", "sess_branch"}
+
+    snapshots = client.get(f"{PREFIX}/sessions/sess_baseline/snapshots")
+    assert snapshots.status_code == 200
+    assert snapshots.json() == []
+
+
+def test_compare_and_bookmarks(seeded_database: Database) -> None:
+    client = _client(seeded_database)
+    compare = client.get(
+        f"{PREFIX}/compare",
+        params={"left": "sess_baseline", "right": "sess_branch"},
+    )
+    assert compare.status_code == 200
+    body = compare.json()
+    assert body["left"]["tool_errors"] == 1
+    assert body["right"]["tool_errors"] == 0
+    assert "fewer tool errors" in body["verdict"]
+
+    bookmark = client.post(
+        f"{PREFIX}/bookmarks",
+        json={"session_id": "sess_baseline", "label": "checkpoint"},
+    )
+    assert bookmark.status_code == 200
+    assert bookmark.json()["label"] == "checkpoint"
+
+    missing = client.post(
+        f"{PREFIX}/bookmarks",
+        json={"session_id": "missing", "label": "checkpoint"},
+    )
+    assert missing.status_code == 404
+
+    branch = client.get(f"{PREFIX}/branches/missing")
+    assert branch.status_code == 404
