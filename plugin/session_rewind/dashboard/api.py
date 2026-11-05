@@ -192,11 +192,12 @@ def create_router(database: Database, settings: Settings | None = None) -> APIRo
             snapshot_id=plan.snapshot_id,
             snapshot_commit=plan.snapshot_commit,
             worktree_path=plan.worktree_path,
+            repo_root=plan.repo_root,
             prompt=plan.prompt,
             model=plan.model,
             provider=plan.provider,
             verify_cmd=plan.verify_cmd,
-            verify_resolved=_resolved_verify(plan.verify_cmd, plan.worktree_path),
+            verify_resolved=_resolved_verify(plan.verify_cmd, plan.worktree_path, plan.repo_root),
             verify_timeout_seconds=plan.verify_timeout_seconds,
             fidelity=plan.fidelity,
             context_rows=plan.context_rows,
@@ -297,10 +298,16 @@ def create_router(database: Database, settings: Settings | None = None) -> APIRo
     return router
 
 
-def _resolved_verify(verify_cmd: str | None, worktree_path: str | None) -> str | None:
+def _resolved_verify(
+    verify_cmd: str | None,
+    worktree_path: str | None,
+    repo_root: str | None,
+) -> str | None:
     if verify_cmd is None:
         return None
-    return resolved_command(verify_cmd, Path(worktree_path) if worktree_path else None)
+    worktree = Path(worktree_path) if worktree_path else None
+    fallbacks = (Path(repo_root),) if repo_root else ()
+    return resolved_command(verify_cmd, worktree, fallbacks)
 
 
 def _turn_summary(row: dict[str, Any]) -> TurnSummary:

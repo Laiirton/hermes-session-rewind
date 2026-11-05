@@ -30,20 +30,25 @@ def split_command(command: str) -> list[str]:
     return shlex.split(command, posix=True)
 
 
-def _workspace_python(cwd: Path) -> Path | None:
+def _workspace_python(directory: Path) -> Path | None:
     for layout in _VENV_LAYOUTS:
-        candidate = cwd / ".venv" / layout
+        candidate = directory / ".venv" / layout
         if candidate.exists():
             return candidate
     return None
 
 
-def _locate(program: str, cwd: Path | None) -> str | None:
+def _locate(
+    program: str,
+    cwd: Path | None,
+    fallback_dirs: tuple[Path, ...] = (),
+) -> str | None:
     if cwd is not None:
         if _PYTHON_NAME.match(Path(program).name):
-            interpreter = _workspace_python(cwd)
-            if interpreter is not None:
-                return str(interpreter)
+            for directory in (cwd, *fallback_dirs):
+                interpreter = _workspace_python(directory)
+                if interpreter is not None:
+                    return str(interpreter)
         if "\\" in program or "/" in program:
             candidate = cwd / program
             if candidate.exists():
@@ -51,11 +56,15 @@ def _locate(program: str, cwd: Path | None) -> str | None:
     return shutil.which(program)
 
 
-def resolve_argv(command: str, cwd: Path | None = None) -> list[str]:
+def resolve_argv(
+    command: str,
+    cwd: Path | None = None,
+    fallback_dirs: tuple[Path, ...] = (),
+) -> list[str]:
     args = split_command(command)
     if not args:
         raise LookupError("empty verify command")
-    program = _locate(args[0], cwd)
+    program = _locate(args[0], cwd, fallback_dirs)
     if program is None:
         raise LookupError(f"verify command is not on the gateway PATH: {args[0]}")
     if sys.platform == "win32" and program.lower().endswith(_BATCH_SUFFIXES):
@@ -64,20 +73,30 @@ def resolve_argv(command: str, cwd: Path | None = None) -> list[str]:
     return [program, *args[1:]]
 
 
-def resolved_command(command: str, cwd: Path | None = None) -> str | None:
+def resolved_command(
+    command: str,
+    cwd: Path | None = None,
+    fallback_dirs: tuple[Path, ...] = (),
+) -> str | None:
     try:
-        return " ".join(resolve_argv(command, cwd))
+        return " ".join(resolve_argv(command, cwd, fallback_dirs))
     except (LookupError, ValueError):
         return None
 
 
 class VerifyRunner:
-    def run(self, command: str, cwd: Path, timeout_seconds: float) -> VerifyResult:
+    def run(
+        self,
+        command: str,
+        cwd: Path,
+        timeout_seconds: float,
+        fallback_dirs: tuple[Path, ...] = (),
+    ) -> VerifyResult:
         started = time.monotonic()
         if not cwd.exists():
             return VerifyResult(None, "worktree does not exist", _elapsed_ms(started), False)
         try:
-            argv = resolve_argv(command, cwd)
+            argv = resolve_argv(command, cwd, fallback_dirs)
         except LookupError as exc:
             return VerifyResult(None, str(exc), _elapsed_ms(started), False)
         except ValueError as exc:

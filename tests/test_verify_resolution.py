@@ -53,6 +53,23 @@ def test_relative_programs_resolve_against_the_worktree(tmp_path: Path) -> None:
     assert argv == [str(interpreter), "--version"]
 
 
+def test_parent_repo_venv_is_used_when_the_worktree_has_none(tmp_path: Path) -> None:
+    repo = tmp_path / "demo-repo"
+    interpreter = repo / ".venv" / "Scripts" / "python.exe"
+    interpreter.parent.mkdir(parents=True)
+    interpreter.write_text("", encoding="utf-8")
+    worktree = tmp_path / ".hermes-rewind" / "abc12345"
+    worktree.mkdir(parents=True)
+
+    argv = resolve_argv("python -m pytest -q", worktree, (repo,))
+
+    assert argv[0] == str(interpreter)
+    assert (
+        resolved_command("python -m pytest -q", worktree, (repo,))
+        == str(interpreter) + " -m pytest -q"
+    )
+
+
 def test_missing_program_is_reported_instead_of_failing_silently() -> None:
     with pytest.raises(LookupError, match="not on the gateway PATH"):
         resolve_argv("definitely-not-a-real-program-xyz --version")

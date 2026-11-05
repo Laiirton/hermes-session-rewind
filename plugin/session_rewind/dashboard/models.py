@@ -213,6 +213,7 @@ class ForkPlanResponse(BaseModel):
     snapshot_id: int | None = None
     snapshot_commit: str | None = None
     worktree_path: str | None = None
+    repo_root: str | None = None
     prompt: str
     model: str | None = None
     provider: str | None = None

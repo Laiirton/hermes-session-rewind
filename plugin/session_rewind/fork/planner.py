@@ -48,6 +48,7 @@ class ForkPlan:
     snapshot_id: int | None
     snapshot_commit: str | None
     worktree_path: str | None
+    repo_root: str | None
     prompt: str
     model: str | None
     provider: str | None
@@ -86,10 +87,12 @@ class ForkPlanner:
         branch_id = uuid.uuid4().hex
         worktree_path: str | None = None
         repo_root: Path | None = None
+        repo_root_str: str | None = None
         snapshot_commit: str | None = None
         fidelity = "context"
         if snapshot is not None:
             repo_root = Path(str(snapshot["repo_root"]))
+            repo_root_str = str(repo_root)
             snapshot_commit = str(snapshot["commit_sha"])
             try:
                 worktree = self._worktrees.create(repo_root, snapshot_commit, branch_id[:8])
@@ -135,6 +138,7 @@ class ForkPlanner:
             snapshot_id=snapshot_id,
             snapshot_commit=snapshot_commit,
             worktree_path=worktree_path,
+            repo_root=repo_root_str,
             prompt=prompt,
             model=request.model,
             provider=request.provider,

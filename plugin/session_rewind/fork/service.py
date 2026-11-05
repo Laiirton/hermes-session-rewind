@@ -100,10 +100,12 @@ class ForkService:
             raise ForkError("branch has no restored workspace")
         if not isinstance(command, str) or not command:
             raise ForkError("branch has no verify command")
+        root = self._repo_root(branch)
         result = self._verifier.run(
             command,
             Path(worktree),
             self._settings.verify_timeout_seconds,
+            (root,) if root is not None else (),
         )
         store = WriteStore(self._database.connect())
         try:
