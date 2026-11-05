@@ -19,6 +19,15 @@ interface BranchRpcResult {
   stored_session_id: string;
 }
 
+interface ActiveSession {
+  id: string;
+  session_key: string;
+}
+
+interface ActiveSessions {
+  sessions?: ActiveSession[];
+}
+
 interface ConfigSetResult {
   confirm_required?: boolean;
   confirm_message?: string;
@@ -88,13 +97,22 @@ export function ForkDialog({
     setError(null);
     setNotice(null);
     try {
+      const active = await host.request<ActiveSessions>('session.active_list', {});
+      const activeSessions = Array.isArray(active.sessions) ? active.sessions : [];
+      const parentRuntimeId =
+        activeSessions.find((item) => item.session_key === session.session_id)?.id ??
+        activeSessions.find((item) => item.id === session.session_id)?.id;
+      if (parentRuntimeId === undefined) {
+        throw new Error('The session is not live. Open it in Hermes Desktop and try again.');
+      }
       const branch = await host.request<BranchRpcResult>('session.branch', {
-        session_id: session.session_id,
+        session_id: parentRuntimeId,
         count: plan.fork_row_count,
         name: `↺ ${session.title ?? shortId(session.session_id)}`,
         idempotency_key: crypto.randomUUID()
       });
       const childId = branch.session_id;
+      const childStoredId = branch.stored_session_id;
       if (plan.worktree_path !== null) {
         try {
           await host.request('session.cwd.set', {
@@ -135,14 +153,14 @@ export function ForkDialog({
         text: finalPrompt
       });
       await commitFork(ctx, plan.branch_id, {
-        child_session_id: childId,
-        child_stored_session_id: branch.stored_session_id,
+        child_session_id: childStoredId,
+        child_stored_session_id: childStoredId,
         model: model.trim() || null,
         provider: null,
         prompt: finalPrompt
       });
       onCreated(plan.branch_id);
-      host.openSession(branch.stored_session_id, { intent: 'tab' });
+      host.openSession(childStoredId, { intent: 'tab' });
       onClose();
     } catch (caught) {
       setError(errorMessage(caught));
