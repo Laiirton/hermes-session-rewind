@@ -496,6 +496,7 @@ export function RewindPage({ ctx }: { ctx: PluginContext }): ReactNode {
   const [liveTick, setLiveTick] = useState(0);
   const [sessionsLoaded, setSessionsLoaded] = useState(false);
   const [turnsLoaded, setTurnsLoaded] = useState(false);
+  const [turnsError, setTurnsError] = useState<string | null>(null);
 
   useEffect(
     () =>
@@ -543,6 +544,7 @@ export function RewindPage({ ctx }: { ctx: PluginContext }): ReactNode {
       setTurns([]);
       setTurnsLoaded(false);
       setTurnsHasMore(false);
+      setTurnsError(null);
       setSnapshots([]);
       setBranches([]);
       return;
@@ -563,10 +565,12 @@ export function RewindPage({ ctx }: { ctx: PluginContext }): ReactNode {
         setTurnsLoaded(true);
         setSnapshots(snapshotItems);
         setBranches(branchItems);
+        setTurnsError(null);
         setError(null);
       } catch (caught) {
         if (!cancelled) {
-          setError(errorMessage(caught));
+          setTurnsLoaded(true);
+          setTurnsError(errorMessage(caught));
         }
       }
     };
@@ -792,7 +796,9 @@ export function RewindPage({ ctx }: { ctx: PluginContext }): ReactNode {
                 <div className="text-xs text-(--ui-text-tertiary)">Loading turns...</div>
               ) : turns.length === 0 ? (
                 <div className="text-xs text-(--ui-text-tertiary)">
-                  No user turns recorded yet for this session.
+                  {turnsError === null
+                    ? 'No user turns recorded yet for this session.'
+                    : `The turns could not be loaded: ${turnsError}`}
                 </div>
               ) : (
                 <>
