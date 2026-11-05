@@ -38,8 +38,9 @@ Target: under 90 seconds, showing the plugin working, not a mock.
 - A 73-event session renders as 2 turn rows; expanding one lists its events with errors in red.
 - The comparison panel shows the frozen baseline (422.368 tokens) instead of the live session total (447.220).
 - A prepared branch shows `workspace ready`, the snapshot id, the worktree path and the resolved interpreter.
-- The ten forked turns in the demo repository were prepared and cleaned through the plugin, and abandoned
-  prepared branches are swept rather than left behind.
+- Prepared branches show a real worktree, and abandoned prepared branches are swept rather than left
+  behind; four were reclaimed through the new path during this pass.
+- Not yet measured: ten consecutive forks with duplicate-tab and orphan-worktree counts.
 
 ## Acceptance
 
