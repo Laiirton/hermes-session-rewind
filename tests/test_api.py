@@ -61,6 +61,20 @@ def test_events_search_and_detail(seeded_database: Database) -> None:
     assert snapshots.json() == []
 
 
+def test_bookmark_rejects_an_event_from_another_session(seeded_database: Database) -> None:
+    client = _client(seeded_database)
+    events = client.get(f"{PREFIX}/sessions/sess_branch/events")
+    event_id = events.json()["items"][1]["id"]
+
+    refused = client.post(
+        f"{PREFIX}/bookmarks",
+        json={"session_id": "sess_baseline", "event_id": event_id, "label": "checkpoint"},
+    )
+
+    assert refused.status_code == 422
+    assert refused.json()["detail"] == "that event belongs to another session"
+
+
 def test_compare_and_bookmarks(seeded_database: Database) -> None:
     client = _client(seeded_database)
     compare = client.get(

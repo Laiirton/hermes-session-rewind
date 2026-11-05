@@ -291,6 +291,8 @@ def create_router(database: Database, settings: Settings | None = None) -> APIRo
                 store.close()
         except sqlite3.IntegrityError as exc:
             raise HTTPException(status_code=404, detail="session or event not found") from exc
+        except ValueError as exc:
+            raise HTTPException(status_code=422, detail=str(exc)) from exc
         return BookmarkResponse(
             id=bookmark_id,
             session_id=payload.session_id,

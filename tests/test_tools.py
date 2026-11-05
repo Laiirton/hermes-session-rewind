@@ -57,6 +57,23 @@ def test_tools_reject_invalid_input(seeded_database: Database) -> None:
     assert missing_event["error"] == "event not found"
 
 
+def test_bookmark_refuses_an_event_from_another_session(seeded_database: Database) -> None:
+    tools = RewindTools(seeded_database)
+    foreign = json.loads(tools.inspect({"session_id": "sess_branch", "limit": 1}))
+    event_id = foreign["events"][0]["id"]
+
+    result = json.loads(
+        tools.bookmark({"session_id": "sess_baseline", "event_id": event_id, "label": "checkpoint"})
+    )
+
+    assert result == {"error": "that event belongs to another session"}
+    connection = seeded_database.connect()
+    try:
+        assert connection.execute("SELECT COUNT(*) FROM bookmarks").fetchone()[0] == 0
+    finally:
+        connection.close()
+
+
 def test_tool_errors_never_leak_store_internals(seeded_database: Database, tmp_path: Path) -> None:
     tools = RewindTools(seeded_database)
     missing = json.loads(tools.bookmark({"session_id": "missing", "label": "checkpoint"}))

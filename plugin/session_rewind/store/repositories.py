@@ -338,6 +338,12 @@ class WriteStore:
         created_at: float,
     ) -> int:
         with self._connection:
+            if event_id is not None:
+                owner = self._connection.execute(
+                    "SELECT session_id FROM events WHERE id = ?", (event_id,)
+                ).fetchone()
+                if owner is not None and str(owner[0]) != session_id:
+                    raise ValueError("that event belongs to another session")
             cursor = self._connection.execute(
                 """
                 INSERT INTO bookmarks (session_id, event_id, label, note, created_at)

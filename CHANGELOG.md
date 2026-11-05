@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Refuse a bookmark that pairs a session with an event of another session. The foreign keys only proved the event existed, so a model-supplied pair could record a bookmark under a session that never contained it.
+
 - Write the counts in the singular where they are one: a session with one checkpoint read "1 snapshots" and one turn read "1 turns". All count copy now goes through one helper.
 
 - Stop the preamble disclaimer from surviving inside the quoted task when a rewound turn is rewound again: the instruction sentence was replayed as part of the user's own words, so it appeared twice in the pack and once of those inside the data delimiters.
