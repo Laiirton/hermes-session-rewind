@@ -466,7 +466,11 @@ function ComparePanel({
           <div className="col-span-2 text-(--ui-text-tertiary)">Verdict: {compare.verdict}</div>
         </div>
       ) : (
-        <div className="text-xs text-(--ui-text-tertiary)">Waiting for the rerun to start.</div>
+        <div className="text-xs text-(--ui-text-tertiary)">
+          {branch.state === 'cleaned' || branch.state === 'discarded'
+            ? 'The rerun never started, and its workspace is gone.'
+            : 'Waiting for the rerun to start.'}
+        </div>
       )}
 
       {run !== null && run.verify_out ? (
@@ -748,32 +752,6 @@ export function RewindPage({ ctx }: { ctx: PluginContext }): ReactNode {
               ))
             )}
           </div>
-
-          {branches.length > 0 ? (
-            <div className="flex flex-col gap-1">
-              <div className="text-xs uppercase text-(--ui-text-tertiary)">Branches</div>
-              {branches.map((branch) => (
-                <button
-                  type="button"
-                  key={branch.id}
-                  className={`flex flex-col gap-0.5 rounded border px-2 py-1.5 text-left text-xs ${
-                    selectedBranchId === branch.id ? 'border-(--ui-accent)' : 'border-(--ui-border)'
-                  }`}
-                  onClick={() => {
-                    setSelectedBranchId(branch.id);
-                  }}
-                >
-                  <span className="flex items-center justify-between gap-2">
-                    <span className="font-mono">{shortId(branch.id)}</span>
-                    <span className={`uppercase ${stateTone(branch.state)}`}>{branch.state}</span>
-                  </span>
-                  <span className="truncate text-(--ui-text-tertiary)">
-                    {branch.model ?? 'same model'} · {branch.fork_row_count} rows
-                  </span>
-                </button>
-              ))}
-            </div>
-          ) : null}
         </aside>
 
         <main className="flex min-w-0 flex-1 flex-col gap-2">
@@ -799,6 +777,28 @@ export function RewindPage({ ctx }: { ctx: PluginContext }): ReactNode {
               <div className="text-right text-xs text-(--ui-text-tertiary)">
                 Select a user turn and choose Rewind.
               </div>
+            </div>
+          ) : null}
+
+          {branches.length > 0 ? (
+            <div className="flex max-h-24 flex-wrap items-center gap-1 overflow-y-auto">
+              <span className="text-xs uppercase text-(--ui-text-tertiary)">Branches</span>
+              {branches.map((branch) => (
+                <button
+                  type="button"
+                  key={branch.id}
+                  className={`flex items-center gap-2 rounded border px-2 py-1 text-xs ${
+                    selectedBranchId === branch.id ? 'border-(--ui-accent)' : 'border-(--ui-border)'
+                  }`}
+                  onClick={() => {
+                    setSelectedBranchId(branch.id);
+                  }}
+                >
+                  <span className="font-mono">{shortId(branch.id)}</span>
+                  <span className={`uppercase ${stateTone(branch.state)}`}>{branch.state}</span>
+                  <span className="text-(--ui-text-tertiary)">{branch.fork_row_count} rows</span>
+                </button>
+              ))}
             </div>
           ) : null}
 

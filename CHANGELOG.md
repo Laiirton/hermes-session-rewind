@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Move the branch list from the bottom of the session picker, behind every session card, into the session header where it belongs, as a wrapped chip strip with id, state and row count. A branch whose rerun never started now says so instead of waiting forever for a run that cannot come.
+
 - The timeline shows what the user actually asked, even for a turn produced by an earlier rewind: the preview now unwraps the context pack instead of opening with "You are continuing a Hermes session from a rewound checkpoint." Old packs without the delimiters, including one nested twice, unwrap to the same sentence.
 
 - The recording-failure and tool-rejection tests now prove what they claim: the sink counts the submissions it refused, and the tool errors are compared against their exact sentences instead of `"error" in result`.
