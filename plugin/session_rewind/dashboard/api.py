@@ -2,14 +2,13 @@ from __future__ import annotations
 
 import sqlite3
 import time
-from pathlib import Path
 from typing import Any
 
 from fastapi import APIRouter, HTTPException, Query
 
 from ..fork.planner import ForkError, ForkPlanner, ForkRequest
 from ..fork.service import ForkService
-from ..fork.verify import VerifyRunner, resolved_command
+from ..fork.verify import VerifyRunner
 from ..gitrepo.shadow import GitShadow
 from ..gitrepo.worktree import WorktreeManager
 from ..metrics import compare_verdict
@@ -20,6 +19,8 @@ from ..store.db import Database
 from ..store.repositories import ReadStore, WriteStore
 from ..version import VERSION
 from .models import (
+    MAX_VERIFY_CMD_CHARS,
+    VERIFY_CMD_PATTERN,
     BookmarkRequest,
     BookmarkResponse,
     BranchDetail,
@@ -40,6 +41,7 @@ from .models import (
     SnapshotSummary,
     TurnPage,
     TurnSummary,
+    VerifyResolveResponse,
     VerifyResponse,
 )
 
@@ -175,6 +177,25 @@ def create_router(database: Database, settings: Settings | None = None) -> APIRo
             raise HTTPException(status_code=404, detail="branch not found")
         return _branch_detail(detail[0], detail[1])
 
+    @router.get("/branches/{branch_id}/verify-resolve", response_model=VerifyResolveResponse)
+    def resolve_verify_command(
+        branch_id: str,
+        cmd: str = Query(
+            ...,
+            min_length=1,
+            max_length=MAX_VERIFY_CMD_CHARS,
+            pattern=VERIFY_CMD_PATTERN,
+        ),
+    ) -> VerifyResolveResponse:
+        command = cmd.strip()
+        if not command:
+            raise HTTPException(status_code=422, detail="verify command is empty")
+        try:
+            resolved = forks.resolve_verify(branch_id, command)
+        except ForkError as exc:
+            raise HTTPException(status_code=404, detail=str(exc)) from exc
+        return VerifyResolveResponse(command=command, resolved=resolved)
+
     @router.post("/forks/prepare", response_model=ForkPlanResponse)
     def prepare_fork(payload: ForkPrepareRequest) -> ForkPlanResponse:
         try:
@@ -204,7 +225,6 @@ def create_router(database: Database, settings: Settings | None = None) -> APIRo
             model=plan.model,
             provider=plan.provider,
             verify_cmd=plan.verify_cmd,
-            verify_resolved=_resolved_verify(plan.verify_cmd, plan.worktree_path, plan.repo_root),
             verify_timeout_seconds=plan.verify_timeout_seconds,
             fidelity=plan.fidelity,
             context_rows=plan.context_rows,
@@ -304,18 +324,6 @@ def create_router(database: Database, settings: Settings | None = None) -> APIRo
         )
 
     return router
-
-
-def _resolved_verify(
-    verify_cmd: str | None,
-    worktree_path: str | None,
-    repo_root: str | None,
-) -> str | None:
-    if verify_cmd is None:
-        return None
-    worktree = Path(worktree_path) if worktree_path else None
-    fallbacks = (Path(repo_root),) if repo_root else ()
-    return resolved_command(verify_cmd, worktree, fallbacks)
 
 
 def _turn_summary(row: dict[str, Any]) -> TurnSummary:

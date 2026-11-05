@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Resolve the verify command against the command in the field, not the one recorded when the branch was prepared; the dialog no longer reports "not found on the gateway PATH" for a command the gateway was never asked about.
+
 - Detect the workspace's own verify command from its project markers and prefill it, replacing four static guesses once a branch is prepared.
 - Fall back to the interpreter running the plugin when `python` is not on the gateway PATH, so verification still has a real interpreter instead of failing to resolve.
 

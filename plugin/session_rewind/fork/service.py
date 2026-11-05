@@ -10,7 +10,7 @@ from ..settings import Settings
 from ..store.db import Database
 from ..store.repositories import ReadStore, WriteStore
 from .planner import ForkError, ForkPlan, ForkPlanner, ForkRequest
-from .verify import VerifyResult, VerifyRunner
+from .verify import VerifyResult, VerifyRunner, resolved_command
 
 PREPARED_TTL_SECONDS = 900.0
 RUN_STALE_SECONDS = 900.0
@@ -113,6 +113,15 @@ class ForkService:
         finally:
             store.close()
         return result
+
+    def resolve_verify(self, branch_id: str, command: str) -> str | None:
+        branch = ReadStore(self._database).get_branch(branch_id)
+        if branch is None:
+            raise ForkError("branch not found")
+        worktree = branch.get("worktree_path")
+        root = self._repo_root(branch)
+        cwd = Path(worktree) if isinstance(worktree, str) and worktree else root
+        return resolved_command(command, cwd, () if root is None else (root,))
 
     def reconcile(self, branch_id: str) -> None:
         branch = ReadStore(self._database).get_branch(branch_id)

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, Field
 
 
 class HealthResponse(BaseModel):
@@ -175,17 +175,15 @@ class BookmarkResponse(BaseModel):
 
 
 MAX_VERIFY_CMD_CHARS = 500
+VERIFY_CMD_PATTERN = r"^[^\r\n\x00]+$"
 
 
 class VerifyCommandInput(BaseModel):
-    verify_cmd: str | None = Field(default=None, max_length=MAX_VERIFY_CMD_CHARS)
-
-    @field_validator("verify_cmd")
-    @classmethod
-    def _verify_cmd_is_one_line(cls, value: str | None) -> str | None:
-        if value is not None and any(char in value for char in ("\r", "\n", "\x00")):
-            raise ValueError("verify command must be a single line without control characters")
-        return value
+    verify_cmd: str | None = Field(
+        default=None,
+        max_length=MAX_VERIFY_CMD_CHARS,
+        pattern=VERIFY_CMD_PATTERN,
+    )
 
 
 class ForkPrepareRequest(VerifyCommandInput):
@@ -218,7 +216,6 @@ class ForkPlanResponse(BaseModel):
     model: str | None = None
     provider: str | None = None
     verify_cmd: str | None = None
-    verify_resolved: str | None = None
     verify_timeout_seconds: int
     fidelity: str
     context_rows: int | None = None
@@ -230,3 +227,8 @@ class VerifyResponse(BaseModel):
     output: str
     duration_ms: float
     timed_out: bool
+
+
+class VerifyResolveResponse(BaseModel):
+    command: str
+    resolved: str | None

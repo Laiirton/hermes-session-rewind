@@ -171,3 +171,43 @@ def test_sweep_keeps_a_recently_prepared_branch(database: Database, git_repo: Pa
     branch = ReadStore(database).get_branch("branch-fresh")
     assert branch is not None
     assert branch["state"] == "prepared"
+
+
+def test_resolve_verify_falls_back_to_the_repository_without_a_workspace(
+    database: Database, git_repo: Path
+) -> None:
+    store = WriteStore(database.connect())
+    try:
+        store.upsert_session("s_parent", 1.0, cwd=str(git_repo), model="model-a")
+        store.create_branch(
+            "branch-no-worktree",
+            "s_parent",
+            1.0,
+            0,
+            None,
+            None,
+            None,
+            None,
+            "rerun the turn",
+            None,
+            "prepared",
+            1.0,
+        )
+    finally:
+        store.close()
+    tool = git_repo / "bin" / "check"
+    tool.parent.mkdir(parents=True)
+    tool.write_text("", encoding="utf-8")
+    service = _service(database, WorktreeManager(GitShadow()))
+
+    assert (
+        service.resolve_verify("branch-no-worktree", "bin/check --quiet") == str(tool) + " --quiet"
+    )
+    assert service.resolve_verify("branch-no-worktree", "python -m pytest -q") is not None
+
+
+def test_resolve_verify_rejects_an_unknown_branch(database: Database) -> None:
+    service = _service(database, WorktreeManager(GitShadow()))
+
+    with pytest.raises(ForkError, match="branch not found"):
+        service.resolve_verify("branch-ghost", "pytest")

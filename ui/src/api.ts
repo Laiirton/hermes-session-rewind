@@ -151,7 +151,6 @@ export interface ForkPlan {
   model: string | null;
   provider: string | null;
   verify_cmd: string | null;
-  verify_resolved: string | null;
   verify_timeout_seconds: number;
   fidelity: string;
   context_rows: number | null;
@@ -172,6 +171,11 @@ export interface VerifyResult {
   output: string;
   duration_ms: number;
   timed_out: boolean;
+}
+
+export interface VerifyResolution {
+  command: string;
+  resolved: string | null;
 }
 
 function post<T>(ctx: PluginContext, path: string, body: unknown): Promise<T> {
@@ -247,6 +251,16 @@ export function commitFork(
 
 export function verifyFork(ctx: PluginContext, branchId: string): Promise<VerifyResult> {
   return post<VerifyResult>(ctx, `/forks/${encodeURIComponent(branchId)}/verify`, {});
+}
+
+export function resolveVerify(
+  ctx: PluginContext,
+  branchId: string,
+  command: string
+): Promise<VerifyResolution> {
+  return ctx.rest<VerifyResolution>(
+    `/branches/${encodeURIComponent(branchId)}/verify-resolve?cmd=${encodeURIComponent(command)}`
+  );
 }
 
 export function cleanupFork(ctx: PluginContext, branchId: string): Promise<BranchDetail> {

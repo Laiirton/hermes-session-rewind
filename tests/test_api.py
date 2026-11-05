@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from pathlib import Path
+
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 from session_rewind.dashboard.api import create_router
@@ -121,3 +123,71 @@ def test_get_branch_does_not_mutate_state(seeded_database: Database) -> None:
     assert reconciled.json()["branch"]["state"] in ("done", "failed")
 
     assert client.post(f"{PREFIX}/branches/missing/reconcile").status_code == 404
+
+
+def test_verify_resolve_reports_the_command_being_edited(
+    seeded_database: Database, tmp_path: Path
+) -> None:
+    from session_rewind.store.repositories import WriteStore
+
+    worktree = tmp_path / "worktree"
+    (worktree / "bin").mkdir(parents=True)
+    tool = worktree / "bin" / "check"
+    tool.write_text("", encoding="utf-8")
+    store = WriteStore(seeded_database.connect())
+    try:
+        store.create_branch(
+            "branch-resolve",
+            "sess_baseline",
+            20.0,
+            1,
+            None,
+            str(worktree),
+            None,
+            None,
+            "rerun",
+            None,
+            "prepared",
+            30.0,
+        )
+    finally:
+        store.close()
+    client = _client(seeded_database)
+
+    resolved = client.get(
+        f"{PREFIX}/branches/branch-resolve/verify-resolve",
+        params={"cmd": "bin/check --quiet"},
+    )
+    assert resolved.status_code == 200
+    assert resolved.json() == {
+        "command": "bin/check --quiet",
+        "resolved": str(tool) + " --quiet",
+    }
+
+    missing = client.get(
+        f"{PREFIX}/branches/branch-resolve/verify-resolve",
+        params={"cmd": "definitely-not-a-real-program-xyz"},
+    )
+    assert missing.json()["resolved"] is None
+
+    assert (
+        client.get(
+            f"{PREFIX}/branches/missing/verify-resolve",
+            params={"cmd": "bin/check"},
+        ).status_code
+        == 404
+    )
+    assert (
+        client.get(
+            f"{PREFIX}/branches/branch-resolve/verify-resolve",
+            params={"cmd": "bin/check\nrm -rf /"},
+        ).status_code
+        == 422
+    )
+    assert (
+        client.get(
+            f"{PREFIX}/branches/branch-resolve/verify-resolve",
+            params={"cmd": "  "},
+        ).status_code
+        == 422
+    )

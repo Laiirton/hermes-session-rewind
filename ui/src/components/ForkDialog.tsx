@@ -3,8 +3,8 @@ import type { PluginContext } from '@hermes/plugin-sdk';
 import { useEffect, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
 
-import { commitFork, prepareFork } from '../api';
-import type { EventSummary, ForkPlan, SessionSummary } from '../api';
+import { commitFork, prepareFork, resolveVerify } from '../api';
+import type { EventSummary, ForkPlan, SessionSummary, VerifyResolution } from '../api';
 import { errorMessage, formatTime, shortId } from '../format';
 import { branchPoint } from '../forkPrefix';
 import type { HistoryResult } from '../forkPrefix';
@@ -39,6 +39,7 @@ interface ConfigSetResult {
 }
 
 const VERIFY_PRESETS = ['python -m pytest -q', 'npm test', 'cargo test', 'go test ./...'];
+const RESOLVE_DEBOUNCE_MS = 350;
 
 interface LiveParent {
   runtimeId: string | undefined;
@@ -434,6 +435,7 @@ export function ForkDialog({
   const [prompt, setPrompt] = useState('');
   const [verifyCmd, setVerifyCmd] = useState('');
   const [plan, setPlan] = useState<ForkPlan | null>(null);
+  const [resolution, setResolution] = useState<VerifyResolution | null>(null);
   const [busyAction, setBusyAction] = useState<'prepare' | 'run' | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
@@ -469,6 +471,32 @@ export function ForkDialog({
       window.removeEventListener('keydown', onKeyDown);
     };
   }, [busy, onClose]);
+
+  useEffect(() => {
+    const command = verifyCmd.trim();
+    if (plan === null || command === '') {
+      setResolution(null);
+      return;
+    }
+    let cancelled = false;
+    const stop = ctx.setTimeout(() => {
+      void resolveVerify(ctx, plan.branch_id, command)
+        .then((value) => {
+          if (!cancelled) {
+            setResolution(value);
+          }
+        })
+        .catch(() => {
+          if (!cancelled) {
+            setResolution(null);
+          }
+        });
+    }, RESOLVE_DEBOUNCE_MS);
+    return (): void => {
+      cancelled = true;
+      stop();
+    };
+  }, [ctx, plan, verifyCmd]);
 
   const resolveLiveParent = async (): Promise<LiveParent> => {
     const active = await host.request<ActiveSessions>('session.active_list', {});
@@ -782,11 +810,11 @@ export function ForkDialog({
               <span className="rw-help">
                 Runs in the restored workspace with the gateway environment.
               </span>
-              {plan !== null && verifyCmd.trim() !== '' ? (
+              {resolution !== null && resolution.command === verifyCmd.trim() ? (
                 <span className="rw-resolved">
-                  {plan.verify_resolved === null
-                    ? 'Not found on the gateway PATH. Use the full interpreter path.'
-                    : `Resolves to ${plan.verify_resolved}`}
+                  {resolution.resolved === null
+                    ? 'Not found in the gateway environment. Use the full interpreter path.'
+                    : `Resolves to ${resolution.resolved}`}
                 </span>
               ) : null}
             </label>
