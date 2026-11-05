@@ -42,6 +42,19 @@ interface ForkTarget {
   event: EventSummary;
 }
 
+const PAGE_CSS = `
+.rw-page :is(button, input, textarea, summary, [tabindex]):focus-visible {
+  outline: 2px solid var(--ui-accent, #4f8cff);
+  outline-offset: 1px;
+}
+.rw-page button:not(:disabled) {
+  cursor: pointer;
+}
+.rw-page button:disabled {
+  cursor: not-allowed;
+}
+`;
+
 const TERMINAL_BRANCH_STATES = new Set(['done', 'failed', 'cleaned', 'discarded']);
 
 function turnDuration(turn: TurnSummary): string {
@@ -704,7 +717,8 @@ export function RewindPage({ ctx }: { ctx: PluginContext }): ReactNode {
   };
 
   return (
-    <div className="flex h-full flex-col gap-3 p-3 text-sm">
+    <div className="rw-page flex h-full flex-col gap-3 p-3 text-sm">
+      <style>{PAGE_CSS}</style>
       <header className="flex items-center justify-between gap-3 border-b border-(--ui-border) pb-2">
         <div>
           <div className="text-base font-medium">Session Rewind</div>

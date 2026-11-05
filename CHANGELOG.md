@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- Give the page a focus ring and a pointer cursor. Nothing in the page styled `:focus-visible`, and the same Tab that now draws an accent outline around the next session card had drawn nothing before it. Buttons that do nothing when disabled also stop inviting a click.
+
+
 - Measure a turn to its own end. The turn window ran to the next user turn, so a session left open afterwards added its idle time to the last turn: "Diga apenas: pronto" reported 21602.8s, six hours, for a turn that took 2.8s. The timeline now uses the turn's `turn_end` when the recording has one and falls back to the old window when it does not.
 
 
