@@ -119,6 +119,8 @@ export interface CompareSession extends SessionSummary {
   tool_calls: number;
   tool_errors: number;
   duration_ms: number;
+  verify_exit: number | null;
+  frozen_at: number | null;
 }
 
 export interface CompareResponse {
@@ -232,10 +234,12 @@ export function getBranch(ctx: PluginContext, branchId: string): Promise<BranchD
 export function getCompare(
   ctx: PluginContext,
   left: string,
-  right: string
+  right: string,
+  beforeTs: number | null = null
 ): Promise<CompareResponse> {
+  const frozen = beforeTs === null ? '' : `&before_ts=${beforeTs}`;
   return ctx.rest<CompareResponse>(
-    `/compare?left=${encodeURIComponent(left)}&right=${encodeURIComponent(right)}`
+    `/compare?left=${encodeURIComponent(left)}&right=${encodeURIComponent(right)}${frozen}`
   );
 }
 

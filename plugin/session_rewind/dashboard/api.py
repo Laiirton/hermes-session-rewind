@@ -273,14 +273,23 @@ def create_router(database: Database, settings: Settings | None = None) -> APIRo
     def compare(
         left: str = Query(..., min_length=1),
         right: str = Query(..., min_length=1),
+        before_ts: float | None = Query(None, ge=0),
     ) -> CompareResponse:
-        comparison = read_store().compare_sessions(left, right)
+        store = read_store()
+        comparison = store.compare_sessions(left, right, left_before_ts=before_ts)
         left_metrics = comparison.get("left")
         right_metrics = comparison.get("right")
+        if isinstance(right_metrics, dict):
+            run = store.get_run_by_child(right)
+            if run is not None:
+                right_metrics["verify_exit"] = run.get("verify_exit")
         return CompareResponse(
-            left=CompareSession(**left_metrics) if left_metrics is not None else None,
-            right=CompareSession(**right_metrics) if right_metrics is not None else None,
-            verdict=compare_verdict(left_metrics, right_metrics),
+            left=CompareSession(**left_metrics) if isinstance(left_metrics, dict) else None,
+            right=CompareSession(**right_metrics) if isinstance(right_metrics, dict) else None,
+            verdict=compare_verdict(
+                left_metrics if isinstance(left_metrics, dict) else None,
+                right_metrics if isinstance(right_metrics, dict) else None,
+            ),
         )
 
     return router

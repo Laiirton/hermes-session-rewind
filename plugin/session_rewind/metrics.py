@@ -6,6 +6,9 @@ from typing import Any
 def compare_verdict(left: dict[str, Any] | None, right: dict[str, Any] | None) -> str:
     if left is None or right is None:
         return "missing session"
+    verify_exit = right.get("verify_exit")
+    if verify_exit is not None and int(verify_exit) != 0:
+        return f"right failed verification (exit {int(verify_exit)})"
     left_errors = int(left.get("tool_errors", 0))
     right_errors = int(right.get("tool_errors", 0))
     if left_errors != right_errors:
@@ -22,4 +25,6 @@ def compare_verdict(left: dict[str, Any] | None, right: dict[str, Any] | None) -
     right_outcome = right.get("outcome")
     if left_outcome != right_outcome:
         return f"outcomes differ: {left_outcome} vs {right_outcome}"
+    if verify_exit is not None:
+        return "right matches the original and passes verification"
     return "no measurable difference"

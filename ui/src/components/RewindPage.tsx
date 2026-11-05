@@ -292,7 +292,12 @@ function ComparePanel({
         setError(null);
         const child = branch.branch.child_session_id;
         if (child !== null) {
-          const result = await getCompare(ctx, branch.branch.parent_session_id, child);
+          const result = await getCompare(
+            ctx,
+            branch.branch.parent_session_id,
+            child,
+            branch.branch.fork_before_ts
+          );
           if (!cancelled) {
             setCompare(result);
           }
@@ -395,7 +400,9 @@ function ComparePanel({
       {compare !== null ? (
         <div className="grid grid-cols-2 gap-2 text-xs">
           <div className="rounded border border-(--ui-border) p-2">
-            <div className="mb-1 text-(--ui-text-tertiary)">Original</div>
+            <div className="mb-1 text-(--ui-text-tertiary)">
+              Original{compare.left?.frozen_at ? ` · frozen ${formatTime(compare.left.frozen_at)}` : ''}
+            </div>
             <Metric label="outcome" value={compare.left?.outcome ?? 'unknown'} />
             <Metric
               label="tokens"
@@ -413,6 +420,15 @@ function ComparePanel({
           <div className="rounded border border-(--ui-border) p-2">
             <div className="mb-1 text-(--ui-text-tertiary)">Rerun</div>
             <Metric label="outcome" value={compare.right?.outcome ?? 'running'} />
+            <Metric
+              label="verify"
+              value={
+                compare.right?.verify_exit === null ||
+                compare.right?.verify_exit === undefined
+                  ? 'not run'
+                  : `exit ${compare.right.verify_exit}`
+              }
+            />
             <Metric
               label="tokens"
               value={

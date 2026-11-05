@@ -624,10 +624,33 @@ class ReadStore:
         finally:
             connection.close()
 
-    def compare_sessions(self, left_session_id: str, right_session_id: str) -> dict[str, Any]:
+    def get_run_by_child(self, child_session_id: str) -> dict[str, Any] | None:
         connection = self._connect()
         try:
-            left = self._session_metrics(connection, left_session_id)
+            row = connection.execute(
+                """
+                SELECT r.* FROM runs r
+                JOIN branches b ON b.id = r.branch_id
+                WHERE b.child_session_id = ?
+                ORDER BY r.updated_at DESC
+                LIMIT 1
+                """,
+                (child_session_id,),
+            ).fetchone()
+            return dict(row) if row is not None else None
+        finally:
+            connection.close()
+
+    def compare_sessions(
+        self,
+        left_session_id: str,
+        right_session_id: str,
+        *,
+        left_before_ts: float | None = None,
+    ) -> dict[str, Any]:
+        connection = self._connect()
+        try:
+            left = self._session_metrics(connection, left_session_id, left_before_ts)
             right = self._session_metrics(connection, right_session_id)
             return {"left": left, "right": right}
         finally:
@@ -637,12 +660,17 @@ class ReadStore:
         self,
         connection: sqlite3.Connection,
         session_id: str,
+        before_ts: float | None = None,
     ) -> dict[str, Any] | None:
         summary = self.get_session(session_id)
         if summary is None:
             return None
+        window = " AND ts <= ?" if before_ts is not None else ""
+        params: list[Any] = [session_id]
+        if before_ts is not None:
+            params.append(before_ts)
         row = connection.execute(
-            """
+            f"""
             SELECT
                 COALESCE(SUM(CASE WHEN kind = 'llm_call'
                     THEN CAST(json_extract(payload_json, '$.prompt_tokens') AS INTEGER)
@@ -657,17 +685,17 @@ class ReadStore:
                 COALESCE(SUM(CASE WHEN kind = 'tool_result' AND status = 'error'
                     THEN 1 ELSE 0 END), 0) AS tool_errors
             FROM events
-            WHERE session_id = ?
+            WHERE session_id = ?{window}
             """,
-            (session_id,),
+            params,
         ).fetchone()
         first = connection.execute(
-            "SELECT ts FROM events WHERE session_id = ? ORDER BY seq ASC LIMIT 1",
-            (session_id,),
+            f"SELECT ts FROM events WHERE session_id = ?{window} ORDER BY seq ASC LIMIT 1",
+            params,
         ).fetchone()
         last = connection.execute(
-            "SELECT ts FROM events WHERE session_id = ? ORDER BY seq DESC LIMIT 1",
-            (session_id,),
+            f"SELECT ts FROM events WHERE session_id = ?{window} ORDER BY seq DESC LIMIT 1",
+            params,
         ).fetchone()
         duration_ms = 0.0
         if first is not None and last is not None:
@@ -684,14 +712,27 @@ class ReadStore:
                     "duration_ms": duration_ms,
                 }
             )
-        if metrics.get("outcome") is None:
-            turn = connection.execute(
-                "SELECT payload_json FROM events "
-                "WHERE session_id = ? AND kind = 'turn_end' ORDER BY seq DESC LIMIT 1",
-                (session_id,),
-            ).fetchone()
-            if turn is not None:
-                metrics["outcome"] = _last_turn_outcome(turn["payload_json"])
+        if before_ts is None:
+            if metrics.get("outcome") is None:
+                turn = connection.execute(
+                    "SELECT payload_json FROM events "
+                    "WHERE session_id = ? AND kind = 'turn_end' ORDER BY seq DESC LIMIT 1",
+                    (session_id,),
+                ).fetchone()
+                if turn is not None:
+                    metrics["outcome"] = _last_turn_outcome(turn["payload_json"])
+            return metrics
+        boundary = connection.execute(
+            "SELECT kind, payload_json FROM events "
+            "WHERE session_id = ? AND ts <= ? AND kind IN ('session_end', 'turn_end') "
+            "ORDER BY seq DESC LIMIT 1",
+            (session_id, before_ts),
+        ).fetchone()
+        metrics["outcome"] = (
+            _last_turn_outcome(boundary["payload_json"]) if boundary is not None else None
+        )
+        metrics["ended_at"] = float(last["ts"]) if last is not None else None
+        metrics["frozen_at"] = before_ts
         return metrics
 
 

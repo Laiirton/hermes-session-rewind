@@ -100,7 +100,10 @@ class ForkService:
         if metrics is None or metrics.get("ended_at") is None:
             return
         outcome = metrics.get("outcome")
-        state = "done" if outcome == "completed" else "failed"
+        run = ReadStore(self._database).get_run(branch_id)
+        verify_exit = run.get("verify_exit") if run is not None else None
+        passed = outcome == "completed" and (not isinstance(verify_exit, int) or verify_exit == 0)
+        state = "done" if passed else "failed"
         now = time.time()
         store = WriteStore(self._database.connect())
         try:

@@ -148,6 +148,8 @@ class CompareSession(SessionSummary):
     tool_calls: int = 0
     tool_errors: int = 0
     duration_ms: float = 0.0
+    verify_exit: int | None = None
+    frozen_at: float | None = None
 
 
 class CompareResponse(BaseModel):
