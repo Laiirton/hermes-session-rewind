@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- Correct the README where it had fallen behind the code. It still said that forking an ended session is refused, that the timeline loads the newest 500 events, and that verify never uses a shell, while the plugin had been doing the opposite of all three for days.
+
+
 - Give the page a focus ring and a pointer cursor. Nothing in the page styled `:focus-visible`, and the same Tab that now draws an accent outline around the next session card had drawn nothing before it. Buttons that do nothing when disabled also stop inviting a click.
 
 

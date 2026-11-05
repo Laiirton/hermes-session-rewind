@@ -9,7 +9,7 @@ Session Rewind is a Hermes Agent plugin with a Python half (hooks, local event s
 - Records prompts, responses, tool calls, tool results, token usage, compactions and session lifecycle events.
 - Shows a turn-grouped timeline that pages by cursor from the newest turn, expands a turn on demand and highlights tool errors.
 - Snapshots git workspaces with a private index and shadow refs without touching HEAD, the real index or the working tree.
-- Forks a user turn through the public `session.branch` gateway method with the exact history prefix.
+- Forks a user turn through the public `session.branch` gateway method with the exact history prefix when the session is live. When it is not, the rerun starts a new chat carrying a context pack built from the recorded turns, the files the turn touched and the verify command.
 - Restores the workspace snapshot into an isolated git worktree and starts the rerun there.
 - Lets you change the model, the prompt or both before the rerun.
 - Freezes the original at the fork point, so the baseline never absorbs work done after the rewind, and lets the verify exit code decide the verdict and the branch state.
@@ -71,7 +71,7 @@ npm test
 cargo test
 ```
 
-The command runs without a shell. Use a script if you need pipes or redirection.
+The command runs without a shell, except a Windows `.cmd` or `.bat` shim, which the plugin starts through `cmd.exe`. Use a script if you need pipes or redirection.
 
 ## Use
 
@@ -83,7 +83,7 @@ The command runs without a shell. Use a script if you need pipes or redirection.
 6. Run Verify in the isolated worktree, inspect the output and compare both runs.
 7. Cleanup removes the isolated worktree when you are done.
 
-A native fork requires a live session. Ended sessions can still be inspected, but the fork action refuses until the session is reopened.
+A session that is not open in the app cannot be branched from its transcript, so the fork falls back to a new chat carrying the context pack. The dialog says which of the two it is about to do before the rerun starts.
 
 ## How it works
 
@@ -129,11 +129,11 @@ To remove recorded data, delete the plugin data directory and the `refs/hermes-r
 
 ## Limitations
 
-- A native fork requires a live session.
+- Branching a transcript needs the session open in the app; otherwise the rerun runs in a new chat carrying the context pack.
 - Snapshots cover git-tracked files. Ignored files such as `.env`, `node_modules` and build output are not restored.
 - The workspace must be a git repository.
-- Verify commands run without a shell.
-- The Desktop timeline loads the newest 500 events for the selected session.
+- Verify commands run without a shell, except Windows batch shims, which go through `cmd.exe`.
+- The timeline pages by turn, 40 turns at a time from the newest, and expands one turn's events on demand.
 - Model switches can return a confirmation requirement from Hermes; the branch continues with the current model when confirmation is required.
 - Very large repositories can exceed the snapshot time and file-count guard; the fork then falls back to a context-only branch.
 
