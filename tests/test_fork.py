@@ -117,6 +117,24 @@ def test_planner_rejects_non_user_turn(database: Database) -> None:
         )
 
 
+def test_planner_refuses_an_event_from_another_session(database: Database, git_repo: Path) -> None:
+    event_id = _seed(database, git_repo)
+    _, _, planner = _planner(database)
+    with pytest.raises(ForkError, match="different session"):
+        planner.prepare(
+            ForkRequest(
+                session_id="s_other",
+                stored_session_id=None,
+                event_id=event_id,
+                model=None,
+                provider=None,
+                prompt=None,
+                verify_cmd=None,
+            )
+        )
+    assert ReadStore(database).list_branches("s1") == []
+
+
 def test_service_commit_verify_cleanup(database: Database, git_repo: Path) -> None:
     event_id = _seed(database, git_repo)
     _, worktrees, planner = _planner(database)

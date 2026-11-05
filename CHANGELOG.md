@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Refuse a fork whose turn belongs to another session, and keep the timeline to the selected session: switching sessions left the previous session's turn rows on screen, and preparing one of them silently forked the other session from its own anchor.
+
 - Claim only the files a write tool touched in the context pack: a `read_file` or `search_files` call is no longer reported to the rerun as something the earlier turn changed.
 
 - Commit a branch before its rerun starts, and refuse a child session that is the parent itself or already claimed by another branch. Three live branches had recorded the same child session, which made the comparison, the state and the cleanup all point at one rerun.

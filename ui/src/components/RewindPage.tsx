@@ -560,7 +560,7 @@ export function RewindPage({ ctx }: { ctx: PluginContext }): ReactNode {
         if (cancelled) {
           return;
         }
-        setTurns((current) => mergeTurnPages(turnPage.items, current));
+        setTurns((current) => mergeTurnPages(selectedSessionId, turnPage.items, current));
         setTurnsHasMore(turnPage.has_more);
         setTurnsLoaded(true);
         setSnapshots(snapshotItems);
@@ -609,6 +609,8 @@ export function RewindPage({ ctx }: { ctx: PluginContext }): ReactNode {
   const selectedSession = sessions.find((item) => item.session_id === selectedSessionId) ?? null;
   const running = selectedSession !== null && selectedSession.ended_at === null;
   const live = running && selectedSession.session_id === activeSessionId;
+  const visibleTurns =
+    selectedSessionId === null ? [] : turns.filter((turn) => turn.session_id === selectedSessionId);
 
   const selectSession = (session: SessionSummary): void => {
     setSelectedSessionId(session.session_id);
@@ -641,14 +643,14 @@ export function RewindPage({ ctx }: { ctx: PluginContext }): ReactNode {
   };
 
   const loadEarlier = async (): Promise<void> => {
-    const oldest = turns[turns.length - 1];
+    const oldest = visibleTurns[visibleTurns.length - 1];
     if (selectedSessionId === null || oldest === undefined) {
       return;
     }
     setTurnsLoading(true);
     try {
       const page = await getTurns(ctx, selectedSessionId, oldest.seq);
-      setTurns((current) => mergeTurnPages(page.items, current));
+      setTurns((current) => mergeTurnPages(selectedSessionId, page.items, current));
       setTurnsHasMore(page.has_more);
     } catch (caught) {
       setError(errorMessage(caught));
@@ -794,7 +796,7 @@ export function RewindPage({ ctx }: { ctx: PluginContext }): ReactNode {
                 <div className="text-xs text-(--ui-text-tertiary)">Select a recorded session.</div>
               ) : !turnsLoaded ? (
                 <div className="text-xs text-(--ui-text-tertiary)">Loading turns...</div>
-              ) : turns.length === 0 ? (
+              ) : visibleTurns.length === 0 ? (
                 <div className="text-xs text-(--ui-text-tertiary)">
                   {turnsError === null
                     ? 'No user turns recorded yet for this session.'
@@ -802,7 +804,7 @@ export function RewindPage({ ctx }: { ctx: PluginContext }): ReactNode {
                 </div>
               ) : (
                 <>
-                  {turns.map((turn) => (
+                  {visibleTurns.map((turn) => (
                     <TimelineRow
                       key={turn.id}
                       turn={turn}
@@ -836,7 +838,7 @@ export function RewindPage({ ctx }: { ctx: PluginContext }): ReactNode {
                     </button>
                   ) : (
                     <div className="mt-2 text-xs text-(--ui-text-tertiary)">
-                      {turns.length} turns · start of the recording
+                      {visibleTurns.length} turns · start of the recording
                     </div>
                   )}
                 </>

@@ -113,6 +113,8 @@ class ForkPlanner:
         event = ReadStore(self._database).get_event(request.event_id)
         if event is None or event.get("kind") != "user_turn":
             raise ForkError("select a user turn to fork")
+        if str(event["session_id"]) != request.session_id:
+            raise ForkError("that turn belongs to a different session; reload and pick it again")
         session_id = str(event["session_id"])
         fork_before_ts = float(event["ts"])
         fork_seq = int(event["seq"])
