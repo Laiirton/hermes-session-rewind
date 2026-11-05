@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- Count the branches next to the label. The strip is capped at three rows and scrolls, so a session with fifteen branches showed ten chips and gave no sign that five more existed.
+
+
 - Say the verification result in words, and say the same thing twice. The branch header read "verify: 0" while the card beside it read "verify not run" for the same branch, because the two took their number from different records. Both now read "verify passed" or "verify failed (exit 127)", and the rerun card falls back to the branch's own run when the session aggregate has nothing.
 
 

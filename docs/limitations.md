@@ -26,3 +26,14 @@ What was tried in the running app and reverted:
 
 Both halves have to switch together, which is why the dialog carries an explicit
 light value set instead of a token chain, and why the mode comes from the SDK.
+
+## Session outcome codes are shown as the gateway writes them
+
+The session cards and the comparison panel print the `outcome` string the hook
+received, so a session that the gateway closed under an unusual reason reads
+`ws_orphan_reap` or `startup_orphan_reap` rather than a sentence.
+
+These codes are not documented in the Hermes 0.22.7 material and a search for
+them returns nothing, so there is no authoritative wording to map them to. The
+alternative was to invent one, which would put words in the gateway's mouth
+about why the user's session ended. `completed` reads fine as it is.

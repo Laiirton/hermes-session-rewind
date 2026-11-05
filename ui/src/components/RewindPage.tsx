@@ -812,6 +812,7 @@ export function RewindPage({ ctx }: { ctx: PluginContext }): ReactNode {
           {branches.length > 0 ? (
             <div className="flex max-h-24 flex-wrap items-center gap-1 overflow-y-auto">
               <span className="text-xs uppercase text-(--ui-text-tertiary)">Branches</span>
+              <span className="text-xs text-(--ui-text-tertiary)">{branches.length}</span>
               {branches.map((branch) => (
                 <button
                   type="button"
