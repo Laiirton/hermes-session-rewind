@@ -14,7 +14,11 @@ class FakeSink:
 
 
 class BrokenSink:
+    def __init__(self) -> None:
+        self.calls = 0
+
     def submit(self, item: CaptureItem) -> None:
+        self.calls += 1
         raise RuntimeError(f"cannot accept {item.kind}")
 
 
@@ -95,8 +99,16 @@ def test_unknown_session_and_broken_sink() -> None:
     recorder, sink = _recorder()
     recorder.on_session_start()
     assert sink.items[0].session_id == "unknown"
-    broken = HookRecorder(BrokenSink(), Settings())
-    broken.on_session_start(session_id="s1")
+
+    broken = BrokenSink()
+    recorder = HookRecorder(broken, Settings())
+    recorder.on_session_start(session_id="s1")
+    recorder.pre_tool_call(session_id="s1", tool_name="patch", args={"path": "app.py"})
+    recorder.post_tool_call(session_id="s1", tool_name="patch", result="ok", duration_ms=4.0)
+    recorder.on_session_end(session_id="s1")
+    recorder.on_session_finalize(session_id="s1")
+
+    assert broken.calls == 5
 
 
 def test_api_request_and_compaction_hooks() -> None:

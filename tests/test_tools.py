@@ -49,12 +49,22 @@ def test_tools_round_trip(seeded_database: Database) -> None:
 
 def test_tools_reject_invalid_input(seeded_database: Database) -> None:
     tools = RewindTools(seeded_database)
-    assert "error" in json.loads(tools.search({}))
-    assert "error" in json.loads(tools.inspect({}))
-    assert "error" in json.loads(tools.compare({}))
-    assert "error" in json.loads(tools.bookmark({"session_id": "missing", "label": "checkpoint"}))
-    missing_event = json.loads(tools.inspect({"event_id": 99999}))
-    assert missing_event["error"] == "event not found"
+    assert json.loads(tools.search({})) == {"error": "query is required"}
+    assert json.loads(tools.inspect({})) == {"error": "event_id or session_id is required"}
+    assert json.loads(tools.compare({})) == {"error": "left_session_id is required"}
+    assert json.loads(tools.bookmark({"label": "checkpoint"})) == {
+        "error": "session_id is required"
+    }
+    assert json.loads(tools.bookmark({"session_id": "missing", "label": "checkpoint"})) == {
+        "error": "session or event not found"
+    }
+    assert json.loads(tools.inspect({"event_id": 99999})) == {"error": "event not found"}
+
+    unknown_side = json.loads(
+        tools.compare({"left_session_id": "sess_baseline", "right_session_id": "missing"})
+    )
+    assert unknown_side["right"] is None
+    assert unknown_side["verdict"] == "missing session"
 
 
 def test_bookmark_refuses_an_event_from_another_session(seeded_database: Database) -> None:
