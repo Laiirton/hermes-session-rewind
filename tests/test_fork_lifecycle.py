@@ -4,7 +4,8 @@ import json
 import time
 from pathlib import Path
 
-from session_rewind.fork.planner import ForkPlanner, ForkRequest
+import pytest
+from session_rewind.fork.planner import ForkError, ForkPlanner, ForkRequest
 from session_rewind.fork.service import ForkService
 from session_rewind.fork.verify import VerifyRunner
 from session_rewind.gitrepo.shadow import GitShadow
@@ -166,3 +167,71 @@ def test_snapshot_taken_after_the_turn_is_not_restored(database: Database, git_r
     assert plan.fidelity == "context"
     assert plan.worktree_path is None
     assert plan.snapshot_id is None
+
+
+def test_commit_refuses_a_child_that_is_the_parent_itself(database: Database) -> None:
+    store = WriteStore(database.connect())
+    try:
+        store.upsert_session("s_parent", 1.0, stored_session_id="s_parent", model="model-a")
+        store.create_branch(
+            "branch-self",
+            "s_parent",
+            1.0,
+            0,
+            None,
+            None,
+            None,
+            None,
+            "rerun the turn",
+            None,
+            "prepared",
+            1.0,
+        )
+    finally:
+        store.close()
+
+    with pytest.raises(ForkError, match="did not produce a new session"):
+        _service(database).commit("branch-self", "s_parent", "s_parent", None, None, None, None)
+
+
+def test_commit_refuses_a_child_already_claimed_by_another_branch(database: Database) -> None:
+    store = WriteStore(database.connect())
+    try:
+        store.upsert_session("s_parent", 1.0, stored_session_id="s_parent", model="model-a")
+        store.upsert_session("s_child_used", 2.0, stored_session_id="s_child_used")
+        store.create_branch(
+            "branch-claim-a",
+            "s_parent",
+            1.0,
+            0,
+            None,
+            None,
+            None,
+            None,
+            "rerun the turn",
+            None,
+            "prepared",
+            1.0,
+        )
+        store.set_branch_child("branch-claim-a", "s_child_used", "s_child_used", None, 1.5)
+        store.create_branch(
+            "branch-claim-b",
+            "s_parent",
+            1.0,
+            0,
+            None,
+            None,
+            None,
+            None,
+            "rerun the turn",
+            None,
+            "prepared",
+            2.0,
+        )
+    finally:
+        store.close()
+
+    with pytest.raises(ForkError, match="already the rerun of another branch"):
+        _service(database).commit(
+            "branch-claim-b", "s_child_used", "s_child_used", None, None, None, None
+        )

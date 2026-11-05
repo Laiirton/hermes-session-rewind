@@ -66,9 +66,16 @@ class ForkService:
         prompt: str | None,
         verify_cmd: str | None = None,
     ) -> None:
-        branch = ReadStore(self._database).get_branch(branch_id)
+        read = ReadStore(self._database)
+        branch = read.get_branch(branch_id)
         if branch is None:
             raise ForkError("branch not found")
+        parent_stored = _parent_stored_id(read, str(branch.get("parent_session_id", "")))
+        if parent_stored is not None and child_stored_session_id == parent_stored:
+            raise ForkError("the rerun did not produce a new session; close its tab and retry")
+        claimed = read.get_branch_by_child(child_session_id)
+        if claimed is not None and str(claimed["id"]) != branch_id:
+            raise ForkError("that session is already the rerun of another branch")
         now = time.time()
         store = WriteStore(self._database.connect())
         try:
@@ -220,6 +227,14 @@ class ForkService:
         if branch is None:
             return None
         return branch, read.get_run(branch_id)
+
+
+def _parent_stored_id(read: ReadStore, parent_session_id: str) -> str | None:
+    parent = read.get_session(parent_session_id)
+    if parent is None:
+        return None
+    stored = parent.get("stored_session_id")
+    return stored if isinstance(stored, str) and stored else None
 
 
 def _text_or_none(value: Any) -> str | None:

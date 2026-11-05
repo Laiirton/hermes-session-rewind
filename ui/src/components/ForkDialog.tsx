@@ -746,10 +746,6 @@ export function ForkDialog({
       }
       const finalPrompt = prompt.trim() || plan.prompt;
       await labelled(
-        'could not start the rerun',
-        host.request('prompt.submit', { session_id: childId, text: finalPrompt })
-      );
-      await labelled(
         'could not record the branch',
         commitFork(ctx, plan.branch_id, {
           child_session_id: childStoredId,
@@ -759,6 +755,10 @@ export function ForkDialog({
           prompt: finalPrompt,
           verify_cmd: verifyCmd.trim() || null
         })
+      );
+      await labelled(
+        'could not start the rerun',
+        host.request('prompt.submit', { session_id: childId, text: finalPrompt })
       );
       onCreated(plan.branch_id);
       host.openSession(childStoredId, { intent: 'tab' });

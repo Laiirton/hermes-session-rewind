@@ -680,6 +680,17 @@ class ReadStore:
         finally:
             connection.close()
 
+    def get_branch_by_child(self, child_session_id: str) -> dict[str, Any] | None:
+        connection = self._connect()
+        try:
+            row = connection.execute(
+                "SELECT * FROM branches WHERE child_session_id = ? LIMIT 1",
+                (child_session_id,),
+            ).fetchone()
+            return dict(row) if row is not None else None
+        finally:
+            connection.close()
+
     def get_run_by_child(self, child_session_id: str) -> dict[str, Any] | None:
         connection = self._connect()
         try:
