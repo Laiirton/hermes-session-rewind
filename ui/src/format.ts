@@ -52,3 +52,7 @@ function readDetail(payload: string): string | undefined {
 export function shortId(value: string, length = 8): string {
   return value.length <= length ? value : value.slice(0, length);
 }
+
+export function plural(value: number, word: string): string {
+  return `${value} ${value === 1 ? word : `${word}s`}`;
+}

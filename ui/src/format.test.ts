@@ -1,6 +1,14 @@
 import { describe, expect, it } from 'vitest';
 
-import { errorMessage } from './format';
+import { errorMessage, plural } from './format';
+
+describe('plural', () => {
+  it('adds the suffix except for one', () => {
+    expect(plural(0, 'tool')).toBe('0 tools');
+    expect(plural(1, 'tool')).toBe('1 tool');
+    expect(plural(2, 'model request')).toBe('2 model requests');
+  });
+});
 
 describe('errorMessage', () => {
   it('returns the message of an Error', () => {

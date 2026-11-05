@@ -25,7 +25,7 @@ import type {
   SnapshotSummary,
   TurnSummary
 } from '../api';
-import { errorMessage, formatDuration, formatNumber, formatTime, shortId } from '../format';
+import { errorMessage, formatDuration, formatNumber, formatTime, plural, shortId } from '../format';
 import { ForkDialog } from './ForkDialog';
 import { mergeTurnPages } from '../mergeTurnPages';
 
@@ -110,11 +110,11 @@ function TimelineRow({
           </span>
           <span className="min-w-0 flex-1 truncate">{turn.preview || 'User turn'}</span>
           <span className="shrink-0 text-xs text-(--ui-text-tertiary)">
-            {turn.tool_calls} {turn.tool_calls === 1 ? 'tool' : 'tools'}
+            {plural(turn.tool_calls, 'tool')}
           </span>
           {turn.tool_errors > 0 ? (
             <span className="shrink-0 text-xs text-red-500">
-              {turn.tool_errors} {turn.tool_errors === 1 ? 'error' : 'errors'}
+              {plural(turn.tool_errors, 'error')}
             </span>
           ) : null}
           <span className="w-14 shrink-0 text-right font-mono text-xs text-(--ui-text-tertiary)">
@@ -147,7 +147,8 @@ function TimelineRow({
               ))}
               {hidden > 0 ? (
                 <div className="pl-19 text-xs text-(--ui-text-tertiary)">
-                  {turn.api_requests} model requests · {turn.event_count} events in this turn
+                  {plural(turn.api_requests, 'model request')} ·{plural(turn.event_count, 'event')}{' '}
+                  in this turn
                 </div>
               ) : null}
             </>
@@ -727,7 +728,7 @@ export function RewindPage({ ctx }: { ctx: PluginContext }): ReactNode {
                     </span>
                   </span>
                   <span className="truncate text-(--ui-text-tertiary)">
-                    {session.model ?? 'unknown model'} · {session.event_count} events
+                    {session.model ?? 'unknown model'} · {plural(session.event_count, 'event')}
                   </span>
                   <span className="text-(--ui-text-tertiary)">
                     {session.outcome ?? 'recording'} ·{' '}
@@ -775,13 +776,14 @@ export function RewindPage({ ctx }: { ctx: PluginContext }): ReactNode {
                   </span>
                   {snapshots.length > 0 ? (
                     <span className="text-xs text-(--ui-text-tertiary)">
-                      {snapshots.length} snapshots
+                      {plural(snapshots.length, 'snapshot')}
                     </span>
                   ) : null}
                 </div>
                 <div className="text-xs text-(--ui-text-tertiary)">
-                  {selectedSession.model ?? 'unknown model'} · {selectedSession.event_count} events
-                  · {formatNumber(selectedSession.tokens_in + selectedSession.tokens_out)} tokens
+                  {selectedSession.model ?? 'unknown model'} ·{' '}
+                  {plural(selectedSession.event_count, 'event')}·{' '}
+                  {formatNumber(selectedSession.tokens_in + selectedSession.tokens_out)} tokens
                 </div>
               </div>
               <div className="text-right text-xs text-(--ui-text-tertiary)">
@@ -838,7 +840,7 @@ export function RewindPage({ ctx }: { ctx: PluginContext }): ReactNode {
                     </button>
                   ) : (
                     <div className="mt-2 text-xs text-(--ui-text-tertiary)">
-                      {visibleTurns.length} turns · start of the recording
+                      {plural(visibleTurns.length, 'turn')} · start of the recording
                     </div>
                   )}
                 </>
