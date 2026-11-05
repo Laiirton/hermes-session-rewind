@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- Fork a recorded session that is already closed: the rerun starts a new chat carrying the context pack instead of refusing because the parent is not live, and the dialog says so before you press the button. Fork failures now render at the top of the dialog, where they are visible without scrolling.
+- Reconcile no longer reports a fork as failed while its child session is still waiting to be captured; an unrecorded child gets the same grace window as an unfinished run.
+
 - Follow the app's light mode in the fork dialog: the mode comes from `useTheme().resolvedMode` and the dialog carries an explicit light value set, because the `--ui-*` tokens do not resolve inside the plugin iframe. Custom palettes are still not adopted; see `docs/limitations.md`.
 
 - Resolve the verify command against the command in the field, not the one recorded when the branch was prepared; the dialog no longer reports "not found on the gateway PATH" for a command the gateway was never asked about.

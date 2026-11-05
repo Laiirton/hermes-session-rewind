@@ -659,27 +659,27 @@ export function ForkDialog({
     setNotice(null);
     try {
       const liveParent = await resolveLiveParent();
-      if (liveParent.runtimeId === undefined) {
-        throw new Error('The session is not live. Open it in Hermes Desktop and try again.');
-      }
+      const runtimeId = liveParent.runtimeId;
       const title = `↺ ${session.title ?? shortId(session.session_id)}`;
       let throughId: number | null = null;
-      try {
-        const history = await host.request<HistoryResult>('session.history', {
-          session_id: liveParent.runtimeId
-        });
-        throughId = branchPoint(history.messages, plan.fork_before_ts);
-      } catch {
-        throughId = null;
+      if (runtimeId !== undefined) {
+        try {
+          const history = await host.request<HistoryResult>('session.history', {
+            session_id: runtimeId
+          });
+          throughId = branchPoint(history.messages, plan.fork_before_ts);
+        } catch {
+          throughId = null;
+        }
       }
       let childId: string;
       let childStoredId: string;
       let freshSession = false;
-      if (throughId !== null) {
+      if (throughId !== null && runtimeId !== undefined) {
         const branch = await labelled(
           'could not branch the session',
           host.request<BranchRpcResult>('session.branch', {
-            session_id: liveParent.runtimeId,
+            session_id: runtimeId,
             through_message_id: throughId
           })
         );
@@ -825,6 +825,16 @@ export function ForkDialog({
         </header>
 
         <div className="rw-body">
+          {error !== null ? (
+            <div className="rw-banner rw-banner-error" role="alert">
+              {error}
+            </div>
+          ) : null}
+          {notice !== null ? (
+            <div className="rw-banner rw-banner-warn" role="status">
+              {notice}
+            </div>
+          ) : null}
           <section className="rw-card">
             <div className="rw-card-head">
               <span className="rw-card-title">Checkpoint</span>
@@ -860,6 +870,12 @@ export function ForkDialog({
             {plan !== null && plan.context_rows === null ? (
               <div className="rw-note">
                 The live transcript prefix is unavailable. The context pack is the only context.
+              </div>
+            ) : null}
+            {plan !== null && session.ended_at !== null ? (
+              <div className="rw-note rw-note-muted">
+                This session is closed, so the rerun starts a new chat carrying the recorded context
+                instead of branching the original transcript.
               </div>
             ) : null}
             {plan !== null && plan.fork_row_count === 0 ? (
@@ -937,17 +953,6 @@ export function ForkDialog({
               Prepared from the recorded context. Edit it before running the fork.
             </span>
           </label>
-
-          {notice !== null ? (
-            <div className="rw-banner rw-banner-warn" role="status">
-              {notice}
-            </div>
-          ) : null}
-          {error !== null ? (
-            <div className="rw-banner rw-banner-error" role="alert">
-              {error}
-            </div>
-          ) : null}
         </div>
 
         <footer className="rw-footer">
