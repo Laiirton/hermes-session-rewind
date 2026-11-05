@@ -39,6 +39,8 @@ interface ForkTarget {
   event: EventSummary;
 }
 
+const TERMINAL_BRANCH_STATES = new Set(['done', 'failed', 'cleaned', 'discarded']);
+
 function turnDuration(turn: TurnSummary): string {
   return formatDuration(Math.max(0, (turn.last_ts - turn.ts) * 1000));
 }
@@ -282,11 +284,13 @@ function ComparePanel({
 
   useEffect(() => {
     let cancelled = false;
-    const load = async (): Promise<void> => {
+    let disposeNext: (() => void) | null = null;
+
+    const load = async (): Promise<boolean> => {
       try {
         const branch = await getBranch(ctx, branchId);
         if (cancelled) {
-          return;
+          return true;
         }
         setDetail(branch);
         setError(null);
@@ -304,19 +308,30 @@ function ComparePanel({
         } else {
           setCompare(null);
         }
+        return TERMINAL_BRANCH_STATES.has(branch.branch.state);
       } catch (caught) {
         if (!cancelled) {
           setError(errorMessage(caught));
         }
+        return false;
       }
     };
-    void load();
-    const timer = window.setInterval(() => {
-      void load();
-    }, 2500);
+
+    const tick = async (): Promise<void> => {
+      const terminal = await load();
+      if (!cancelled && !terminal) {
+        disposeNext = ctx.setTimeout(() => {
+          void tick();
+        }, 2500);
+      }
+    };
+
+    void tick();
     return () => {
       cancelled = true;
-      window.clearInterval(timer);
+      if (disposeNext !== null) {
+        disposeNext();
+      }
     };
   }, [ctx, branchId, refreshTick]);
 
@@ -483,6 +498,15 @@ export function RewindPage({ ctx }: { ctx: PluginContext }): ReactNode {
   const [forkTarget, setForkTarget] = useState<ForkTarget | null>(null);
   const [refreshTick, setRefreshTick] = useState(0);
   const [error, setError] = useState<string | null>(null);
+  const [liveTick, setLiveTick] = useState(0);
+
+  useEffect(
+    () =>
+      ctx.onEvent('*', () => {
+        setLiveTick((value) => value + 1);
+      }),
+    [ctx]
+  );
 
   useEffect(() => {
     let cancelled = false;
@@ -507,14 +531,14 @@ export function RewindPage({ ctx }: { ctx: PluginContext }): ReactNode {
       }
     };
     void load();
-    const timer = window.setInterval(() => {
+    const dispose = ctx.setInterval(() => {
       void load();
-    }, 4000);
+    }, 10000);
     return () => {
       cancelled = true;
-      window.clearInterval(timer);
+      dispose();
     };
-  }, [ctx, activeSessionId, refreshTick]);
+  }, [ctx, activeSessionId, refreshTick, liveTick]);
 
   useEffect(() => {
     if (selectedSessionId === null) {
@@ -551,14 +575,14 @@ export function RewindPage({ ctx }: { ctx: PluginContext }): ReactNode {
       }
     };
     void load();
-    const timer = window.setInterval(() => {
+    const dispose = ctx.setInterval(() => {
       void load();
-    }, 2500);
+    }, 10000);
     return () => {
       cancelled = true;
-      window.clearInterval(timer);
+      dispose();
     };
-  }, [ctx, selectedSessionId, refreshTick]);
+  }, [ctx, selectedSessionId, refreshTick, liveTick]);
 
   useEffect(() => {
     if (selectedEventId === null) {

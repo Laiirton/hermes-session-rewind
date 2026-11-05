@@ -1,6 +1,6 @@
 import { host } from '@hermes/plugin-sdk';
 import type { PluginContext } from '@hermes/plugin-sdk';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
 
 import {
@@ -105,6 +105,38 @@ function messageText(message: HistoryMessage): string {
   return '';
 }
 
+function focusables(panel: HTMLElement | null): HTMLElement[] {
+  if (panel === null) {
+    return [];
+  }
+  const nodes = panel.querySelectorAll<HTMLElement>(
+    'button, input, textarea, [tabindex]:not([tabindex="-1"])'
+  );
+  return Array.from(nodes).filter((node) => !node.hasAttribute('disabled'));
+}
+
+function trapFocus(panel: HTMLElement | null, keyEvent: KeyboardEvent): void {
+  const items = focusables(panel);
+  const first = items[0];
+  const last = items[items.length - 1];
+  if (panel === null || first === undefined || last === undefined) {
+    return;
+  }
+  const active = document.activeElement;
+  if (!panel.contains(active)) {
+    keyEvent.preventDefault();
+    first.focus();
+    return;
+  }
+  if (keyEvent.shiftKey && active === first) {
+    keyEvent.preventDefault();
+    last.focus();
+  } else if (!keyEvent.shiftKey && active === last) {
+    keyEvent.preventDefault();
+    first.focus();
+  }
+}
+
 function branchPoint(messages: HistoryMessage[] | undefined, forkTs: number): number | null {
   const rows = (messages ?? []).filter(
     (message) =>
@@ -202,6 +234,19 @@ const DIALOG_CSS = `
 .rw-close:hover:not(:disabled) {
   color: var(--ui-text, #ececf1);
   background: rgba(255, 255, 255, 0.06);
+}
+.rw-panel:focus-visible {
+  outline: none;
+}
+.rw-button:focus-visible,
+.rw-close:focus-visible,
+.rw-preset:focus-visible {
+  outline: 2px solid var(--ui-accent, #6ea8fe);
+  outline-offset: 2px;
+}
+.rw-input:focus-visible,
+.rw-textarea:focus-visible {
+  outline: none;
 }
 .rw-close:disabled {
   cursor: default;
@@ -458,11 +503,30 @@ export function ForkDialog({
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const busy = busyAction !== null;
+  const panelRef = useRef<HTMLDivElement | null>(null);
+  const submitRef = useRef<() => void>(() => {});
+
+  useEffect(() => {
+    const previous = document.activeElement as HTMLElement | null;
+    panelRef.current?.focus();
+    return () => {
+      previous?.focus();
+    };
+  }, []);
 
   useEffect(() => {
     const onKeyDown = (keyEvent: KeyboardEvent): void => {
       if (keyEvent.key === 'Escape' && !busy) {
         onClose();
+        return;
+      }
+      if (keyEvent.key === 'Tab') {
+        trapFocus(panelRef.current, keyEvent);
+        return;
+      }
+      if (keyEvent.key === 'Enter' && (keyEvent.metaKey || keyEvent.ctrlKey) && !busy) {
+        keyEvent.preventDefault();
+        submitRef.current();
       }
     };
     window.addEventListener('keydown', onKeyDown);
@@ -628,6 +692,14 @@ export function ForkDialog({
     }
   };
 
+  submitRef.current = () => {
+    if (plan === null) {
+      void prepare();
+    } else {
+      void run();
+    }
+  };
+
   const fidelity = plan === null ? 'not prepared' : plan.fidelity;
   const badgeClass =
     plan === null ? 'rw-badge rw-badge-idle' : plan.fidelity === 'full' ? 'rw-badge rw-badge-ok' : 'rw-badge rw-badge-warn';
@@ -642,7 +714,14 @@ export function ForkDialog({
       }}
     >
       <style>{DIALOG_CSS}</style>
-      <div className="rw-panel" role="dialog" aria-modal="true" aria-labelledby="rw-title">
+      <div
+        className="rw-panel"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="rw-title"
+        tabIndex={-1}
+        ref={panelRef}
+      >
         <header className="rw-header">
           <div className="rw-heading">
             <div className="rw-title" id="rw-title">
@@ -785,7 +864,9 @@ export function ForkDialog({
         </div>
 
         <footer className="rw-footer">
-          <span className="rw-hint">The original session and workspace stay untouched.</span>
+          <span className="rw-hint">
+            The original session and workspace stay untouched. Ctrl+Enter runs the primary action.
+          </span>
           <div className="rw-actions">
             <button type="button" className="rw-button" onClick={onClose} disabled={busy}>
               Cancel
