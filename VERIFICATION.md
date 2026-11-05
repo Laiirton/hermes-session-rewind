@@ -206,6 +206,15 @@ measured by this run.
 | `list_events(limit=500)` | 1.9 ms / 75 KB payloads | 2.5 ms / 150 KB |
 | `list_turns(limit=40)` | 7.7 ms | 1.3 ms |
 
+The four queries one page load makes were also timed against the live store
+(13 sessions, and a session holding 15 branches, 2 turns and 2 snapshots):
+4.2, 4.3 and 5.1 ms for the whole set across three runs, so the data behind the
+Rewind page costs about five milliseconds of its one-second budget. The rest of
+the budget goes over HTTP and through React and is not isolated here: the
+gateway answers the plugin API on a loopback port that requires the app's own
+ticket, and reading that credential is out of bounds for this plugin and for
+this run.
+
 A candidate optimisation was measured before adopting it: adding extracted
 `tokens_in`/`tokens_out` columns and backfilling changed the session aggregate
 from 53.6 ms to 30.8 ms over 100,000 rows in isolation, so the `GROUP BY` scan
