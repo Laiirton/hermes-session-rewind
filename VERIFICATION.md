@@ -127,7 +127,7 @@ Observed in the real Hermes Desktop app through Computer Use; screenshots are ke
 | Prepared branch | `workspace ready`, snapshot `0760703f`, worktree path, `history rows 2`, `verify timeout 120s` |
 | Frozen baseline on the live store | branch `9be25242` counted 447,220 tokens and 2 tool errors as baseline before the fix; frozen at its fork point it reports 0 and 0 |
 | Abandoned worktree | four `prepared` branches left by dialog tests were reclaimed through the new cleanup path and no longer appear in `git worktree list` |
-| Fork of an already-forked session | fails with the gateway error `Session revision unavailable; reopen the session before editing metadata`; the dialog keeps the branch and reports the error, so this path is not yet a clean success |
+| Fork of an already-forked session | retested live and it now completes: session `local-45`, itself the child of branch `4bc3c6c5`, was rewound at its first turn and branch `1c73c549` reached `done` with child `local-c05a827c…`, its worktree attached, the prompt run and 71 events recorded. The earlier `Session revision unavailable; reopen the session before editing metadata` did not reproduce; the cause was not isolated, so this is an observation, not a confirmed fix. Shot `20261105-1137-fork-of-fork-completed-dark-1350.png` |
 | Scale | 10k-event session: newest turn page 7.7 ms, second page 7.6 ms, one turn expansion 1.0 ms |
 | Shadow snapshots and secrets | probed: `git add -A` respects `.gitignore`, so an ignored `.env` is not in the snapshot tree; only already-tracked content is |
 | Retention | wired to plugin load and covered by a test that fails when the call is removed |
@@ -221,4 +221,4 @@ versioned schema change plus write-path coupling, so it was not done.
 | Shared-child disclosure | branch `c0373738` of session `local-c5` shows the amber note in the real app, and the three figures below it are labelled as possibly belonging to another fork. Shot `20261105-1125-branch-detail-shared-child-note-dark-1350.png` |
 | Shared-child negative control | branch `3c29d531`, which owns its rerun session, shows no note and a normal verdict ("right has fewer tool errors") against a frozen baseline of 422.368 tokens and 2 errors. Shot `20261105-1125-branch-detail-no-shared-note-dark-1350.png` |
 
-Not yet verified live: the 1920x1080 and 1280x720 layouts (the display is 1366x768), ten consecutive forks through the dialog, and a fork of a session that is itself a rewind child (observed to fail above). Light theme was verified live at 11:29 in both the idle and prepared dialog.
+Not yet verified live: the 1920x1080 and 1280x720 layouts (the display is 1366x768) and ten consecutive forks through the dialog. A fork of a session that is itself a rewind child was retested and completed, recorded above. Light theme was verified live at 11:29 in both the idle and prepared dialog.
