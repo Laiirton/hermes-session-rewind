@@ -235,3 +235,34 @@ def test_commit_refuses_a_child_already_claimed_by_another_branch(database: Data
         _service(database).commit(
             "branch-claim-b", "s_child_used", "s_child_used", None, None, None, None
         )
+
+
+def test_verify_refuses_a_workspace_that_was_cleaned(
+    database: Database, git_repo: Path, tmp_path: Path
+) -> None:
+    missing = tmp_path / "gone"
+    store = WriteStore(database.connect())
+    try:
+        store.upsert_session("s_parent", 1.0, stored_session_id="s_parent", model="model-a")
+        store.create_branch(
+            "branch-gone",
+            "s_parent",
+            1.0,
+            0,
+            None,
+            str(missing),
+            None,
+            None,
+            "rerun the turn",
+            "python -m pytest -q",
+            "done",
+            1.0,
+        )
+    finally:
+        store.close()
+
+    with pytest.raises(ForkError, match="workspace of this branch was cleaned"):
+        _service(database).verify("branch-gone")
+
+    run = ReadStore(database).get_run("branch-gone")
+    assert run is None

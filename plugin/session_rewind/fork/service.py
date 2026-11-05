@@ -107,6 +107,8 @@ class ForkService:
             raise ForkError("branch has no restored workspace")
         if not isinstance(command, str) or not command:
             raise ForkError("branch has no verify command")
+        if not Path(worktree).exists():
+            raise ForkError("the workspace of this branch was cleaned; prepare the turn again")
         root = self._repo_root(branch)
         result = self._verifier.run(
             command,
