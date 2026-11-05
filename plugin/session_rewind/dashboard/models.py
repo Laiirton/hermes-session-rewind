@@ -162,7 +162,7 @@ class CompareResponse(BaseModel):
 
 class BookmarkRequest(BaseModel):
     session_id: str
-    event_id: int | None = default=None
+    event_id: int | None = Field(default=None, ge=0, le=SQLITE_MAX_INT)
     label: str
     note: str | None = None
 
@@ -191,7 +191,7 @@ class VerifyCommandInput(BaseModel):
 class ForkPrepareRequest(VerifyCommandInput):
     session_id: str
     stored_session_id: str | None = None
-    event_id: int
+    event_id: int = Field(ge=0, le=SQLITE_MAX_INT)
     model: str | None = None
     provider: str | None = None
     prompt: str | None = None
