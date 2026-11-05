@@ -5,7 +5,7 @@ import type { ReactNode } from 'react';
 
 import { commitFork, prepareFork, resolveVerify } from '../api';
 import type { EventSummary, ForkPlan, SessionSummary, VerifyResolution } from '../api';
-import { errorMessage, formatTime, shortId } from '../format';
+import { errorMessage, formatTime, plural, shortId } from '../format';
 import { branchPoint } from '../forkPrefix';
 import type { HistoryResult } from '../forkPrefix';
 
@@ -833,7 +833,11 @@ export function ForkDialog({
             </div>
             <div className="rw-chips">
               <span className="rw-chip">
-                history rows {plan === null ? '—' : plan.fork_row_count}
+                {plan === null
+                  ? 'carries —'
+                  : plan.fork_row_count > 0
+                    ? `carries ${plural(plan.fork_row_count, 'message')}`
+                    : 'carries the context pack'}
               </span>
               <span className="rw-chip">
                 verify timeout {plan === null ? '—' : `${plan.verify_timeout_seconds}s`}
@@ -867,7 +871,7 @@ export function ForkDialog({
                 instead of branching the original transcript.
               </div>
             ) : null}
-            {plan !== null && plan.fork_row_count === 0 ? (
+            {plan !== null && plan.fork_row_count === 0 && session.ended_at === null ? (
               <div className="rw-note rw-note-muted">
                 This is the first turn. The rerun starts a fresh chat in the restored workspace.
               </div>

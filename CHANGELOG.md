@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+- Stop calling every empty prefix a first turn. A closed session has no transcript prefix whether the turn is the first or the seventh, and the dialog said "This is the first turn" for the second turn of `local-c5`. The sentence now appears only when the session is live, where the count actually means that.
+
+
+- Say the same thing in the dialog as in the branch chips. The checkpoint card read "history rows 0", a count of a transcript prefix the user never asked about; it now reads "carries the context pack" or "carries 2 messages", matching the chips under the session header.
+
+
 - Let Escape close the comparison panel. It had a Hide button and no keyboard equivalent, while the dialog above it already answered Escape.
 
 

@@ -77,7 +77,7 @@ The command runs without a shell, except a Windows `.cmd` or `.bat` shim, which 
 
 1. Open the Rewind page from the sidebar or the status bar chip.
 2. Select a recorded session and a user turn in the timeline.
-3. Choose Rewind and prepare the branch. Review the restored workspace, the history rows before the turn and the prompt.
+3. Choose Rewind and prepare the branch. Review the restored workspace, what the rerun carries (the transcript prefix or the context pack) and the prompt.
 4. Adjust the model or prompt, enter the verify command and choose Fork & run. The verify command runs in the gateway environment; use an absolute interpreter path when the tool is not globally on `PATH`.
 5. The child session opens in a new tab. The comparison panel follows the branch.
 6. Run Verify in the isolated worktree, inspect the output and compare both runs.
