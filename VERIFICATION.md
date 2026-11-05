@@ -1,6 +1,6 @@
 # Verification
 
-Environment: Windows 11, Hermes Agent 0.22.7, Python 3.12.10, Node 24.21.0, npm 11.19.0, Git 2.56.0.
+Environment: Windows 11, Hermes Agent 0.22.7, Python 3.12.10 (the gateway embeds 3.14), Node 24.18.0, npm 11.19.0, Git 2.56.0. CI runs the same gates on Windows, Ubuntu and macOS with Python 3.12 and Node 22.
 
 ## Official plugin validation
 
@@ -8,7 +8,7 @@ Environment: Windows 11, Hermes Agent 0.22.7, Python 3.12.10, Node 24.21.0, npm 
 hermes plugins validate plugin --install-deps
 ```
 
-Result: passed.
+Result: passed. This is a local gate: the Hermes CLI is not installable on CI runners, so CI covers the equivalent checks through the manifest, registration and security tests.
 
 - manifest
 - manifest fields
@@ -37,7 +37,7 @@ mypy
 pytest --cov=session_rewind --cov-report=term-missing
 ```
 
-Result: green. 57 tests passed, 88.19% coverage.
+Result: green. 92 tests passed, 90% branch coverage, with `--cov-fail-under=85` enforced in CI.
 
 ## Desktop checks
 
@@ -105,3 +105,22 @@ Pending recording. Script: `docs/demo-script.md`.
 ## Catalog
 
 Draft: `catalog/session-rewind.yaml`. The final submission replaces the placeholder SHA with the pushed 40-character commit, updates the platforms after the CI matrix, and adds screenshots pinned to the same commit.
+
+
+## Live Desktop verification (2026-11-05)
+
+Observed in the real Hermes Desktop app through Computer Use; screenshots are kept locally under `AUTOPILOT_SHOTS/`.
+
+| Check | Result |
+| --- | --- |
+| Rewind reachable from the sidebar row, the status-bar chip, the command palette and `Ctrl+Alt+R` | all four present; the keybinding opened the page |
+| Timeline for a 73-event session | grouped into 2 turn rows; expanding one listed its events with tool errors in red |
+| Fork dialog | focus moves into the dialog on open, Tab shows a visible ring, Escape closes, `Ctrl+Enter` runs the primary action |
+| Verify presets | four presets render; the resolved command line is shown before forking |
+| Prepared branch | `workspace ready`, snapshot `0760703f`, worktree path, `history rows 2`, `verify timeout 120s` |
+| Frozen baseline on the live store | branch `9be25242` counted 447,220 tokens and 2 tool errors as baseline before the fix; frozen at its fork point it reports 0 and 0 |
+| Abandoned worktree | four `prepared` branches left by dialog tests were reclaimed through the new cleanup path and no longer appear in `git worktree list` |
+| Fork of an already-forked session | fails with the gateway error `Session revision unavailable; reopen the session before editing metadata`; the dialog keeps the branch and reports the error, so this path is not yet a clean success |
+| Scale | 10k-event session: newest turn page 7.7 ms, second page 7.6 ms, one turn expansion 1.0 ms |
+
+Not yet verified live: light theme, 1920x1080 and 1280x720 layouts, ten consecutive forks, and a fork of a session that is itself a rewind child (observed to fail above).

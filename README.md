@@ -7,12 +7,16 @@ Session Rewind is a Hermes Agent plugin with a Python half (hooks, local event s
 ## What it does
 
 - Records prompts, responses, tool calls, tool results, token usage, compactions and session lifecycle events.
-- Shows a scrubbable timeline with an inspector for args, results and errors.
+- Shows a turn-grouped timeline that pages by cursor from the newest turn, expands a turn on demand and highlights tool errors.
 - Snapshots git workspaces with a private index and shadow refs without touching HEAD, the real index or the working tree.
 - Forks a user turn through the public `session.branch` gateway method with the exact history prefix.
 - Restores the workspace snapshot into an isolated git worktree and starts the rerun there.
 - Lets you change the model, the prompt or both before the rerun.
-- Compares the original and the rerun by outcome, tokens, tool errors, duration and the user-provided verify command.
+- Freezes the original at the fork point, so the baseline never absorbs work done after the rewind, and lets the verify exit code decide the verdict and the branch state.
+- Resolves the verify command the way the gateway runs it: per-platform splitting, PATH or worktree-relative lookup, batch shims through the shell, and the project's own virtualenv when the restored worktree has none.
+- Runs the user-provided verify command and compares outcome, tokens, tool errors and duration.
+- Completes the branch lifecycle: prepared, running, done, failed, cleaned and discarded, with abandoned prepared branches swept and their worktrees removed.
+- Opens from the sidebar, the status bar, the command palette or `Ctrl+Alt+R`, and behaves like a host surface: scoped timers, event-driven refresh and a focus-trapped dialog.
 - Keeps everything local: no network calls, no telemetry, no credential reads and no self-updater.
 
 ## Requirements

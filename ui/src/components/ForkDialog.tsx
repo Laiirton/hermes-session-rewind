@@ -64,6 +64,12 @@ interface ForkDialogProps {
   onCreated: (branchId: string) => void;
 }
 
+function labelled<T>(step: string, action: Promise<T>): Promise<T> {
+  return action.catch((caught: unknown): never => {
+    throw new Error(`${step}: ${errorMessage(caught)}`);
+  });
+}
+
 function delay(ms: number): Promise<void> {
   return new Promise<void>((resolve) => {
     window.setTimeout(resolve, ms);
@@ -595,10 +601,13 @@ export function ForkDialog({
       let childStoredId: string;
       let freshSession = false;
       if (throughId !== null) {
-        const branch = await host.request<BranchRpcResult>('session.branch', {
-          session_id: liveParent.runtimeId,
-          through_message_id: throughId
-        });
+        const branch = await labelled(
+          'could not branch the session',
+          host.request<BranchRpcResult>('session.branch', {
+            session_id: liveParent.runtimeId,
+            through_message_id: throughId
+          })
+        );
         childId = branch.session_id;
         childStoredId = branch.stored_session_id;
       } else {
@@ -612,7 +621,10 @@ export function ForkDialog({
         if (liveParent.storedId !== null) {
           createParams.parent_session_id = liveParent.storedId;
         }
-        const created = await host.request<CreateRpcResult>('session.create', createParams);
+        const created = await labelled(
+          'could not create the branch session',
+          host.request<CreateRpcResult>('session.create', createParams)
+        );
         childId = created.session_id;
         childStoredId = created.stored_session_id;
         freshSession = true;
@@ -658,18 +670,21 @@ export function ForkDialog({
         }
       }
       const finalPrompt = prompt.trim() || plan.prompt;
-      await host.request('prompt.submit', {
-        session_id: childId,
-        text: finalPrompt
-      });
-      await commitFork(ctx, plan.branch_id, {
-        child_session_id: childStoredId,
-        child_stored_session_id: childStoredId,
-        model: model.trim() || null,
-        provider: null,
-        prompt: finalPrompt,
-        verify_cmd: verifyCmd.trim() || null
-      });
+      await labelled(
+        'could not start the rerun',
+        host.request('prompt.submit', { session_id: childId, text: finalPrompt })
+      );
+      await labelled(
+        'could not record the branch',
+        commitFork(ctx, plan.branch_id, {
+          child_session_id: childStoredId,
+          child_stored_session_id: childStoredId,
+          model: model.trim() || null,
+          provider: null,
+          prompt: finalPrompt,
+          verify_cmd: verifyCmd.trim() || null
+        })
+      );
       onCreated(plan.branch_id);
       host.openSession(childStoredId, { intent: 'tab' });
       onClose();

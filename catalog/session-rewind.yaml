@@ -36,5 +36,7 @@ capabilities:
 requires_hermes: ">=0.22.7"
 platforms:
   - windows
+  - linux
+  - macos
 version: "1.0.0"
-known_issues: Native fork requires a live session. Snapshots restore git-tracked files only.
+known_issues: Native fork requires a live session. Snapshots restore git-tracked files only, so a gitignored virtualenv is not carried into the worktree. Verify runs in the gateway environment; the dialog shows the exact interpreter it resolves.
