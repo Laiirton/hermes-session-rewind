@@ -4,8 +4,9 @@ import time
 from pathlib import Path
 from typing import Any
 
-from ..gitrepo.shadow import GitError
+from ..gitrepo.shadow import GitError, GitShadow
 from ..gitrepo.worktree import WorktreeManager
+from ..sessiondb.transcript import SessionDBTranscriptReader
 from ..settings import Settings
 from ..store.db import Database
 from ..store.repositories import ReadStore, WriteStore
@@ -14,6 +15,13 @@ from .verify import VerifyResult, VerifyRunner, resolved_command
 
 PREPARED_TTL_SECONDS = 900.0
 RUN_STALE_SECONDS = 900.0
+
+
+def build_fork_service(database: Database, settings: Settings) -> ForkService:
+    shadow = GitShadow()
+    worktrees = WorktreeManager(shadow)
+    planner = ForkPlanner(database, settings, shadow, worktrees, SessionDBTranscriptReader())
+    return ForkService(database, settings, planner, VerifyRunner(), worktrees)
 
 
 class ForkService:
@@ -35,7 +43,7 @@ class ForkService:
         self.sweep(request.session_id)
         return self._planner.prepare(request)
 
-    def sweep(self, parent_session_id: str) -> int:
+    def sweep(self, parent_session_id: str | None) -> int:
         abandoned = ReadStore(self._database).list_abandoned_prepared(
             parent_session_id,
             time.time() - PREPARED_TTL_SECONDS,

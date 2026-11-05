@@ -652,17 +652,18 @@ class ReadStore:
             connection.close()
 
     def list_abandoned_prepared(
-        self, parent_session_id: str, older_than: float
+        self, parent_session_id: str | None, older_than: float
     ) -> list[dict[str, Any]]:
         connection = self._connect()
+        where = "state = 'prepared' AND updated_at < ?"
+        params: list[Any] = [older_than]
+        if parent_session_id is not None:
+            where = f"parent_session_id = ? AND {where}"
+            params.insert(0, parent_session_id)
         try:
             rows = connection.execute(
-                """
-                SELECT * FROM branches
-                WHERE parent_session_id = ? AND state = 'prepared' AND updated_at < ?
-                ORDER BY created_at ASC
-                """,
-                (parent_session_id, older_than),
+                f"SELECT * FROM branches WHERE {where} ORDER BY created_at ASC",
+                tuple(params),
             ).fetchall()
             return [dict(row) for row in rows]
         finally:

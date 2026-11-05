@@ -9,6 +9,7 @@ from plugins.plugin_storage import plugin_data_dir
 from .capture.hooks import HookRecorder
 from .capture.queue import CaptureService
 from .capture.snapshots import SnapshotService
+from .fork.service import build_fork_service
 from .gitrepo.shadow import GitShadow
 from .settings import Settings
 from .store.db import Database, EventRecord
@@ -21,6 +22,7 @@ def register(ctx: Any) -> None:
     database = Database(plugin_data_dir("session-rewind") / "rewind.sqlite3")
     database.migrate()
     RetentionRunner(database, settings, GitShadow()).run()
+    build_fork_service(database, settings).sweep(None)
     snapshots = SnapshotService(database=database, settings=settings)
     snapshots.start()
 

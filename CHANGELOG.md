@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- Reclaim abandoned workspaces from every session, not only the one being prepared. The sweep ran with the parent of the branch about to be created, so a branch left `prepared` by an abandoned dialog on another session kept its worktree until that exact session was prepared again; two of them survived eleven prepares. Plugin load now sweeps all abandoned prepared branches past the same fifteen-minute window, which left no `prepared` row and removed both worktrees.
+
+
 - Let the timeline finish loading while something else is recording. Every captured host event re-ran the page's data effects, and each re-run cancelled the request that was in flight; with a rerun streaming events the selected session could sit on "no user turns came back" until Refresh was pressed. Host events are now coalesced into one refresh every 1.5 seconds.
 
 

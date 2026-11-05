@@ -6,14 +6,10 @@ from typing import Any
 
 from fastapi import APIRouter, HTTPException, Path, Query
 
-from ..fork.planner import ForkError, ForkPlanner, ForkRequest
-from ..fork.service import ForkService
-from ..fork.verify import VerifyRunner
-from ..gitrepo.shadow import GitShadow
-from ..gitrepo.worktree import WorktreeManager
+from ..fork.planner import ForkError, ForkRequest
+from ..fork.service import build_fork_service
 from ..metrics import compare_verdict
 from ..serialization import event_detail, event_summary
-from ..sessiondb.transcript import SessionDBTranscriptReader
 from ..settings import Settings
 from ..store.db import SQLITE_MAX_INT, Database
 from ..store.repositories import ReadStore, WriteStore
@@ -49,22 +45,7 @@ from .models import (
 def create_router(database: Database, settings: Settings | None = None) -> APIRouter:
     router = APIRouter()
     _settings = settings or Settings()
-    shadow = GitShadow()
-    worktrees = WorktreeManager(shadow)
-    planner = ForkPlanner(
-        database,
-        _settings,
-        shadow,
-        worktrees,
-        SessionDBTranscriptReader(),
-    )
-    forks = ForkService(
-        database,
-        _settings,
-        planner,
-        VerifyRunner(),
-        worktrees,
-    )
+    forks = build_fork_service(database, _settings)
 
     def read_store() -> ReadStore:
         return ReadStore(database)

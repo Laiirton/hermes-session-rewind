@@ -31,18 +31,19 @@ def _prepared_branch(
     git_repo: Path,
     branch_id: str,
     created_at: float,
+    parent: str = "s_parent",
 ) -> Path:
     shadow = GitShadow()
-    snapshot = shadow.snapshot(git_repo, "s_parent", 1)
+    snapshot = shadow.snapshot(git_repo, parent, 1)
     assert snapshot is not None
     worktrees = WorktreeManager(shadow)
     target = worktrees.create(git_repo, snapshot.commit_sha, branch_id)
     store = WriteStore(database.connect())
     try:
-        store.upsert_session("s_parent", 1.0, cwd=str(git_repo), model="model-a")
+        store.upsert_session(parent, 1.0, cwd=str(git_repo), model="model-a")
         store.create_branch(
             branch_id,
-            "s_parent",
+            parent,
             1.0,
             0,
             None,
@@ -171,6 +172,23 @@ def test_sweep_keeps_a_recently_prepared_branch(database: Database, git_repo: Pa
     branch = ReadStore(database).get_branch("branch-fresh")
     assert branch is not None
     assert branch["state"] == "prepared"
+
+
+def test_sweep_without_a_parent_reclaims_branches_from_other_sessions(
+    database: Database, git_repo: Path
+) -> None:
+    other = _prepared_branch(database, git_repo, "branch-other-parent", 1.0, parent="s_other")
+    service = _service(database, WorktreeManager(GitShadow()))
+
+    assert service.sweep("s_parent") == 0
+    assert other.exists()
+
+    assert service.sweep(None) == 1
+
+    assert not other.exists()
+    branch = ReadStore(database).get_branch("branch-other-parent")
+    assert branch is not None
+    assert branch["state"] == "discarded"
 
 
 def test_resolve_verify_falls_back_to_the_repository_without_a_workspace(
