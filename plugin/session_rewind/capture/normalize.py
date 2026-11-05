@@ -9,7 +9,11 @@ MAX_ITEMS = 100
 MAX_DEPTH = 8
 
 SECRET_PATTERNS: tuple[tuple[re.Pattern[str], str], ...] = (
-    (re.compile(r"sk-[A-Za-z0-9]{16,}"), "[REDACTED]"),
+    (re.compile(r"sk-[A-Za-z0-9-]{16,}"), "[REDACTED]"),
+    (
+        re.compile(r"\beyJ[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}\b"),
+        "[REDACTED]",
+    ),
     (re.compile(r"gh[pousr]_[A-Za-z0-9]{20,}"), "[REDACTED]"),
     (re.compile(r"github_pat_[A-Za-z0-9_]{20,}"), "[REDACTED]"),
     (re.compile(r"AKIA[0-9A-Z]{16}"), "[REDACTED]"),
@@ -18,7 +22,7 @@ SECRET_PATTERNS: tuple[tuple[re.Pattern[str], str], ...] = (
     (
         re.compile(
             r"(?i)(api[_-]?key|access[_-]?token|refresh[_-]?token|token|secret|password|passwd)"
-            r"\s*[:=]\s*['\"]?[A-Za-z0-9._~+/=-]{8,}"
+            r"\s*[:=]\s*['\"]?[A-Za-z0-9._~+/=-]{6,}"
         ),
         r"\1=[REDACTED]",
     ),
@@ -117,12 +121,7 @@ class PayloadNormalizer:
             if index >= MAX_ITEMS:
                 break
             key_text = self._redactor.redact_text(str(key))
-            if (
-                self._redactor.enabled
-                and SENSITIVE_KEYS.match(key_text)
-                and isinstance(item, str)
-                and item
-            ):
+            if self._redactor.enabled and SENSITIVE_KEYS.match(key_text) and item:
                 result[key_text] = "[REDACTED]"
                 continue
             cleaned, item_truncated = self._clean(item, depth + 1)

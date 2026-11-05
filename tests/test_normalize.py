@@ -72,3 +72,36 @@ def test_depth_limit() -> None:
         current = child
     rendered = normalizer.normalize(value)
     assert "depth limit" in rendered
+
+
+def _normalize(payload: object) -> str:
+    return PayloadNormalizer(10000, Redactor(True)).normalize(payload)
+
+
+def test_redacts_prefixed_and_bare_secret_shapes() -> None:
+    text = _normalize({"args": {"command": "run with sk-proj-abcdefghijklmnopqrstuvwxyz"}})
+    assert "sk-proj" not in text
+    assert "[REDACTED]" in text
+
+    jwt = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwInQifQ.dozJhRqCp21w"
+    text = _normalize({"jwt": jwt})
+    assert "eyJ" not in text
+    assert "[REDACTED]" in text
+
+
+def test_redacts_sensitive_keys_whatever_the_value_type() -> None:
+    assert '"token":"[REDACTED]"' in _normalize({"token": 123456789012345})
+    assert '"password":"[REDACTED]"' in _normalize({"password": "hunter2"})
+    assert "hunter2" not in _normalize({"password": "hunter2"})
+
+
+def test_redacts_short_assignments_in_free_text() -> None:
+    text = _normalize({"result": "password=hunter2 and token=abcdefgh"})
+    assert "hunter2" not in text
+    assert "abcdefgh" not in text
+
+
+def test_ordinary_payloads_are_not_redacted() -> None:
+    text = _normalize({"args": {"command": "echo hello world", "count": 12}})
+    assert "[REDACTED]" not in text
+    assert "hello world" in text

@@ -53,6 +53,15 @@ The plugin never approves tool calls, never disables guards and never creates un
 
 Delete `$HERMES_HOME/plugin-data/session-rewind/` to remove the plugin database. Remove `refs/hermes-rewind/*` and `.hermes-rewind/` worktrees from repositories to remove snapshot and worktree data. Use the comparison panel's Cleanup action to remove a worktree.
 
+## Redaction coverage
+
+Redaction runs before anything is stored and is verified by probe against shapes that
+occur in practice: `sk-` and `sk-proj-` keys, GitHub tokens, AWS access ids, Slack tokens,
+`Bearer` headers, bare JWTs, PEM private keys, and `key = value` assignments for sensitive
+names. A dictionary key that is itself sensitive is redacted whatever the value type is, so a
+numeric token no longer survives as a number. Ordinary payloads are untouched, which the
+regression tests assert so widening the patterns cannot silently swallow normal text.
+
 ## Replayed recordings are marked as data
 
 The generated context pack quotes the recorded task, summary and last error inside

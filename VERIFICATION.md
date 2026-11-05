@@ -37,7 +37,7 @@ mypy
 pytest --cov=session_rewind --cov-report=term-missing
 ```
 
-Result: green. 103 tests passed, 90% branch coverage, with `--cov-fail-under=85` enforced in CI.
+Result: green. 107 tests passed, 90% branch coverage, with `--cov-fail-under=85` enforced in CI.
 
 ## Desktop checks
 
@@ -127,6 +127,7 @@ Observed in the real Hermes Desktop app through Computer Use; screenshots are ke
 | Branch refresh | `GET /branches/{id}` no longer writes; the panel refreshes through `POST /branches/{id}/reconcile`, verified live |
 | Stale run repair | live branch `3c29d531`, stuck `running` for hours, flipped to `FAILED` on the first panel refresh |
 | Frozen baseline in the app | comparison panel shows "Original · frozen 03:13:34" with 422.368 tokens instead of the session total 447.220 |
+| Redaction | probed live: `sk-proj-…`, bare JWTs, numeric `token` values and 7-character `password=` values were all stored unredacted before the fix; each now has a regression test and ordinary text is still untouched |
 | Context pack of a rewind child | one preamble only, with `Original user task:` quoting "Diga apenas: pronto"; the earlier nesting duplicated the preamble and replayed stale claims |
 
 ## Fork lifecycle, ten consecutive cycles
