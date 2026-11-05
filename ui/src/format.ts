@@ -20,14 +20,33 @@ export function formatDuration(ms: number | null): string {
   return `${(ms / 1000).toFixed(1)}s`;
 }
 
+const RPC_ENVELOPE = /Error invoking remote method '[^']+':\s*Error:\s*\d+:\s*(\{.*\})/s;
+
 export function errorMessage(caught: unknown): string {
-  if (caught instanceof Error) {
-    return caught.message;
+  const raw =
+    caught instanceof Error
+      ? caught.message
+      : typeof caught === 'string'
+        ? caught
+        : 'Unexpected error';
+  const envelope = RPC_ENVELOPE.exec(raw);
+  const payload = envelope?.[1];
+  if (envelope === null || payload === undefined) {
+    return raw;
   }
-  if (typeof caught === 'string') {
-    return caught;
+  const detail = readDetail(payload);
+  return detail === undefined ? raw : raw.replace(envelope[0], detail);
+}
+
+function readDetail(payload: string): string | undefined {
+  try {
+    const parsed = JSON.parse(payload) as { detail?: unknown };
+    return typeof parsed.detail === 'string' && parsed.detail.length > 0
+      ? parsed.detail
+      : undefined;
+  } catch {
+    return undefined;
   }
-  return 'Unexpected error';
 }
 
 export function shortId(value: string, length = 8): string {
