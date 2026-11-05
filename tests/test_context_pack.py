@@ -43,6 +43,24 @@ def _pack(task: str) -> str:
     )
 
 
+def _append_turn(database: Database, message: str, ts: float) -> int:
+    store = WriteStore(database.connect())
+    try:
+        ids = store.append_events(
+            [
+                EventRecord(
+                    session_id="s_pack",
+                    ts=ts,
+                    kind="user_turn",
+                    payload_json=json.dumps({"user_message": message}),
+                )
+            ]
+        )
+    finally:
+        store.close()
+    return int(ids[0])
+
+
 def _prepare_prompt(database: Database, git_repo: Path, message: str) -> str:
     shadow = GitShadow()
     snapshot = shadow.snapshot(git_repo, "s_pack", 1)
@@ -86,6 +104,72 @@ def _prepare_prompt(database: Database, git_repo: Path, message: str) -> str:
         )
     )
     return plan.prompt
+
+
+def _with_tool_events(database: Database, names: list[tuple[str, dict[str, object]]]) -> None:
+    store = WriteStore(database.connect())
+    try:
+        store.append_events(
+            [
+                EventRecord(
+                    session_id="s_pack",
+                    ts=11.0 + float(index),
+                    kind="tool_call",
+                    name=name,
+                    status="ok",
+                    payload_json=json.dumps({"args": args}),
+                )
+                for index, (name, args) in enumerate(names)
+            ]
+        )
+        store.append_events(
+            [
+                EventRecord(
+                    session_id="s_pack",
+                    ts=21.0 + float(index),
+                    kind="tool_result",
+                    name=name,
+                    status="ok",
+                    payload_json=json.dumps({"result": f"{name} done"}),
+                )
+                for index, (name, _) in enumerate(names)
+            ]
+        )
+    finally:
+        store.close()
+
+
+def test_only_written_files_are_claimed_as_changed(database: Database, git_repo: Path) -> None:
+    _prepare_prompt(database, git_repo, "Fix app.py")
+    _with_tool_events(
+        database,
+        [
+            ("read_file", {"file_path": "readme.md"}),
+            ("grep", {"path": "src"}),
+            ("patch", {"target": "app.py"}),
+            ("write", {"file_path": "test_app.py"}),
+        ],
+    )
+    anchor = _append_turn(database, "Rerun from here", 31.0)
+    shadow = GitShadow()
+    planner = ForkPlanner(database, Settings(), shadow, WorktreeManager(shadow), _NoTranscript())
+
+    prompt = planner.prepare(
+        ForkRequest(
+            session_id="s_pack",
+            stored_session_id=None,
+            event_id=anchor,
+            model=None,
+            provider=None,
+            prompt=None,
+            verify_cmd=None,
+        )
+    ).prompt
+
+    assert "- app.py" in prompt
+    assert "- test_app.py" in prompt
+    assert "readme.md" not in prompt
+    assert "- src" not in prompt
 
 
 def test_recorded_content_is_quoted_and_marked_as_data(database: Database, git_repo: Path) -> None:

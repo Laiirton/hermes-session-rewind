@@ -70,6 +70,7 @@ SECTION_MARKERS = (
     SECTION_MARKER_PREFIX + "Constraints:",
 )
 MAX_UNWRAP_DEPTH = 5
+_WRITE_VERBS = ("write", "edit", "patch", "create", "delete", "move", "rename")
 
 
 def unwrap_rewound_task(text: str) -> str:
@@ -225,7 +226,7 @@ class ForkPlanner:
                 summary = _text(payload.get("assistant_response"))
             if not error and event["kind"] == "tool_result" and event.get("status") == "error":
                 error = _text(payload.get("error_message")) or _text(payload.get("result"))
-            for path in _file_paths(payload):
+            for path in _file_paths(event, payload):
                 if path not in files:
                     files.append(path)
             if summary and error and len(files) >= MAX_FILES:
@@ -297,7 +298,12 @@ def _text(value: Any) -> str:
     return json.dumps(value, ensure_ascii=False, default=str)
 
 
-def _file_paths(payload: dict[str, Any]) -> list[str]:
+def _file_paths(event: dict[str, Any], payload: dict[str, Any]) -> list[str]:
+    if event.get("kind") != "tool_call":
+        return []
+    name = str(event.get("name") or "").lower()
+    if not any(verb in name for verb in _WRITE_VERBS):
+        return []
     args = payload.get("args")
     if not isinstance(args, dict):
         return []
