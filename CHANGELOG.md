@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Follow the app's light mode in the fork dialog: the mode comes from `useTheme().resolvedMode` and the dialog carries an explicit light value set, because the `--ui-*` tokens do not resolve inside the plugin iframe. Custom palettes are still not adopted; see `docs/limitations.md`.
+
 - Resolve the verify command against the command in the field, not the one recorded when the branch was prepared; the dialog no longer reports "not found on the gateway PATH" for a command the gateway was never asked about.
 
 - Detect the workspace's own verify command from its project markers and prefill it, replacing four static guesses once a branch is prepared.

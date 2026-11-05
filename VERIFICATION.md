@@ -138,6 +138,7 @@ Observed in the real Hermes Desktop app through Computer Use; screenshots are ke
 | Context pack of a rewind child | one preamble only, with `Original user task:` quoting "Diga apenas: pronto"; the earlier nesting duplicated the preamble and replayed stale claims |
 | Console messages | DevTools attached from an app reload, then the page was driven through the keybinding, a session switch (73 events), turn expand and collapse, an event-detail fetch, the dialog, Prepare and Escape: the console reported `0 messages in console` and `No issues` |
 | Verify resolution after the fix | with the detected preset applied by Prepare the line reads `Resolves to …python-3.14.9…\python.EXE -m pytest -q`; after editing the field to `definitely-not-a-real-tool check` it reads `Not found in the gateway environment`, so the line follows the command in the field |
+| Fork dialog in light mode | switched the app to Light in Settings → Appearance → Theme: the panel, inputs, presets, badges, notes and buttons all render light with dark text, and the prepared state shows the green `workspace ready` badge and the resolved interpreter readably; switching back to Dark left the dialog unchanged |
 
 The console check is a renderer measurement, not a claim about the gateway process log. Driving the UI by screenshot pixels needs care: the main window screenshot is 1350 × 711 while the window is wider, so a click aimed at the visible centre of the row's `Rewind` button landed on the row toggle; the button itself works, and the dialog opened on the corrected coordinate.
 

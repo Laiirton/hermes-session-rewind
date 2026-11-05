@@ -74,4 +74,11 @@ declare module '@hermes/plugin-sdk' {
   export const KEYBINDS_AREA: 'keybinds';
   export const STATUSBAR_AREAS: { readonly left: string; readonly right: string };
   export function useValue<T>(atom: Atom<T>): T;
+  export interface ThemeInfo {
+    theme: Record<string, unknown>;
+    themeName: string;
+    availableThemes: { name: string; label: string }[];
+    resolvedMode: string;
+  }
+  export function useTheme(): ThemeInfo;
 }

@@ -1,4 +1,4 @@
-import { host } from '@hermes/plugin-sdk';
+import { host, useTheme } from '@hermes/plugin-sdk';
 import type { PluginContext } from '@hermes/plugin-sdk';
 import { useEffect, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
@@ -401,6 +401,108 @@ const DIALOG_CSS = `
   background: var(--ui-accent, #6ea8fe);
   filter: brightness(1.08);
 }
+.rw-light {
+  background: rgba(24, 26, 30, 0.32);
+}
+.rw-light .rw-panel {
+  color: #1c1f24;
+  background: #f6f7f9;
+  border-color: rgba(0, 0, 0, 0.14);
+  box-shadow: 0 24px 70px rgba(15, 18, 22, 0.24);
+}
+.rw-light .rw-header {
+  border-bottom-color: rgba(0, 0, 0, 0.1);
+}
+.rw-light .rw-subtitle,
+.rw-light .rw-card-title,
+.rw-light .rw-chip,
+.rw-light .rw-path,
+.rw-light .rw-label,
+.rw-light .rw-help,
+.rw-light .rw-hint,
+.rw-light .rw-badge-idle,
+.rw-light .rw-resolved {
+  color: rgba(28, 31, 36, 0.62);
+}
+.rw-light .rw-note.rw-note-muted {
+  color: rgba(28, 31, 36, 0.62);
+}
+.rw-light .rw-close {
+  color: rgba(28, 31, 36, 0.62);
+  border-color: rgba(0, 0, 0, 0.14);
+}
+.rw-light .rw-close:hover:not(:disabled) {
+  color: #1c1f24;
+  background: rgba(0, 0, 0, 0.06);
+}
+.rw-light .rw-card {
+  background: rgba(0, 0, 0, 0.035);
+  border-color: rgba(0, 0, 0, 0.1);
+}
+.rw-light .rw-badge {
+  border-color: rgba(0, 0, 0, 0.14);
+}
+.rw-light .rw-badge-ok {
+  color: #1a7f37;
+  background: rgba(26, 127, 55, 0.08);
+  border-color: rgba(26, 127, 55, 0.32);
+}
+.rw-light .rw-badge-warn,
+.rw-light .rw-note,
+.rw-light .rw-banner-warn {
+  color: #9a6700;
+}
+.rw-light .rw-banner-warn {
+  background: rgba(154, 103, 0, 0.08);
+  border-color: rgba(154, 103, 0, 0.3);
+}
+.rw-light .rw-banner-error {
+  color: #cf222e;
+  background: rgba(207, 34, 46, 0.07);
+  border-color: rgba(207, 34, 46, 0.3);
+}
+.rw-light .rw-chip {
+  border-color: rgba(0, 0, 0, 0.12);
+}
+.rw-light .rw-preset {
+  color: rgba(28, 31, 36, 0.72);
+  background: #ffffff;
+  border-color: rgba(0, 0, 0, 0.14);
+}
+.rw-light .rw-preset:hover {
+  color: #1c1f24;
+  background: rgba(0, 0, 0, 0.05);
+  border-color: #1f6feb;
+}
+.rw-light .rw-input,
+.rw-light .rw-textarea {
+  color: #1c1f24;
+  background: #ffffff;
+  border-color: rgba(0, 0, 0, 0.16);
+}
+.rw-light .rw-input:focus,
+.rw-light .rw-textarea:focus {
+  border-color: #1f6feb;
+  box-shadow: 0 0 0 3px rgba(31, 111, 235, 0.22);
+}
+.rw-light .rw-footer {
+  background: rgba(0, 0, 0, 0.03);
+  border-top-color: rgba(0, 0, 0, 0.1);
+}
+.rw-light .rw-button {
+  color: #1c1f24;
+  border-color: rgba(0, 0, 0, 0.16);
+}
+.rw-light .rw-button:hover:not(:disabled) {
+  background: rgba(0, 0, 0, 0.05);
+}
+.rw-light .rw-primary {
+  color: #ffffff;
+  background: #1f6feb;
+}
+.rw-light .rw-primary:hover:not(:disabled) {
+  background: #1a63d8;
+}
 @media (max-width: 620px) {
   .rw-overlay {
     padding: 12px;
@@ -431,6 +533,7 @@ export function ForkDialog({
   onClose,
   onCreated
 }: ForkDialogProps): ReactNode {
+  const light = useTheme().resolvedMode === 'light';
   const [model, setModel] = useState(session.model ?? '');
   const [prompt, setPrompt] = useState('');
   const [verifyCmd, setVerifyCmd] = useState('');
@@ -685,7 +788,7 @@ export function ForkDialog({
 
   return (
     <div
-      className="rw-overlay"
+      className={light ? 'rw-overlay rw-light' : 'rw-overlay'}
       onMouseDown={(mouseEvent) => {
         if (mouseEvent.target === mouseEvent.currentTarget && !busy) {
           onClose();
