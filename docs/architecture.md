@@ -43,6 +43,8 @@ ui/                         TypeScript Desktop source and esbuild config
 
 The hook handlers enqueue normalized capture items and never block. The writer thread redacts, truncates and serializes payloads, upserts session metadata and appends events in order. A full queue increments a drop counter; the next batch writes a `capture_dropped` event.
 
+A batch that raises `sqlite3.Error` or `OSError` closes its store handle, returns the batch to the queue and reopens on the next pass. After `MAX_WRITE_FAILURES` consecutive failures the batch is counted as dropped instead of retried, so a permanently broken database cannot make the thread spin, and a single locked transaction cannot end recording for the rest of the gateway's life.
+
 Captured event kinds:
 
 - `session_start`

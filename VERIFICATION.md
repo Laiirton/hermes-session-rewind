@@ -37,7 +37,7 @@ mypy
 pytest --cov=session_rewind --cov-report=term-missing
 ```
 
-Result: green. 107 tests passed, 90% branch coverage, with `--cov-fail-under=85` enforced in CI.
+Result: green. 110 tests passed, 90% branch coverage, with `--cov-fail-under=85` enforced in CI.
 
 ## Desktop checks
 
@@ -129,6 +129,14 @@ Observed in the real Hermes Desktop app through Computer Use; screenshots are ke
 | Frozen baseline in the app | comparison panel shows "Original · frozen 03:13:34" with 422.368 tokens instead of the session total 447.220 |
 | Redaction | probed live: `sk-proj-…`, bare JWTs, numeric `token` values and 7-character `password=` values were all stored unredacted before the fix; each now has a regression test and ordinary text is still untouched |
 | Context pack of a rewind child | one preamble only, with `Original user task:` quoting "Diga apenas: pronto"; the earlier nesting duplicated the preamble and replayed stale claims |
+
+## Capture durability
+
+The writer thread used to catch its exception outside the loop, so one locked transaction
+stopped recording for the rest of the gateway's life while the queue kept filling and dropping
+silently. Three tests pin the new behaviour: a transient lock is retried and the event is
+stored, repeated failures drain the queue instead of spinning forever, and later turns are
+still recorded after an event sink raises. Removing the retry makes the first test fail.
 
 ## Fork lifecycle, ten consecutive cycles
 
