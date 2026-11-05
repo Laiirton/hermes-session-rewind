@@ -5,6 +5,7 @@ import {
   frozenOutcome,
   outcomeLabel,
   plural,
+  sessionsCountLabel,
   turnsEmptyMessage,
   verifyOutcome
 } from './format';
@@ -84,6 +85,20 @@ describe('frozenOutcome', () => {
     expect(frozenOutcome('completed')).toBe('completed');
     expect(frozenOutcome('ws_orphan_reap')).toBe('ended with its window');
     expect(frozenOutcome('some_future_reason')).toBe('some_future_reason');
+  });
+});
+
+describe('sessionsCountLabel', () => {
+  it('counts the sessions listed', () => {
+    expect(sessionsCountLabel(14, 100)).toBe('14');
+  });
+
+  it('says a full page is a window, not the whole store', () => {
+    expect(sessionsCountLabel(100, 100)).toBe('100+');
+  });
+
+  it('says nothing before the first page arrives', () => {
+    expect(sessionsCountLabel(0, 100)).toBe('');
   });
 });
 

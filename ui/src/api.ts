@@ -184,8 +184,10 @@ function post<T>(ctx: PluginContext, path: string, body: unknown): Promise<T> {
   return ctx.rest<T>(path, { method: 'POST', body } as unknown as RequestInit);
 }
 
+export const SESSIONS_PAGE_LIMIT = 100;
+
 export async function getSessions(ctx: PluginContext): Promise<SessionSummary[]> {
-  const page = await ctx.rest<SessionPage>('/sessions?limit=100');
+  const page = await ctx.rest<SessionPage>(`/sessions?limit=${SESSIONS_PAGE_LIMIT}`);
   return page.items;
 }
 

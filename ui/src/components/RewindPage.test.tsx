@@ -133,6 +133,11 @@ describe('RewindPage timeline panel', () => {
     turnsA.resolve(page([turn('a', 'the a turn')]));
     await screen.findByText('the a turn');
 
+    const listed = screen
+      .getAllByText(/Sessions/)
+      .some((element) => /Sessions\s*3/.test(element.textContent ?? ''));
+    expect(listed).toBe(true);
+
     fireEvent.click(screen.getByText('chat b'));
 
     expect(screen.queryByText(/but no user turn\./)).toBeNull();

@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- Count the sessions the list is showing. The branch row had said how many branches it held since the strip began
+  hiding them, and the session column - the one that is always on screen - only said "Sessions". It now shows the
+  number, and `100+` when the page is full, because the query asks for a hundred and the store may hold more: a count
+  that cannot tell a short list from a truncated one is the same silence the branch strip had.
+
 - Add a reviewer quickstart. The README explained the settings and the flow but gave no short path from an installed
   plugin to a finished fork, so `Try it in two minutes` walks one turn from a session that already exists, with the
   timings this run measured, and says which part of it is verified and which is only the intended way to isolate a

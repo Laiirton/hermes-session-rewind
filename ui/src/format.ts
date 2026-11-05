@@ -79,6 +79,13 @@ export function frozenOutcome(outcome: string | null): string {
   return outcome === null ? 'open at freeze' : outcomeLabel(outcome);
 }
 
+export function sessionsCountLabel(count: number, limit: number): string {
+  if (count === 0) {
+    return '';
+  }
+  return count >= limit ? `${limit}+` : `${count}`;
+}
+
 export function turnsEmptyMessage(eventCount: number, error: string | null): string {
   if (error !== null) {
     return `The turns could not be loaded: ${error}`;

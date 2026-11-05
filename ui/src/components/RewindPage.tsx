@@ -13,6 +13,7 @@ import {
   getTurnEvents,
   getTurns,
   reconcileBranch,
+  SESSIONS_PAGE_LIMIT,
   verifyFork
 } from '../api';
 import type {
@@ -33,6 +34,7 @@ import {
   frozenOutcome,
   outcomeLabel,
   plural,
+  sessionsCountLabel,
   shortId,
   turnsEmptyMessage,
   verifyOutcome
@@ -784,7 +786,14 @@ export function RewindPage({ ctx }: { ctx: PluginContext }): ReactNode {
       <div className="flex min-h-0 flex-1 gap-3">
         <aside className="flex w-64 shrink-0 flex-col gap-3 overflow-auto border-r border-(--ui-border) pr-2">
           <div className="flex flex-col gap-1">
-            <div className="text-xs uppercase text-(--ui-text-tertiary)">Sessions</div>
+            <div className="text-xs uppercase text-(--ui-text-tertiary)">
+              Sessions
+              {sessionsLoaded ? (
+                <span className="ml-1">
+                  {sessionsCountLabel(sessions.length, SESSIONS_PAGE_LIMIT)}
+                </span>
+              ) : null}
+            </div>
             {!sessionsLoaded ? (
               <div className="text-xs text-(--ui-text-tertiary)">Loading sessions...</div>
             ) : sessions.length === 0 ? (
