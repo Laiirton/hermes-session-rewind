@@ -133,4 +133,4 @@ It imports only `@hermes/plugin-sdk`, `react` and `react/jsx-runtime`. The compi
 - Snapshot errors leave the timeline intact; fork preparation reports the error.
 - A worktree failure aborts preparation before a branch row is created.
 - The cwd and model RPCs are best-effort; a failure is shown in the dialog and the branch can still run in the original workspace.
-- Cleanup is explicit and removes only the isolated worktree.
+- Cleanup is explicit and removes only the isolated worktree. It asks first when the workspace holds uncommitted edits, and also when git cannot read the workspace, because a failed probe is not evidence that nothing is at risk.

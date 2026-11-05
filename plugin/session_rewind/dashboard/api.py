@@ -39,6 +39,7 @@ from .models import (
     TurnSummary,
     VerifyResolveResponse,
     VerifyResponse,
+    WorkspaceStateResponse,
 )
 
 
@@ -243,6 +244,14 @@ def create_router(database: Database, settings: Settings | None = None) -> APIRo
             duration_ms=result.duration_ms,
             timed_out=result.timed_out,
         )
+
+    @router.get("/forks/{branch_id}/workspace", response_model=WorkspaceStateResponse)
+    def workspace_state_fork(branch_id: str) -> WorkspaceStateResponse:
+        try:
+            worktree_path, uncommitted = forks.workspace_state(branch_id)
+        except ForkError as exc:
+            raise HTTPException(status_code=400, detail=str(exc)) from exc
+        return WorkspaceStateResponse(worktree_path=worktree_path, uncommitted=uncommitted)
 
     @router.post("/forks/{branch_id}/cleanup", response_model=BranchDetail)
     def cleanup_fork(branch_id: str) -> BranchDetail:

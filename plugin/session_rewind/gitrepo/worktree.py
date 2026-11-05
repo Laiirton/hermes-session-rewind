@@ -32,6 +32,19 @@ class WorktreeManager:
             raise GitError(result.stderr.strip() or "git worktree add failed")
         return target
 
+    def uncommitted(self, target: Path) -> int | None:
+        try:
+            result = self._shadow.run(
+                target,
+                ["status", "--porcelain", "--untracked-files=all"],
+                timeout=15.0,
+            )
+        except GitError:
+            return None
+        if result.returncode != 0:
+            return None
+        return len([line for line in result.stdout.splitlines() if line.strip()])
+
     def remove(self, repo_root: Path, target: Path) -> None:
         root = self._shadow.repo_root(repo_root)
         if root is None:

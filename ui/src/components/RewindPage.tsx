@@ -1,6 +1,6 @@
 import { host, useValue } from '@hermes/plugin-sdk';
 import type { PluginContext } from '@hermes/plugin-sdk';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
 
 import {
@@ -12,6 +12,7 @@ import {
   getSnapshots,
   getTurnEvents,
   getTurns,
+  getWorkspaceState,
   reconcileBranch,
   SESSIONS_PAGE_LIMIT,
   verifyFork
@@ -24,9 +25,11 @@ import type {
   EventSummary,
   SessionSummary,
   SnapshotSummary,
-  TurnSummary
+  TurnSummary,
+  WorkspaceState
 } from '../api';
 import {
+  cleanupWarning,
   errorMessage,
   formatDuration,
   formatNumber,
@@ -46,6 +49,13 @@ import { mergeTurnPages } from '../mergeTurnPages';
 interface ForkTarget {
   session: SessionSummary;
   event: EventSummary;
+}
+
+const CONFIRM_SCOPE = '[data-rw-confirm]';
+
+function confirmOwnsEscape(): boolean {
+  const active = document.activeElement;
+  return active instanceof HTMLElement && active.closest(CONFIRM_SCOPE) !== null;
 }
 
 const PAGE_CSS = `
@@ -311,6 +321,8 @@ function ComparePanel({
   const [compare, setCompare] = useState<CompareResponse | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [pendingCleanup, setPendingCleanup] = useState<WorkspaceState | null>(null);
+  const confirmRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -378,18 +390,70 @@ function ComparePanel({
     }
   };
 
-  const cleanup = async (): Promise<void> => {
+  const cleanup = async (workspace: WorkspaceState): Promise<void> => {
     setBusy(true);
     setError(null);
+    setPendingCleanup(null);
     try {
       await cleanupFork(ctx, branchId);
       onRefresh();
+    } catch (caught) {
+      setError(errorMessage(caught));
+      setPendingCleanup(workspace);
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const askCleanup = async (): Promise<void> => {
+    setBusy(true);
+    setError(null);
+    try {
+      const workspace = await getWorkspaceState(ctx, branchId);
+      if (workspace.uncommitted === 0) {
+        await cleanupFork(ctx, branchId);
+        onRefresh();
+      } else {
+        setPendingCleanup(workspace);
+      }
     } catch (caught) {
       setError(errorMessage(caught));
     } finally {
       setBusy(false);
     }
   };
+
+  useEffect(() => {
+    setPendingCleanup(null);
+  }, [branchId]);
+
+  useEffect(() => {
+    if (pendingCleanup === null) {
+      return;
+    }
+    const onKey = (event: KeyboardEvent): void => {
+      if (event.key === 'Escape' && confirmOwnsEscape()) {
+        setPendingCleanup(null);
+      }
+    };
+    window.addEventListener('keydown', onKey);
+    return (): void => {
+      window.removeEventListener('keydown', onKey);
+    };
+  }, [pendingCleanup]);
+
+  useEffect(() => {
+    if (pendingCleanup === null) {
+      return;
+    }
+    const previous = document.activeElement;
+    confirmRef.current?.focus();
+    return (): void => {
+      if (previous instanceof HTMLElement) {
+        previous.focus();
+      }
+    };
+  }, [pendingCleanup]);
 
   if (detail === null) {
     return <div className="text-xs text-(--ui-text-tertiary)">Loading branch...</div>;
@@ -435,7 +499,7 @@ function ComparePanel({
             className="rounded border border-(--ui-border) px-2 py-1 disabled:opacity-50"
             title={cleanupBlock}
             onClick={() => {
-              void cleanup();
+              void askCleanup();
             }}
             disabled={busy || !branch.worktree_path}
           >
@@ -459,6 +523,45 @@ function ComparePanel({
       ) : null}
 
       {error !== null ? <div className="text-xs text-red-500">{error}</div> : null}
+
+      {pendingCleanup !== null ? (
+        <div
+          className="rounded border border-red-500/50 bg-red-500/5 p-2 text-xs"
+          ref={confirmRef}
+          role="alertdialog"
+          aria-label="Confirm workspace cleanup"
+          data-rw-confirm="true"
+          tabIndex={-1}
+        >
+          <div className="mb-1 text-(--ui-text-primary)">
+            {cleanupWarning(pendingCleanup.uncommitted)}
+          </div>
+          <div className="mb-2 break-all text-(--ui-text-tertiary)">
+            {pendingCleanup.worktree_path}
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              className="rounded border border-red-500/60 px-2 py-1 text-red-500 disabled:opacity-50"
+              onClick={() => {
+                void cleanup(pendingCleanup);
+              }}
+              disabled={busy}
+            >
+              Delete workspace
+            </button>
+            <button
+              type="button"
+              className="rounded border border-(--ui-border) px-2 py-1"
+              onClick={() => {
+                setPendingCleanup(null);
+              }}
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      ) : null}
 
       {compare !== null ? (
         <div className="grid grid-cols-2 gap-2 text-xs">
@@ -581,7 +684,7 @@ export function RewindPage({ ctx }: { ctx: PluginContext }): ReactNode {
       return;
     }
     const onKey = (event: KeyboardEvent): void => {
-      if (event.key === 'Escape') {
+      if (event.key === 'Escape' && !confirmOwnsEscape()) {
         setSelectedBranchId(null);
       }
     };

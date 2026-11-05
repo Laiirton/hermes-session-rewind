@@ -100,6 +100,30 @@ def test_fork_api_flow(database: Database, git_repo: Path) -> None:
     assert missing.status_code == 404
 
 
+def test_workspace_state_reports_uncommitted_edits(database: Database, git_repo: Path) -> None:
+    event_id = _seed(database, git_repo)
+    client = _client(database)
+    plan = client.post(
+        f"{PREFIX}/forks/prepare",
+        json={"session_id": "s1", "event_id": event_id},
+    ).json()
+    branch_id = plan["branch_id"]
+
+    clean = client.get(f"{PREFIX}/forks/{branch_id}/workspace")
+    assert clean.status_code == 200
+    assert clean.json() == {"worktree_path": plan["worktree_path"], "uncommitted": 0}
+
+    worktree = Path(str(plan["worktree_path"]))
+    (worktree / "draft.py").write_text("print('uncommitted')\n", encoding="utf-8")
+    dirty = client.get(f"{PREFIX}/forks/{branch_id}/workspace")
+    assert dirty.json()["uncommitted"] == 1
+
+    missing = client.get(f"{PREFIX}/forks/nope/workspace")
+    assert missing.status_code == 400
+
+    client.post(f"{PREFIX}/forks/{branch_id}/cleanup")
+
+
 def test_fork_api_rejects_non_user_turn(database: Database) -> None:
     store = WriteStore(database.connect())
     try:

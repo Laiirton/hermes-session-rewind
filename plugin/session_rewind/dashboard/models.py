@@ -233,6 +233,11 @@ class VerifyResponse(BaseModel):
     timed_out: bool
 
 
+class WorkspaceStateResponse(BaseModel):
+    worktree_path: str
+    uncommitted: int | None
+
+
 class VerifyResolveResponse(BaseModel):
     command: str
     resolved: str | None

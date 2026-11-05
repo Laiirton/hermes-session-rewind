@@ -189,6 +189,19 @@ class ForkService:
         finally:
             store.close()
 
+    def workspace_state(self, branch_id: str) -> tuple[str, int | None]:
+        read = ReadStore(self._database)
+        branch = read.get_branch(branch_id)
+        if branch is None:
+            raise ForkError("branch not found")
+        worktree = branch.get("worktree_path")
+        if not isinstance(worktree, str) or not worktree:
+            raise ForkError("this branch has no workspace to clean")
+        target = Path(worktree)
+        if not target.exists():
+            return worktree, 0
+        return worktree, self._worktrees.uncommitted(target)
+
     def cleanup(self, branch_id: str) -> None:
         read = ReadStore(self._database)
         branch = read.get_branch(branch_id)

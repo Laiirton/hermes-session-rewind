@@ -4,7 +4,7 @@ import { afterEach, describe, expect, it } from 'vitest';
 
 import { RewindPage } from './RewindPage';
 import type { PluginContext } from '@hermes/plugin-sdk';
-import type { SessionSummary, TurnPage, TurnSummary } from '../api';
+import type { BranchDetail, BranchSummary, SessionSummary, TurnPage, TurnSummary } from '../api';
 
 const TS = 1_700_000_000;
 
@@ -189,6 +189,124 @@ describe('RewindPage timeline panel', () => {
     expect(performance.now() - started).toBeLessThan(1000);
   });
 });
+
+describe('RewindPage cleanup confirmation', () => {
+  it('names the uncommitted files before the workspace is deleted', async () => {
+    const state = { calls: [] as string[], uncommitted: 2 };
+    await openBranchPanel(state);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Cleanup' }));
+
+    expect(await screen.findByText(/holds 2 uncommitted files/)).toBeDefined();
+    expect(state.calls.some((path) => path.includes('/cleanup'))).toBe(false);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Delete workspace' }));
+
+    await waitFor(() =>
+      expect(state.calls.filter((path) => path.includes('/cleanup'))).toHaveLength(1)
+    );
+    expect(screen.queryByText(/holds 2 uncommitted files/)).toBeNull();
+  });
+
+  it('deletes a workspace with nothing uncommitted without asking', async () => {
+    const state = { calls: [] as string[], uncommitted: 0 };
+    await openBranchPanel(state);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Cleanup' }));
+
+    await waitFor(() =>
+      expect(state.calls.filter((path) => path.includes('/cleanup'))).toHaveLength(1)
+    );
+    expect(screen.queryByText(/uncommitted/)).toBeNull();
+  });
+
+  it('asks when git cannot read the workspace and keeps Escape inside the dialog', async () => {
+    const state = { calls: [] as string[], uncommitted: null };
+    await openBranchPanel(state);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Cleanup' }));
+
+    expect(await screen.findByText(/could not read this workspace/)).toBeDefined();
+    fireEvent.keyDown(document.body, { key: 'Escape' });
+    await waitFor(() => expect(screen.queryByText(/could not read/)).toBeNull());
+    expect(screen.getByText('Branch branch-1')).toBeDefined();
+    expect(state.calls.some((path) => path.includes('/cleanup'))).toBe(false);
+  });
+});
+
+function branchSummary(state: string, worktree: string | null): BranchSummary {
+  return {
+    id: 'branch-1',
+    parent_session_id: 'session-a',
+    fork_before_ts: TS,
+    fork_row_count: 3,
+    snapshot_id: null,
+    child_session_id: null,
+    child_stored_session_id: null,
+    worktree_path: worktree,
+    model: null,
+    provider: null,
+    verify_cmd: null,
+    state,
+    created_at: TS,
+    updated_at: TS + 60
+  };
+}
+
+function branchDetail(worktree: string | null): BranchDetail {
+  return {
+    branch: branchSummary('running', worktree),
+    run: null,
+    prompt: 'rerun the turn',
+    shared_child: false
+  };
+}
+
+function routeBranchFlow(state: {
+  calls: string[];
+  uncommitted: number | null;
+}): (path: string) => Promise<unknown> | undefined {
+  return (path: string) => {
+    state.calls.push(path);
+    if (path.startsWith('/sessions?limit')) {
+      return Promise.resolve({ items: sessions, limit: 100, offset: 0 });
+    }
+    if (path.includes('/turns')) {
+      return Promise.resolve(page([turn('a', 'the a turn')]));
+    }
+    if (path.includes('/snapshots')) {
+      return Promise.resolve([]);
+    }
+    if (path === '/sessions/session-a/branches') {
+      return Promise.resolve([branchSummary('running', '/work/.hermes-rewind/branch-1')]);
+    }
+    if (path.includes('/reconcile')) {
+      return Promise.resolve(branchDetail('/work/.hermes-rewind/branch-1'));
+    }
+    if (path.includes('/workspace')) {
+      return Promise.resolve({
+        worktree_path: '/work/.hermes-rewind/branch-1',
+        uncommitted: state.uncommitted
+      });
+    }
+    if (path.includes('/cleanup')) {
+      return Promise.resolve(branchDetail(null));
+    }
+    return undefined;
+  };
+}
+
+async function openBranchPanel(state: {
+  calls: string[];
+  uncommitted: number | null;
+}): Promise<Harness> {
+  const host = harness(routeBranchFlow(state));
+  render(<RewindPage ctx={host.ctx} />);
+  await screen.findByText('the a turn');
+  fireEvent.click(screen.getByText('branch-1'));
+  await screen.findByText('Branch branch-1');
+  return host;
+}
 
 function routeTurns(
   turnsA: { promise: Promise<TurnPage> },

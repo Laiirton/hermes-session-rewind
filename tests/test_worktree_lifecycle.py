@@ -229,3 +229,56 @@ def test_resolve_verify_rejects_an_unknown_branch(database: Database) -> None:
 
     with pytest.raises(ForkError, match="branch not found"):
         service.resolve_verify("branch-ghost", "pytest")
+
+
+def test_workspace_state_counts_uncommitted_files(
+    database: Database,
+    git_repo: Path,
+) -> None:
+    shadow = GitShadow()
+    target = _prepared_branch(database, git_repo, "ws-branch", time.time())
+    service = _service(database, WorktreeManager(shadow))
+
+    assert service.workspace_state("ws-branch") == (str(target), 0)
+
+    (target / "draft.py").write_text("x = 1\n", encoding="utf-8")
+
+    path, uncommitted = service.workspace_state("ws-branch")
+    assert path == str(target)
+    assert uncommitted == 1
+
+
+def test_workspace_state_reports_unknown_when_git_cannot_be_read(
+    database: Database, git_repo: Path, tmp_path: Path
+) -> None:
+    broken = tmp_path / "not-a-worktree"
+    broken.mkdir()
+    store = WriteStore(database.connect())
+    try:
+        store.upsert_session("s_parent", 1.0, cwd=str(git_repo), model="model-a")
+        store.create_branch(
+            "ws-broken",
+            "s_parent",
+            1.0,
+            0,
+            None,
+            str(broken),
+            None,
+            None,
+            "rerun the turn",
+            None,
+            "prepared",
+            1.0,
+        )
+    finally:
+        store.close()
+    service = _service(database, WorktreeManager(GitShadow()))
+
+    assert service.workspace_state("ws-broken") == (str(broken), None)
+
+
+def test_workspace_state_rejects_a_branch_without_a_workspace(database: Database) -> None:
+    service = _service(database, WorktreeManager(GitShadow()))
+
+    with pytest.raises(ForkError, match="branch not found"):
+        service.workspace_state("ws-ghost")

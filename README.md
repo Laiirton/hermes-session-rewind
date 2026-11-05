@@ -81,7 +81,7 @@ The command runs without a shell, except a Windows `.cmd` or `.bat` shim, which 
 4. Adjust the model or prompt, enter the verify command and choose Fork & run. The verify command runs in the gateway environment; use an absolute interpreter path when the tool is not globally on `PATH`.
 5. The child session opens in a new tab. The comparison panel follows the branch.
 6. Run Verify in the isolated worktree, inspect the output and compare both runs.
-7. Cleanup removes the isolated worktree when you are done.
+7. Cleanup removes the isolated worktree when you are done, and asks first when that workspace still holds files the rerun never committed.
 
 A session that is not open in the app cannot be branched from its transcript, so the fork falls back to a new chat carrying the context pack. The dialog says which of the two it is about to do before the rerun starts.
 

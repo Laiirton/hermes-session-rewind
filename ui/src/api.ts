@@ -180,6 +180,11 @@ export interface VerifyResolution {
   resolved: string | null;
 }
 
+export interface WorkspaceState {
+  worktree_path: string;
+  uncommitted: number | null;
+}
+
 function post<T>(ctx: PluginContext, path: string, body: unknown): Promise<T> {
   return ctx.rest<T>(path, { method: 'POST', body } as unknown as RequestInit);
 }
@@ -265,6 +270,10 @@ export function resolveVerify(
   return ctx.rest<VerifyResolution>(
     `/branches/${encodeURIComponent(branchId)}/verify-resolve?cmd=${encodeURIComponent(command)}`
   );
+}
+
+export function getWorkspaceState(ctx: PluginContext, branchId: string): Promise<WorkspaceState> {
+  return ctx.rest<WorkspaceState>(`/forks/${encodeURIComponent(branchId)}/workspace`);
 }
 
 export function cleanupFork(ctx: PluginContext, branchId: string): Promise<BranchDetail> {

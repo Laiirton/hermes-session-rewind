@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import {
+  cleanupWarning,
   errorMessage,
   formatClock,
   frozenOutcome,
@@ -134,5 +135,16 @@ describe('turnsEmptyMessage', () => {
   it('states what a recording without user turns holds, without sending the user to Refresh', () => {
     expect(turnsEmptyMessage(77, null)).toBe('The recording holds 77 events but no user turn.');
     expect(turnsEmptyMessage(1, null)).toBe('The recording holds 1 event but no user turn.');
+  });
+});
+
+describe('cleanupWarning', () => {
+  it('counts what the workspace holds', () => {
+    expect(cleanupWarning(1)).toContain('holds 1 uncommitted file.');
+    expect(cleanupWarning(3)).toContain('holds 3 uncommitted files.');
+  });
+
+  it('says the workspace could not be read rather than calling it clean', () => {
+    expect(cleanupWarning(null)).toContain('could not read');
   });
 });

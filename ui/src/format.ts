@@ -109,3 +109,10 @@ export function turnsEmptyMessage(eventCount: number, error: string | null): str
   }
   return `The recording holds ${plural(eventCount, 'event')} but no user turn.`;
 }
+
+export function cleanupWarning(uncommitted: number | null): string {
+  if (uncommitted === null) {
+    return 'Git could not read this workspace, so it may hold edits that were never committed. Deleting it would remove them for good.';
+  }
+  return `This workspace holds ${plural(uncommitted, 'uncommitted file')}. Deleting it removes them for good; the rerun conversation stays in the recording.`;
+}

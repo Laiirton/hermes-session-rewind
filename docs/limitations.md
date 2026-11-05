@@ -118,3 +118,26 @@ The three signals that were looked for, in the host's own store, and measured:
 So the distinction the plugin cannot make is not a missing lookup; the host does not
 record it. A timeout would be a guess about someone else's session.
 
+## Cleanup asks about uncommitted files, not about commits
+
+Cleanup asks what the workspace holds before deleting it, and the number it quotes comes
+from `git status --porcelain --untracked-files=all`. That command answers "what is not in
+any commit", which is not the same question as "what would be lost".
+
+Measured in a scratch repository: a worktree added with `--detach`, one commit made inside
+it, then `git worktree remove --force` and `git worktree prune`.
+
+- `git cat-file -t <commit>` still returns `commit`: the object is there.
+- `git log --oneline --all` does not list it, and `git fsck --unreachable` reports it as an
+  unreachable commit, along with its tree and blob.
+
+So the commit survives until the repository's own garbage collection prunes unreachable
+objects, and nothing in the app points at it meanwhile. A rerun that committed its result
+leaves `git status` clean, and the confirmation then does not open - the case the dialog is
+meant to catch is the one the probe cannot see.
+
+What the dialog does guarantee: it never reports a workspace as clean on a failed probe. A
+workspace `git status` cannot read comes back as unreadable and still asks, because treating
+a failed check as evidence of safety would be the exact mistake the confirmation exists to
+avoid. Detecting commits that no branch or ref points at is recorded as a next improvement,
+not as something this does.
