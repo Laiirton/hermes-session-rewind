@@ -14,7 +14,6 @@ from ..settings import Settings
 from ..store.db import Database
 from ..store.repositories import ReadStore, WriteStore
 
-SNAPSHOT_WINDOW_SECONDS = 2.0
 EVENT_LIMIT = 5000
 MAX_FILES = 20
 MAX_SUMMARY_CHARS = 1000
@@ -156,7 +155,7 @@ class ForkPlanner:
         if exact is not None:
             return exact
         for snapshot in snapshots:
-            if float(snapshot["ts"]) <= fork_before_ts + SNAPSHOT_WINDOW_SECONDS:
+            if float(snapshot["ts"]) <= fork_before_ts:
                 return snapshot
         return None
 
