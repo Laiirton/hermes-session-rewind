@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- Tool errors no longer echo raw database messages; a missing session reads "session or event not found" and an unreachable store reads "the rewind store is unavailable".
+- Prove the `capture_dropped` overflow signal reaches the store through a test.
+
 - Show an explicit loading state for sessions and turns instead of the empty-state copy while the first fetch is in flight.
 
 - Move the fork prefix selection out of the dialog component and cover it with nine vitest cases, so the row the child session branches from is now tested rather than assumed.

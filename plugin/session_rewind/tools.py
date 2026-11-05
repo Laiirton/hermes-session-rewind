@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import sqlite3
 import time
 from collections.abc import Callable
 from typing import Any
@@ -239,6 +240,10 @@ def _json(value: Any) -> str:
 
 
 def _error(exc: Exception) -> str:
+    if isinstance(exc, sqlite3.IntegrityError):
+        return _json({"error": "session or event not found"})
+    if isinstance(exc, (sqlite3.Error, OSError)):
+        return _json({"error": "the rewind store is unavailable"})
     return _json({"error": str(exc)})
 
 

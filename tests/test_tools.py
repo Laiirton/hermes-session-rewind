@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+from pathlib import Path
 
 from session_rewind.store.db import Database
 from session_rewind.tools import RewindTools
@@ -54,3 +55,16 @@ def test_tools_reject_invalid_input(seeded_database: Database) -> None:
     assert "error" in json.loads(tools.bookmark({"session_id": "missing", "label": "checkpoint"}))
     missing_event = json.loads(tools.inspect({"event_id": 99999}))
     assert missing_event["error"] == "event not found"
+
+
+def test_tool_errors_never_leak_store_internals(seeded_database: Database, tmp_path: Path) -> None:
+    tools = RewindTools(seeded_database)
+    missing = json.loads(tools.bookmark({"session_id": "missing", "label": "checkpoint"}))
+    assert missing == {"error": "session or event not found"}
+
+    broken = RewindTools(Database(tmp_path))
+    unavailable = json.loads(broken.search({"query": "anything"}))
+    assert unavailable == {"error": "the rewind store is unavailable"}
+
+    assert "sqlite" not in json.dumps(missing).lower()
+    assert str(tmp_path) not in json.dumps(unavailable)
