@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- Let Escape close the comparison panel. It had a Hide button and no keyboard equivalent, while the dialog above it already answered Escape.
+
+
 - Correct the README where it had fallen behind the code. It still said that forking an ended session is refused, that the timeline loads the newest 500 events, and that verify never uses a shell, while the plugin had been doing the opposite of all three for days.
 
 

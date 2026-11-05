@@ -564,6 +564,21 @@ export function RewindPage({ ctx }: { ctx: PluginContext }): ReactNode {
   );
 
   useEffect(() => {
+    if (selectedBranchId === null || forkTarget !== null) {
+      return;
+    }
+    const onKey = (event: KeyboardEvent): void => {
+      if (event.key === 'Escape') {
+        setSelectedBranchId(null);
+      }
+    };
+    window.addEventListener('keydown', onKey);
+    return (): void => {
+      window.removeEventListener('keydown', onKey);
+    };
+  }, [selectedBranchId, forkTarget]);
+
+  useEffect(() => {
     let cancelled = false;
     const load = async (): Promise<void> => {
       try {
