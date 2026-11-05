@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Put a frozen baseline's outcome in the past. The Original card of a comparison said `recording` for a session that ended hours ago, because the baseline froze while it was still open; that card describes 10:43:12 and not now, so it now says `open at freeze`. A side with no recording at all says `not recorded`, replacing a guess between `unknown` and `running`.
+
 - Stop sending the user to Refresh for a recording that holds no user turns. The sentence was written while an empty result could still mean the request had not finished; now that the page says "Loading turns..." while it does, an empty result means exactly what it says, so it says it plainly: "The recording holds 77 events but no user turn." The helper moved to `format.ts`, where its three branches are tested.
 
 - Say "loading" while turns are loading. Selecting a session kept the previous session's loaded flag, so the timeline answered with "The recording holds 170 events but no user turns came back. Choose Refresh." for as long as the request took, blaming the user for a request that had not finished. Choosing a session now clears turns, snapshots and branches along with the loaded flag, and the panel shows "Loading turns..." until they arrive.

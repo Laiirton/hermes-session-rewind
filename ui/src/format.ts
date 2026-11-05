@@ -75,6 +75,10 @@ export function outcomeLabel(outcome: string | null): string {
   return OUTCOME_LABELS[outcome] ?? outcome;
 }
 
+export function frozenOutcome(outcome: string | null): string {
+  return outcome === null ? 'open at freeze' : outcomeLabel(outcome);
+}
+
 export function turnsEmptyMessage(eventCount: number, error: string | null): string {
   if (error !== null) {
     return `The turns could not be loaded: ${error}`;

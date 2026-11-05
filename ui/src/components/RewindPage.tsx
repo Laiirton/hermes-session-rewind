@@ -30,6 +30,7 @@ import {
   formatDuration,
   formatNumber,
   formatTime,
+  frozenOutcome,
   outcomeLabel,
   plural,
   shortId,
@@ -465,7 +466,7 @@ function ComparePanel({
             </div>
             <Metric
               label="outcome"
-              value={compare.left === null ? 'unknown' : outcomeLabel(compare.left.outcome)}
+              value={compare.left === null ? 'not recorded' : frozenOutcome(compare.left.outcome)}
             />
             <Metric
               label="tokens"
@@ -484,7 +485,7 @@ function ComparePanel({
             <div className="mb-1 text-(--ui-text-tertiary)">Rerun</div>
             <Metric
               label="outcome"
-              value={compare.right === null ? 'running' : outcomeLabel(compare.right.outcome)}
+              value={compare.right === null ? 'not recorded' : outcomeLabel(compare.right.outcome)}
             />
             <Metric
               label="verify"

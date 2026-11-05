@@ -1,6 +1,13 @@
 import { describe, expect, it } from 'vitest';
 
-import { errorMessage, outcomeLabel, plural, turnsEmptyMessage, verifyOutcome } from './format';
+import {
+  errorMessage,
+  frozenOutcome,
+  outcomeLabel,
+  plural,
+  turnsEmptyMessage,
+  verifyOutcome
+} from './format';
 
 describe('plural', () => {
   it('adds the suffix except for one', () => {
@@ -65,6 +72,18 @@ describe('verifyOutcome', () => {
     expect(verifyOutcome(0)).toBe('passed');
     expect(verifyOutcome(1)).toBe('failed (exit 1)');
     expect(verifyOutcome(127)).toBe('failed (exit 127)');
+  });
+});
+
+describe('frozenOutcome', () => {
+  it('places an unfinished baseline in the past, because the card is a snapshot', () => {
+    expect(frozenOutcome(null)).toBe('open at freeze');
+  });
+
+  it('keeps every recorded reason in the words the host means', () => {
+    expect(frozenOutcome('completed')).toBe('completed');
+    expect(frozenOutcome('ws_orphan_reap')).toBe('ended with its window');
+    expect(frozenOutcome('some_future_reason')).toBe('some_future_reason');
   });
 });
 
