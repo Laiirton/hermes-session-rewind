@@ -50,6 +50,8 @@ jobs:
         working-directory: ui
       - run: npm run format
         working-directory: ui
+      - run: npm test
+        working-directory: ui
       - run: npm run build
         working-directory: ui
       - run: git diff --exit-code plugin/desktop/plugin.js

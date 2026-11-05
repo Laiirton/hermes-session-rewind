@@ -41,6 +41,13 @@ Result: green. 110 tests passed, 90% branch coverage, with `--cov-fail-under=85`
 
 ## Desktop checks
 
+## Frontend tests
+
+The fork prefix selection (`branchPoint`) decides which recorded rows the child session
+inherits, and it had no test at all. It now lives in `ui/src/forkPrefix.ts` with nine vitest
+cases covering the checkpoint selection, the first-turn case, rows without displayable text and
+the missing-history path. Reintroducing the off-by-one fails three of them.
+
 ```text
 cd ui
 npm ci
