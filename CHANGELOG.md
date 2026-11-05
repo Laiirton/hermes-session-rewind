@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- Name each rerun session after the branch that made it. Every fork of a turn was titled `↺ <session>`, and creating a session with a title that already exists returns the existing one, so rewinding the same turn twice was refused with "that session is already the rerun of another branch" and the branch stayed `prepared` with an unused workspace. The title now carries the branch id, and `local-e9` and `local-45` were each rewound a second time into genuinely new sessions.
+
+
 - Reclaim abandoned workspaces from every session, not only the one being prepared. The sweep ran with the parent of the branch about to be created, so a branch left `prepared` by an abandoned dialog on another session kept its worktree until that exact session was prepared again; two of them survived eleven prepares. Plugin load now sweeps all abandoned prepared branches past the same fifteen-minute window, which left no `prepared` row and removed both worktrees.
 
 

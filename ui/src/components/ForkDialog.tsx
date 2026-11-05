@@ -654,7 +654,7 @@ export function ForkDialog({
     try {
       const liveParent = await resolveLiveParent();
       const runtimeId = liveParent.runtimeId;
-      const title = `↺ ${session.title ?? shortId(session.session_id)}`;
+      const title = `↺ ${session.title ?? shortId(session.session_id)} · ${shortId(plan.branch_id)}`;
       let throughId: number | null = null;
       if (runtimeId !== undefined) {
         try {
