@@ -30,6 +30,7 @@ import {
   formatDuration,
   formatNumber,
   formatTime,
+  outcomeLabel,
   plural,
   shortId,
   verifyOutcome
@@ -471,7 +472,10 @@ function ComparePanel({
               Original
               {compare.left?.frozen_at ? ` · frozen ${formatTime(compare.left.frozen_at)}` : ''}
             </div>
-            <Metric label="outcome" value={compare.left?.outcome ?? 'unknown'} />
+            <Metric
+              label="outcome"
+              value={compare.left === null ? 'unknown' : outcomeLabel(compare.left.outcome)}
+            />
             <Metric
               label="tokens"
               value={
@@ -487,7 +491,10 @@ function ComparePanel({
           </div>
           <div className="rounded border border-(--ui-border) p-2">
             <div className="mb-1 text-(--ui-text-tertiary)">Rerun</div>
-            <Metric label="outcome" value={compare.right?.outcome ?? 'running'} />
+            <Metric
+              label="outcome"
+              value={compare.right === null ? 'running' : outcomeLabel(compare.right.outcome)}
+            />
             <Metric
               label="verify"
               value={rerunVerifyExit === null ? 'not run' : verifyOutcome(rerunVerifyExit)}
@@ -802,8 +809,8 @@ export function RewindPage({ ctx }: { ctx: PluginContext }): ReactNode {
                   <span className="truncate text-(--ui-text-tertiary)">
                     {session.model ?? 'unknown model'} · {plural(session.event_count, 'event')}
                   </span>
-                  <span className="text-(--ui-text-tertiary)">
-                    {session.outcome ?? 'recording'} ·{' '}
+                  <span className="truncate text-(--ui-text-tertiary)">
+                    {outcomeLabel(session.outcome)} ·{' '}
                     {formatNumber(session.tokens_in + session.tokens_out)} tokens
                   </span>
                 </button>

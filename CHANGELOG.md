@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- Stop showing a gateway internal as if it were a failure. Sessions the host reaped after their window went away read `ws_orphan_reap`, which looks like a crash; the installed agent defines those reasons as recoverable viewer closes, so the cards now say "ended with its window". Reasons the host has not documented are still shown exactly as written.
+
+
 - Stop calling every empty prefix a first turn. A closed session has no transcript prefix whether the turn is the first or the seventh, and the dialog said "This is the first turn" for the second turn of `local-c5`. The sentence now appears only when the session is live, where the count actually means that.
 
 

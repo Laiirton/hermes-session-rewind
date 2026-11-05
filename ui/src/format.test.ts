@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { errorMessage, plural, verifyOutcome } from './format';
+import { errorMessage, outcomeLabel, plural, verifyOutcome } from './format';
 
 describe('plural', () => {
   it('adds the suffix except for one', () => {
@@ -47,6 +47,16 @@ describe('errorMessage', () => {
       "Error invoking remote method 'hermes:api': Error: 422: " +
       '{"detail":[{"loc":["query","cmd"],"msg":"value is not a valid integer"}]}';
     expect(errorMessage(new Error(raw))).toBe(raw);
+  });
+});
+
+describe('outcomeLabel', () => {
+  it('spells the recoverable orphan reaps and passes anything else through', () => {
+    expect(outcomeLabel(null)).toBe('recording');
+    expect(outcomeLabel('completed')).toBe('completed');
+    expect(outcomeLabel('ws_orphan_reap')).toBe('ended with its window');
+    expect(outcomeLabel('startup_orphan_reap')).toBe('ended with its window');
+    expect(outcomeLabel('some_future_reason')).toBe('some_future_reason');
   });
 });
 

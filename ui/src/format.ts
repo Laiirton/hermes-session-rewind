@@ -60,3 +60,17 @@ export function plural(value: number, word: string): string {
 export function verifyOutcome(exit: number): string {
   return exit === 0 ? 'passed' : `failed (exit ${exit})`;
 }
+
+const OUTCOME_LABELS: Record<string, string> = {
+  completed: 'completed',
+  agent_close: 'closed with the app',
+  ws_orphan_reap: 'ended with its window',
+  startup_orphan_reap: 'ended with its window'
+};
+
+export function outcomeLabel(outcome: string | null): string {
+  if (outcome === null) {
+    return 'recording';
+  }
+  return OUTCOME_LABELS[outcome] ?? outcome;
+}
