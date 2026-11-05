@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Give the page a render test. Selecting a session, the empty-recording sentence and the one-second paint target could only be checked by hand, because `ui/` had no component-rendering harness. jsdom, React and Testing Library are now development dependencies and the shipped bundle is byte-identical - react and `@hermes/plugin-sdk` stay external - with three tests that each fail when the fix they cover is reverted. The documented check chain also gained `npm run lint`, `npm run format` and `npm test`, the three CI already ran and this repository did not list, which is why two pushes went out red.
+
 - Put a frozen baseline's outcome in the past. The Original card of a comparison said `recording` for a session that ended hours ago, because the baseline froze while it was still open; that card describes 10:43:12 and not now, so it now says `open at freeze`. A side with no recording at all says `not recorded`, replacing a guess between `unknown` and `running`.
 
 - Stop sending the user to Refresh for a recording that holds no user turns. The sentence was written while an empty result could still mean the request had not finished; now that the page says "Loading turns..." while it does, an empty result means exactly what it says, so it says it plainly: "The recording holds 77 events but no user turn." The helper moved to `format.ts`, where its three branches are tested.

@@ -18,9 +18,14 @@ npm ci
 .venv/Scripts/python -m pytest --cov=session_rewind --cov-report=term-missing
 cd ui
 npm run typecheck
+npm run lint
+npm run format
+npm test
 npm run build
 hermes plugins validate plugin --install-deps
 ```
+
+Run every line above before committing: CI executes all of them on Windows, Ubuntu and macOS, and a local chain that skips one of them is not evidence that the push is green.
 
 The UI build must be committed. CI fails when `plugin/desktop/plugin.js` differs from a fresh build.
 
