@@ -40,7 +40,8 @@ Target: under 90 seconds, showing the plugin working, not a mock.
 - A prepared branch shows `workspace ready`, the snapshot id, the worktree path and the resolved interpreter.
 - Prepared branches show a real worktree, and abandoned prepared branches are swept rather than left
   behind; four were reclaimed through the new path during this pass.
-- Not yet measured: ten consecutive forks with duplicate-tab and orphan-worktree counts.
+- Ten consecutive fork cycles at the service level: 10/10 succeeded, mean 137 ms, all branches
+  ended `cleaned`, and no orphan worktree was added. Duplicate Desktop tabs is not covered by it.
 
 ## Acceptance
 

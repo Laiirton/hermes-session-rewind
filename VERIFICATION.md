@@ -129,6 +129,23 @@ Observed in the real Hermes Desktop app through Computer Use; screenshots are ke
 | Frozen baseline in the app | comparison panel shows "Original · frozen 03:13:34" with 422.368 tokens instead of the session total 447.220 |
 | Context pack of a rewind child | one preamble only, with `Original user task:` quoting "Diga apenas: pronto"; the earlier nesting duplicated the preamble and replayed stale claims |
 
+## Fork lifecycle, ten consecutive cycles
+
+Driven through `ForkService.prepare` → `commit` → `reconcile` → `cleanup` against the real demo
+repository, with the store in a temporary database so the live one stayed untouched.
+
+| Measure | Result |
+| --- | --- |
+| Cycles completed | 10 of 10 |
+| Mean wall time per cycle | 137 ms (max 147 ms), against the 5 s target |
+| Branch states at the end | 10 `cleaned`, 0 `prepared`, 0 `running` |
+| Worktrees still on disk referenced by a branch | 0 |
+| `.hermes-rewind` entries before and after | 5 and 5, so no orphan was added |
+| Distinct child session ids | 10, no duplicate rows |
+
+This covers the backend lifecycle. Duplicate Desktop tabs is a renderer concern and is not
+measured by this run.
+
 ## Scale measurements (synthetic stores, same machine)
 
 | Query | 10,000 events | 100,000 events |
