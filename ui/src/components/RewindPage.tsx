@@ -770,7 +770,7 @@ export function RewindPage({ ctx }: { ctx: PluginContext }): ReactNode {
                 </div>
                 <div className="text-xs text-(--ui-text-tertiary)">
                   {selectedSession.model ?? 'unknown model'} ·{' '}
-                  {plural(selectedSession.event_count, 'event')}·{' '}
+                  {plural(selectedSession.event_count, 'event')} ·{' '}
                   {formatNumber(selectedSession.tokens_in + selectedSession.tokens_out)} tokens
                 </div>
               </div>
