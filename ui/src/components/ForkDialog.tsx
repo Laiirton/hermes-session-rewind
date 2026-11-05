@@ -60,12 +60,6 @@ function labelled<T>(step: string, action: Promise<T>): Promise<T> {
   });
 }
 
-function delay(ms: number): Promise<void> {
-  return new Promise<void>((resolve) => {
-    window.setTimeout(resolve, ms);
-  });
-}
-
 function focusables(panel: HTMLElement | null): HTMLElement[] {
   if (panel === null) {
     return [];
@@ -704,24 +698,19 @@ export function ForkDialog({
         childStoredId = created.stored_session_id;
         freshSession = true;
       }
-      if (!freshSession && plan.worktree_path !== null) {
+      if (freshSession && plan.worktree_path !== null) {
         const attach = (): Promise<unknown> =>
           host.request('session.cwd.set', { session_id: childId, cwd: plan.worktree_path });
         try {
           await labelled('could not attach the isolated workspace', attach());
-        } catch {
-          await delay(400);
-          try {
-            await labelled('could not attach the isolated workspace', attach());
-          } catch (retryError) {
-            throw retryError instanceof Error
-              ? new Error(
-                  `The rerun was not started because the isolated workspace could not be attached: ${errorMessage(retryError)}`
-                )
-              : new Error(
-                  'The rerun was not started because the isolated workspace could not be attached.'
-                );
-          }
+        } catch (attachError) {
+          throw attachError instanceof Error
+            ? new Error(
+                `The rerun was not started because the isolated workspace could not be attached: ${errorMessage(attachError)}`
+              )
+            : new Error(
+                'The rerun was not started because the isolated workspace could not be attached.'
+              );
         }
       }
       if (model.trim() && model.trim() !== (session.model ?? '')) {
