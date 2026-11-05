@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- The recording-failure and tool-rejection tests now prove what they claim: the sink counts the submissions it refused, and the tool errors are compared against their exact sentences instead of `"error" in result`.
+
 - Say what the page actually knows when a turn query comes back empty: a session with recorded events no longer claims that no user turns were recorded, it reports that nothing came back and points at Refresh.
 
 - Refuse a bookmark that pairs a session with an event of another session. The foreign keys only proved the event existed, so a model-supplied pair could record a bookmark under a session that never contained it.
