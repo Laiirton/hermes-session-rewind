@@ -3,15 +3,8 @@ import type { PluginContext } from '@hermes/plugin-sdk';
 import { useEffect, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
 
-import {
-  commitFork,
-  prepareFork
-} from '../api';
-import type {
-  EventSummary,
-  ForkPlan,
-  SessionSummary
-} from '../api';
+import { commitFork, prepareFork } from '../api';
+import type { EventSummary, ForkPlan, SessionSummary } from '../api';
 import { errorMessage, formatTime, shortId } from '../format';
 
 interface BranchRpcResult {
@@ -56,12 +49,7 @@ interface ConfigSetResult {
   confirm_message?: string;
 }
 
-const VERIFY_PRESETS = [
-  'python -m pytest -q',
-  'npm test',
-  'cargo test',
-  'go test ./...'
-];
+const VERIFY_PRESETS = ['python -m pytest -q', 'npm test', 'cargo test', 'go test ./...'];
 
 interface LiveParent {
   runtimeId: string | undefined;
@@ -509,7 +497,7 @@ export function ForkDialog({
   useEffect(() => {
     const previous = document.activeElement as HTMLElement | null;
     panelRef.current?.focus();
-    return () => {
+    return (): void => {
       previous?.focus();
     };
   }, []);
@@ -530,7 +518,7 @@ export function ForkDialog({
       }
     };
     window.addEventListener('keydown', onKeyDown);
-    return () => {
+    return (): void => {
       window.removeEventListener('keydown', onKeyDown);
     };
   }, [busy, onClose]);
@@ -692,7 +680,7 @@ export function ForkDialog({
     }
   };
 
-  submitRef.current = () => {
+  submitRef.current = (): void => {
     if (plan === null) {
       void prepare();
     } else {
@@ -702,7 +690,11 @@ export function ForkDialog({
 
   const fidelity = plan === null ? 'not prepared' : plan.fidelity;
   const badgeClass =
-    plan === null ? 'rw-badge rw-badge-idle' : plan.fidelity === 'full' ? 'rw-badge rw-badge-ok' : 'rw-badge rw-badge-warn';
+    plan === null
+      ? 'rw-badge rw-badge-idle'
+      : plan.fidelity === 'full'
+        ? 'rw-badge rw-badge-ok'
+        : 'rw-badge rw-badge-warn';
 
   return (
     <div
@@ -746,7 +738,9 @@ export function ForkDialog({
           <section className="rw-card">
             <div className="rw-card-head">
               <span className="rw-card-title">Checkpoint</span>
-              <span className={badgeClass}>{fidelity === 'full' ? 'workspace ready' : fidelity}</span>
+              <span className={badgeClass}>
+                {fidelity === 'full' ? 'workspace ready' : fidelity}
+              </span>
             </div>
             <div className="rw-chips">
               <span className="rw-chip">
@@ -763,13 +757,14 @@ export function ForkDialog({
               <div className="rw-path">{plan.worktree_path}</div>
             ) : (
               <div className="rw-note rw-note-muted">
-                Prepares an isolated worktree from the nearest snapshot. The original workspace is not
-                changed.
+                Prepares an isolated worktree from the nearest snapshot. The original workspace is
+                not changed.
               </div>
             )}
             {plan !== null && plan.fidelity !== 'full' ? (
               <div className="rw-note">
-                No workspace snapshot matched this turn. The rerun starts from the current workspace.
+                No workspace snapshot matched this turn. The rerun starts from the current
+                workspace.
               </div>
             ) : null}
             {plan !== null && plan.context_rows === null ? (

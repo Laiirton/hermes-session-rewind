@@ -188,9 +188,7 @@ export async function getTurns(
   beforeSeq: number | null = null
 ): Promise<TurnPage> {
   const cursor = beforeSeq === null ? '' : `&before_seq=${beforeSeq}`;
-  return ctx.rest<TurnPage>(
-    `/sessions/${encodeURIComponent(sessionId)}/turns?limit=40${cursor}`
-  );
+  return ctx.rest<TurnPage>(`/sessions/${encodeURIComponent(sessionId)}/turns?limit=40${cursor}`);
 }
 
 export async function getTurnEvents(
@@ -210,22 +208,12 @@ export function getEvent(ctx: PluginContext, eventId: number): Promise<EventDeta
   return ctx.rest<EventDetail>(`/events/${eventId}`);
 }
 
-export function getSnapshots(
-  ctx: PluginContext,
-  sessionId: string
-): Promise<SnapshotSummary[]> {
-  return ctx.rest<SnapshotSummary[]>(
-    `/sessions/${encodeURIComponent(sessionId)}/snapshots`
-  );
+export function getSnapshots(ctx: PluginContext, sessionId: string): Promise<SnapshotSummary[]> {
+  return ctx.rest<SnapshotSummary[]>(`/sessions/${encodeURIComponent(sessionId)}/snapshots`);
 }
 
-export function getBranches(
-  ctx: PluginContext,
-  sessionId: string
-): Promise<BranchSummary[]> {
-  return ctx.rest<BranchSummary[]>(
-    `/sessions/${encodeURIComponent(sessionId)}/branches`
-  );
+export function getBranches(ctx: PluginContext, sessionId: string): Promise<BranchSummary[]> {
+  return ctx.rest<BranchSummary[]>(`/sessions/${encodeURIComponent(sessionId)}/branches`);
 }
 
 export function getBranch(ctx: PluginContext, branchId: string): Promise<BranchDetail> {
@@ -244,10 +232,7 @@ export function getCompare(
   );
 }
 
-export function prepareFork(
-  ctx: PluginContext,
-  input: ForkPrepareInput
-): Promise<ForkPlan> {
+export function prepareFork(ctx: PluginContext, input: ForkPrepareInput): Promise<ForkPlan> {
   return post<ForkPlan>(ctx, '/forks/prepare', input);
 }
 
@@ -256,11 +241,7 @@ export function commitFork(
   branchId: string,
   input: ForkCommitInput
 ): Promise<BranchDetail> {
-  return post<BranchDetail>(
-    ctx,
-    `/forks/${encodeURIComponent(branchId)}/commit`,
-    input
-  );
+  return post<BranchDetail>(ctx, `/forks/${encodeURIComponent(branchId)}/commit`, input);
 }
 
 export function verifyFork(ctx: PluginContext, branchId: string): Promise<VerifyResult> {
@@ -268,9 +249,5 @@ export function verifyFork(ctx: PluginContext, branchId: string): Promise<Verify
 }
 
 export function cleanupFork(ctx: PluginContext, branchId: string): Promise<BranchDetail> {
-  return post<BranchDetail>(
-    ctx,
-    `/forks/${encodeURIComponent(branchId)}/cleanup`,
-    {}
-  );
+  return post<BranchDetail>(ctx, `/forks/${encodeURIComponent(branchId)}/cleanup`, {});
 }

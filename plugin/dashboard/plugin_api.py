@@ -15,10 +15,9 @@ def _load_router() -> Any:
     from session_rewind.settings import load_settings
     from session_rewind.store.db import Database
 
-    return create_router(
-        Database(plugin_data_dir("session-rewind") / "rewind.sqlite3"),
-        load_settings(),
-    )
+    database = Database(plugin_data_dir("session-rewind") / "rewind.sqlite3")
+    database.migrate()
+    return create_router(database, load_settings())
 
 
 router = _load_router()

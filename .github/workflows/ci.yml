@@ -41,10 +41,14 @@ jobs:
       - run: ruff format --check .
       - run: ruff check .
       - run: mypy
-      - run: pytest --cov=session_rewind --cov-report=term-missing
+      - run: pytest --cov=session_rewind --cov-report=term-missing --cov-fail-under=85
       - run: npm ci
         working-directory: ui
       - run: npm run typecheck
+        working-directory: ui
+      - run: npm run lint
+        working-directory: ui
+      - run: npm run format
         working-directory: ui
       - run: npm run build
         working-directory: ui

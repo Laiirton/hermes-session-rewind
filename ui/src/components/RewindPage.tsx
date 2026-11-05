@@ -25,13 +25,7 @@ import type {
   SnapshotSummary,
   TurnSummary
 } from '../api';
-import {
-  errorMessage,
-  formatDuration,
-  formatNumber,
-  formatTime,
-  shortId
-} from '../format';
+import { errorMessage, formatDuration, formatNumber, formatTime, shortId } from '../format';
 import { ForkDialog } from './ForkDialog';
 
 interface ForkTarget {
@@ -327,7 +321,7 @@ function ComparePanel({
     };
 
     void tick();
-    return () => {
+    return (): void => {
       cancelled = true;
       if (disposeNext !== null) {
         disposeNext();
@@ -416,7 +410,8 @@ function ComparePanel({
         <div className="grid grid-cols-2 gap-2 text-xs">
           <div className="rounded border border-(--ui-border) p-2">
             <div className="mb-1 text-(--ui-text-tertiary)">
-              Original{compare.left?.frozen_at ? ` · frozen ${formatTime(compare.left.frozen_at)}` : ''}
+              Original
+              {compare.left?.frozen_at ? ` · frozen ${formatTime(compare.left.frozen_at)}` : ''}
             </div>
             <Metric label="outcome" value={compare.left?.outcome ?? 'unknown'} />
             <Metric
@@ -438,8 +433,7 @@ function ComparePanel({
             <Metric
               label="verify"
               value={
-                compare.right?.verify_exit === null ||
-                compare.right?.verify_exit === undefined
+                compare.right?.verify_exit === null || compare.right?.verify_exit === undefined
                   ? 'not run'
                   : `exit ${compare.right.verify_exit}`
               }
@@ -534,7 +528,7 @@ export function RewindPage({ ctx }: { ctx: PluginContext }): ReactNode {
     const dispose = ctx.setInterval(() => {
       void load();
     }, 10000);
-    return () => {
+    return (): void => {
       cancelled = true;
       dispose();
     };
@@ -578,7 +572,7 @@ export function RewindPage({ ctx }: { ctx: PluginContext }): ReactNode {
     const dispose = ctx.setInterval(() => {
       void load();
     }, 10000);
-    return () => {
+    return (): void => {
       cancelled = true;
       dispose();
     };
@@ -601,13 +595,12 @@ export function RewindPage({ ctx }: { ctx: PluginContext }): ReactNode {
           setError(errorMessage(caught));
         }
       });
-    return () => {
+    return (): void => {
       cancelled = true;
     };
   }, [ctx, selectedEventId]);
 
-  const selectedSession =
-    sessions.find((item) => item.session_id === selectedSessionId) ?? null;
+  const selectedSession = sessions.find((item) => item.session_id === selectedSessionId) ?? null;
   const live =
     selectedSession !== null &&
     selectedSession.ended_at === null &&
@@ -718,9 +711,7 @@ export function RewindPage({ ctx }: { ctx: PluginContext }): ReactNode {
                   <span className="flex items-center gap-1.5">
                     <span
                       className={`h-1.5 w-1.5 rounded-full ${
-                        session.ended_at === null
-                          ? 'bg-emerald-500'
-                          : 'bg-(--ui-text-tertiary)'
+                        session.ended_at === null ? 'bg-emerald-500' : 'bg-(--ui-text-tertiary)'
                       }`}
                     />
                     <span className="truncate font-medium">
@@ -747,9 +738,7 @@ export function RewindPage({ ctx }: { ctx: PluginContext }): ReactNode {
                   type="button"
                   key={branch.id}
                   className={`flex flex-col gap-0.5 rounded border px-2 py-1.5 text-left text-xs ${
-                    selectedBranchId === branch.id
-                      ? 'border-(--ui-accent)'
-                      : 'border-(--ui-border)'
+                    selectedBranchId === branch.id ? 'border-(--ui-accent)' : 'border-(--ui-border)'
                   }`}
                   onClick={() => {
                     setSelectedBranchId(branch.id);
@@ -757,9 +746,7 @@ export function RewindPage({ ctx }: { ctx: PluginContext }): ReactNode {
                 >
                   <span className="flex items-center justify-between gap-2">
                     <span className="font-mono">{shortId(branch.id)}</span>
-                    <span className={`uppercase ${stateTone(branch.state)}`}>
-                      {branch.state}
-                    </span>
+                    <span className={`uppercase ${stateTone(branch.state)}`}>{branch.state}</span>
                   </span>
                   <span className="truncate text-(--ui-text-tertiary)">
                     {branch.model ?? 'same model'} · {branch.fork_row_count} rows
@@ -785,9 +772,8 @@ export function RewindPage({ ctx }: { ctx: PluginContext }): ReactNode {
                   ) : null}
                 </div>
                 <div className="text-xs text-(--ui-text-tertiary)">
-                  {selectedSession.model ?? 'unknown model'} · {selectedSession.event_count}{' '}
-                  events ·{' '}
-                  {formatNumber(selectedSession.tokens_in + selectedSession.tokens_out)} tokens
+                  {selectedSession.model ?? 'unknown model'} · {selectedSession.event_count} events
+                  · {formatNumber(selectedSession.tokens_in + selectedSession.tokens_out)} tokens
                 </div>
               </div>
               <div className="text-right text-xs text-(--ui-text-tertiary)">
@@ -799,9 +785,7 @@ export function RewindPage({ ctx }: { ctx: PluginContext }): ReactNode {
           <div className="flex min-h-0 flex-1 gap-2">
             <div className="min-w-0 flex-1 overflow-auto">
               {selectedSession === null ? (
-                <div className="text-xs text-(--ui-text-tertiary)">
-                  Select a recorded session.
-                </div>
+                <div className="text-xs text-(--ui-text-tertiary)">Select a recorded session.</div>
               ) : turns.length === 0 ? (
                 <div className="text-xs text-(--ui-text-tertiary)">
                   No user turns recorded yet for this session.

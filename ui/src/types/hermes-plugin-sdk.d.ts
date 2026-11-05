@@ -57,7 +57,11 @@ declare module '@hermes/plugin-sdk' {
     openSession(id: string, options?: Record<string, unknown>): Promise<unknown>;
     request<T>(method: string, params?: Record<string, unknown>): Promise<T>;
     composer: {
-      insertText(sessionId: string | null, text: string, options?: Record<string, unknown>): Promise<boolean>;
+      insertText(
+        sessionId: string | null,
+        text: string,
+        options?: Record<string, unknown>
+      ): Promise<boolean>;
       submit(sessionId: string | null, text: string): Promise<boolean>;
       focus(sessionId: string | null): void;
     };

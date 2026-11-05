@@ -29,7 +29,7 @@ quote-style = "double"
 [tool.mypy]
 python_version = "3.12"
 strict = true
-files = ["plugin/session_rewind", "tests"]
+files = ["plugin/session_rewind", "plugin/dashboard", "tests"]
 mypy_path = "plugin"
 explicit_package_bases = true
 ignore_missing_imports = true
@@ -42,7 +42,7 @@ testpaths = ["tests"]
 addopts = "-ra --strict-markers --import-mode=importlib"
 
 [tool.coverage.run]
-source = ["session_rewind"]
+source = ["session_rewind", "plugin/dashboard"]
 branch = true
 
 [tool.coverage.report]
