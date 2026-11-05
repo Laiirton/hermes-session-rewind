@@ -37,6 +37,7 @@ import {
   frozenOutcome,
   outcomeLabel,
   openRecordingNote,
+  outcomeTone,
   plural,
   sessionsCountLabel,
   shortId,
@@ -77,6 +78,15 @@ const PAGE_CSS = `
 .rw-page button:disabled {
   cursor: not-allowed;
   opacity: 0.5;
+}
+.rp-shell {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  height: 100%;
+  min-height: 0;
+  font-size: 13px;
+  color: var(--ui-text-primary);
 }
 .rp-head {
   display: flex;
@@ -523,6 +533,15 @@ const PAGE_CSS = `
 .rp-metric-label {
   color: var(--ui-text-tertiary);
 }
+.rp-tone-ok {
+  color: var(--ui-green);
+}
+.rp-tone-err {
+  color: var(--ui-red);
+}
+.rp-tone-warn {
+  color: var(--ui-yellow);
+}
 .rp-metric-value {
   font-family: var(--dt-font-mono, ui-monospace, SFMono-Regular, Menlo, Consolas, monospace);
   font-variant-numeric: tabular-nums;
@@ -864,11 +883,19 @@ function stateBadge(state: string): string {
   return 'idle';
 }
 
-function Metric({ label, value }: { label: string; value: string }): ReactNode {
+function Metric({
+  label,
+  value,
+  tone = 'idle'
+}: {
+  label: string;
+  value: string;
+  tone?: string;
+}): ReactNode {
   return (
     <>
       <span className="rp-metric-label">{label}</span>
-      <span className="rp-metric-value">{value}</span>
+      <span className={`rp-metric-value rp-tone-${tone}`}>{value}</span>
     </>
   );
 }
@@ -1167,6 +1194,7 @@ function ComparePanel({
                   value={
                     compare.left === null ? 'not recorded' : frozenOutcome(compare.left.outcome)
                   }
+                  tone={compare.left === null ? 'idle' : outcomeTone(compare.left.outcome)}
                 />
                 <Metric
                   label="tokens"
@@ -1179,6 +1207,7 @@ function ComparePanel({
                 <Metric
                   label="tool errors"
                   value={compare.left === null ? 'n/a' : String(compare.left.tool_errors)}
+                  tone={compare.left !== null && compare.left.tool_errors > 0 ? 'err' : 'idle'}
                 />
               </div>
             </div>
@@ -1190,10 +1219,12 @@ function ComparePanel({
                   value={
                     compare.right === null ? 'not recorded' : outcomeLabel(compare.right.outcome)
                   }
+                  tone={compare.right === null ? 'idle' : outcomeTone(compare.right.outcome)}
                 />
                 <Metric
                   label="verify"
                   value={rerunVerifyExit === null ? 'not run' : verifyOutcome(rerunVerifyExit)}
+                  tone={rerunVerifyExit === null ? 'idle' : rerunVerifyExit === 0 ? 'ok' : 'err'}
                 />
                 <Metric
                   label="tokens"
@@ -1206,6 +1237,7 @@ function ComparePanel({
                 <Metric
                   label="tool errors"
                   value={compare.right === null ? 'n/a' : String(compare.right.tool_errors)}
+                  tone={compare.right !== null && compare.right.tool_errors > 0 ? 'err' : 'idle'}
                 />
               </div>
             </div>

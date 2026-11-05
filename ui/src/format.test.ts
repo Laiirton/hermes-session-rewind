@@ -6,6 +6,7 @@ import {
   formatClock,
   frozenOutcome,
   outcomeLabel,
+  outcomeTone,
   openRecordingNote,
   plural,
   sessionsCountLabel,
@@ -135,6 +136,19 @@ describe('turnsEmptyMessage', () => {
   it('states what a recording without user turns holds, without sending the user to Refresh', () => {
     expect(turnsEmptyMessage(77, null)).toBe('The recording holds 77 events but no user turn.');
     expect(turnsEmptyMessage(1, null)).toBe('The recording holds 1 event but no user turn.');
+  });
+});
+
+describe('outcomeTone', () => {
+  it('marks an unfinished outcome as open and a failure as an error', () => {
+    expect(outcomeTone(null)).toBe('warn');
+    expect(outcomeTone('failed')).toBe('err');
+  });
+
+  it('leaves an outcome that is neither success nor failure uncoloured', () => {
+    expect(outcomeTone('completed')).toBe('ok');
+    expect(outcomeTone('ws_orphan_reap')).toBe('idle');
+    expect(outcomeTone('shutdown')).toBe('idle');
   });
 });
 

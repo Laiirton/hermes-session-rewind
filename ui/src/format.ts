@@ -75,6 +75,19 @@ export function outcomeLabel(outcome: string | null): string {
   return OUTCOME_LABELS[outcome] ?? outcome;
 }
 
+export function outcomeTone(outcome: string | null): string {
+  if (outcome === null) {
+    return 'warn';
+  }
+  if (outcome === 'completed') {
+    return 'ok';
+  }
+  if (outcome === 'failed') {
+    return 'err';
+  }
+  return 'idle';
+}
+
 export function frozenOutcome(outcome: string | null): string {
   return outcome === null ? 'open at freeze' : outcomeLabel(outcome);
 }
