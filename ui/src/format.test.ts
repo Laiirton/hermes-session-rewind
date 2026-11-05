@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import {
   errorMessage,
+  formatClock,
   frozenOutcome,
   outcomeLabel,
   openRecordingNote,
@@ -104,8 +105,16 @@ describe('sessionsCountLabel', () => {
 });
 
 describe('openRecordingNote', () => {
-  it('names the last event time so a still-open row can be checked', () => {
-    expect(openRecordingNote(1_700_000_000)).toMatch(/^recording · last event \d{2}:\d{2}$/);
+  it('states the last event with the same clock the app already uses', () => {
+    const ts = 1_700_000_000;
+    expect(openRecordingNote(ts)).toBe(`recording · last event ${formatClock(ts)}`);
+  });
+
+  it('renders a clock in whatever shape the locale asks for', () => {
+    const clock = formatClock(1_700_000_000);
+    expect(clock).toMatch(/\d/);
+    expect(clock).toContain(':');
+    expect(clock).not.toMatch(/\d{2}:\d{2}:\d{2}/);
   });
 
   it('says so when nothing has been captured yet', () => {

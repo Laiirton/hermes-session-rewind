@@ -86,15 +86,18 @@ export function sessionsCountLabel(count: number, limit: number): string {
   return count >= limit ? `${limit}+` : `${count}`;
 }
 
+export function formatClock(ts: number): string {
+  return new Date(ts * 1000).toLocaleTimeString([], {
+    hour: '2-digit',
+    minute: '2-digit'
+  });
+}
+
 export function openRecordingNote(lastEventAt: number | null): string {
   if (lastEventAt === null) {
     return 'recording, nothing captured yet';
   }
-  const clock = new Date(lastEventAt * 1000).toLocaleTimeString([], {
-    hour: '2-digit',
-    minute: '2-digit'
-  });
-  return `recording · last event ${clock}`;
+  return `recording · last event ${formatClock(lastEventAt)}`;
 }
 
 export function turnsEmptyMessage(eventCount: number, error: string | null): string {
