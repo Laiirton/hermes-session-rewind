@@ -1,11 +1,40 @@
 from __future__ import annotations
 
 import sys
+from pathlib import Path
 import types
 from typing import Any
 
 import pytest
 from session_rewind.settings import Settings, load_settings
+
+
+def _manifest() -> str:
+    return (Path(__file__).resolve().parents[1] / "plugin" / "plugin.yaml").read_text(
+        encoding="utf-8"
+    )
+
+
+def _schema_block(manifest: str) -> dict[str, dict[str, int]]:
+    fields: dict[str, dict[str, int]] = {}
+    inside = False
+    current: str | None = None
+    for line in manifest.splitlines():
+        if line.startswith("config_schema:"):
+            inside = True
+            continue
+        if not inside:
+            continue
+        if line and not line.startswith("  "):
+            break
+        key, _, value = line.strip().partition(":")
+        if not line.startswith("    "):
+            current = key
+            fields[key] = {}
+            continue
+        if current is not None and value.strip().isdigit():
+            fields[current][key] = int(value)
+    return fields
 
 
 def _stub_config(monkeypatch: pytest.MonkeyPatch, config: object) -> None:
@@ -48,6 +77,20 @@ def test_load_settings_reads_the_plugin_section(monkeypatch: pytest.MonkeyPatch)
     assert settings.redact_secrets is False
     assert settings.max_payload_bytes == 256 * 1024
     assert settings.workspace_root == "E:/git/demo"
+
+
+def test_declared_schema_bounds_match_the_loader_clamps() -> None:
+    schema = _schema_block(_manifest())
+    defaults = Settings()
+    for name, bound in {
+        "retention_days": (1, 3650),
+        "max_payload_kb": (1, 1024),
+        "verify_timeout_seconds": (5, 1800),
+    }.items():
+        field = schema[name]
+        assert field["minimum"] == bound[0], name
+        assert field["maximum"] == bound[1], name
+        assert field["default"] == getattr(defaults, name), name
 
 
 def test_load_settings_clamps_out_of_range_values(monkeypatch: pytest.MonkeyPatch) -> None:
