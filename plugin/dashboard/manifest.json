@@ -1,0 +1,13 @@
+{
+  "name": "session-rewind",
+  "label": "Rewind",
+  "description": "Session time machine and counterfactual lab.",
+  "icon": "History",
+  "version": "1.0.0",
+  "tab": {
+    "path": "/rewind",
+    "position": "after:skills",
+    "hidden": true
+  },
+  "api": "plugin_api.py"
+}

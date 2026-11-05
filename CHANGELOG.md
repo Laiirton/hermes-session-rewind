@@ -9,4 +9,5 @@
 - Change the model or prompt and rerun.
 - Compare outcomes, tokens, tool errors, duration and verify results.
 - Add a Desktop timeline, inspector, fork dialog and comparison panel.
+- Mount the Desktop backend API through the dashboard manifest.
 - Add the official plugin validator, Ruff, mypy, pytest, TypeScript and a CI matrix.

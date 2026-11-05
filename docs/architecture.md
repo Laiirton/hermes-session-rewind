@@ -28,6 +28,8 @@ plugin/session_rewind/
   dashboard/api.py          FastAPI router
   tools.py                  agent tools
   settings.py               typed settings and versioned config keys
+plugin/dashboard/plugin_api.py   API mount adapter
+plugin/dashboard/manifest.json   Dashboard API manifest
 plugin/desktop/plugin.js    compiled Desktop bundle
 ui/                         TypeScript Desktop source and esbuild config
 ```

@@ -75,7 +75,13 @@ The plugin was installed into the Hermes profile and enabled. A real CLI session
 - The fork API was exercised against the live database and snapshot: `prepare` restored a detached worktree from the snapshot, `verify` ran `pytest -q` in the worktree and returned the expected failing exit code, and `cleanup` removed the worktree. The original repository was not modified.
 - The dev-side API harness does not include `hermes_state`, so the transcript row count was reported as zero there. Inside Hermes the read-only `SessionDB` reader supplies the transcript prefix; the UI shows the fidelity badge when the count is unavailable.
 
-The Hermes Desktop visual pass and the 90-second demo are the remaining submission steps. Script: `docs/demo-script.md`.
+## Desktop UI and API
+
+The Desktop half appeared in Capabilities → Plugins with the Agent + Desktop toggle. Enabling it added the Rewind status bar chip and the Rewind page.
+
+The page initially returned `404 {"detail":"Not Found"}` because the web server only mounts `/api/plugins/<id>/` for plugins with a `dashboard/manifest.json` declaring an `api` file. Adding `plugin/dashboard/manifest.json` with `"api": "plugin_api.py"`, reinstalling the plugin and restarting the gateway mounted the API. The page then listed the recorded sessions, the event timeline and the snapshots.
+
+After the gateway restart the Desktop app showed `Gateway ticket bootstrap failed` and `Backend: offline`; the app needs a restart to refresh its backend ticket. The native fork test requires a live session, and the recorded sessions used for the API check were completed.
 
 ## Demo
 
