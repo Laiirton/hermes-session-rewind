@@ -27,6 +27,7 @@ import type {
 } from '../api';
 import { errorMessage, formatDuration, formatNumber, formatTime, shortId } from '../format';
 import { ForkDialog } from './ForkDialog';
+import { mergeTurnPages } from '../mergeTurnPages';
 
 interface ForkTarget {
   session: SessionSummary;
@@ -557,11 +558,7 @@ export function RewindPage({ ctx }: { ctx: PluginContext }): ReactNode {
         if (cancelled) {
           return;
         }
-        setTurns((current) => {
-          const newest = new Set(turnPage.items.map((turn) => turn.seq));
-          const older = current.filter((turn) => !newest.has(turn.seq));
-          return [...turnPage.items, ...older];
-        });
+        setTurns((current) => mergeTurnPages(turnPage.items, current));
         setTurnsHasMore(turnPage.has_more);
         setTurnsLoaded(true);
         setSnapshots(snapshotItems);
@@ -647,7 +644,7 @@ export function RewindPage({ ctx }: { ctx: PluginContext }): ReactNode {
     setTurnsLoading(true);
     try {
       const page = await getTurns(ctx, selectedSessionId, oldest.seq);
-      setTurns((current) => [...current, ...page.items]);
+      setTurns((current) => mergeTurnPages(page.items, current));
       setTurnsHasMore(page.has_more);
     } catch (caught) {
       setError(errorMessage(caught));
