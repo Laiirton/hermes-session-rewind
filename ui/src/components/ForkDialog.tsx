@@ -1,6 +1,6 @@
 import { host } from '@hermes/plugin-sdk';
 import type { PluginContext } from '@hermes/plugin-sdk';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import type { ReactNode } from 'react';
 
 import {
@@ -123,6 +123,296 @@ function branchPoint(messages: HistoryMessage[] | undefined, forkTs: number): nu
   return typeof rowId === 'number' && rowId > 0 ? rowId : null;
 }
 
+const DIALOG_CSS = `
+.rw-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 28px 20px;
+  overflow-y: auto;
+  background: rgba(4, 6, 9, 0.72);
+  backdrop-filter: blur(3px);
+}
+.rw-panel {
+  display: flex;
+  flex-direction: column;
+  width: min(760px, 100%);
+  max-height: calc(100vh - 56px);
+  margin: auto 0;
+  overflow: hidden;
+  color: var(--ui-text, #ececf1);
+  background: var(--ui-bg, #15161a);
+  border: 1px solid var(--ui-border, rgba(255, 255, 255, 0.14));
+  border-radius: 14px;
+  box-shadow: 0 24px 70px rgba(0, 0, 0, 0.62);
+}
+.rw-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 18px 20px 16px;
+  border-bottom: 1px solid var(--ui-border, rgba(255, 255, 255, 0.1));
+}
+.rw-heading {
+  min-width: 0;
+}
+.rw-title {
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+.rw-subtitle {
+  max-width: 560px;
+  margin-top: 4px;
+  overflow: hidden;
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--ui-text-tertiary, rgba(236, 236, 241, 0.56));
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.rw-close {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  flex: none;
+  padding: 0;
+  font: inherit;
+  font-size: 18px;
+  line-height: 1;
+  color: var(--ui-text-tertiary, rgba(236, 236, 241, 0.56));
+  cursor: pointer;
+  background: transparent;
+  border: 1px solid var(--ui-border, rgba(255, 255, 255, 0.14));
+  border-radius: 8px;
+}
+.rw-close:hover:not(:disabled) {
+  color: var(--ui-text, #ececf1);
+  background: rgba(255, 255, 255, 0.06);
+}
+.rw-close:disabled {
+  cursor: default;
+  opacity: 0.5;
+}
+.rw-body {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 18px 20px;
+  overflow-y: auto;
+}
+.rw-card {
+  padding: 14px;
+  background: rgba(255, 255, 255, 0.035);
+  border: 1px solid var(--ui-border, rgba(255, 255, 255, 0.12));
+  border-radius: 10px;
+}
+.rw-card-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+.rw-card-title {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ui-text-tertiary, rgba(236, 236, 241, 0.56));
+}
+.rw-badge {
+  padding: 2px 8px;
+  font-size: 11px;
+  line-height: 1.6;
+  border: 1px solid var(--ui-border, rgba(255, 255, 255, 0.14));
+  border-radius: 999px;
+}
+.rw-badge-idle {
+  color: var(--ui-text-tertiary, rgba(236, 236, 241, 0.56));
+}
+.rw-badge-ok {
+  color: #3fb950;
+  background: rgba(63, 185, 80, 0.08);
+  border-color: rgba(63, 185, 80, 0.35);
+}
+.rw-badge-warn {
+  color: #e3b341;
+  background: rgba(227, 179, 65, 0.08);
+  border-color: rgba(227, 179, 65, 0.35);
+}
+.rw-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.rw-chip {
+  padding: 3px 8px;
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  color: var(--ui-text-tertiary, rgba(236, 236, 241, 0.56));
+  border: 1px solid var(--ui-border, rgba(255, 255, 255, 0.12));
+  border-radius: 6px;
+}
+.rw-path {
+  margin-top: 10px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 11px;
+  line-height: 1.5;
+  color: var(--ui-text-tertiary, rgba(236, 236, 241, 0.56));
+  word-break: break-all;
+}
+.rw-note {
+  margin-top: 10px;
+  font-size: 12px;
+  line-height: 1.5;
+  color: #e3b341;
+}
+.rw-note-muted {
+  color: var(--ui-text-tertiary, rgba(236, 236, 241, 0.56));
+}
+.rw-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+}
+.rw-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+.rw-label {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--ui-text-tertiary, rgba(236, 236, 241, 0.56));
+}
+.rw-input,
+.rw-textarea {
+  box-sizing: border-box;
+  width: 100%;
+  padding: 9px 10px;
+  font: inherit;
+  font-size: 12px;
+  color: var(--ui-text, #ececf1);
+  outline: none;
+  background: rgba(0, 0, 0, 0.24);
+  border: 1px solid var(--ui-border, rgba(255, 255, 255, 0.14));
+  border-radius: 8px;
+}
+.rw-input {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+}
+.rw-input:focus,
+.rw-textarea:focus {
+  border-color: var(--ui-accent, #6ea8fe);
+  box-shadow: 0 0 0 3px rgba(110, 168, 254, 0.16);
+}
+.rw-textarea {
+  min-height: 170px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  line-height: 1.55;
+  resize: vertical;
+}
+.rw-help {
+  font-size: 11px;
+  line-height: 1.45;
+  color: var(--ui-text-tertiary, rgba(236, 236, 241, 0.56));
+}
+.rw-banner {
+  padding: 9px 11px;
+  font-size: 12px;
+  line-height: 1.5;
+  border: 1px solid transparent;
+  border-radius: 8px;
+}
+.rw-banner-warn {
+  color: #e3b341;
+  background: rgba(227, 179, 65, 0.08);
+  border-color: rgba(227, 179, 65, 0.35);
+}
+.rw-banner-error {
+  color: #ff7b72;
+  background: rgba(255, 123, 114, 0.08);
+  border-color: rgba(255, 123, 114, 0.35);
+}
+.rw-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 14px 20px;
+  background: rgba(0, 0, 0, 0.16);
+  border-top: 1px solid var(--ui-border, rgba(255, 255, 255, 0.1));
+}
+.rw-hint {
+  font-size: 11px;
+  line-height: 1.45;
+  color: var(--ui-text-tertiary, rgba(236, 236, 241, 0.56));
+}
+.rw-actions {
+  display: flex;
+  flex: none;
+  gap: 8px;
+}
+.rw-button {
+  padding: 8px 14px;
+  font: inherit;
+  font-size: 12px;
+  color: var(--ui-text, #ececf1);
+  cursor: pointer;
+  background: transparent;
+  border: 1px solid var(--ui-border, rgba(255, 255, 255, 0.14));
+  border-radius: 8px;
+}
+.rw-button:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.06);
+}
+.rw-button:disabled {
+  cursor: default;
+  opacity: 0.5;
+}
+.rw-primary {
+  font-weight: 600;
+  color: #08111f;
+  background: var(--ui-accent, #6ea8fe);
+  border-color: transparent;
+}
+.rw-primary:hover:not(:disabled) {
+  background: var(--ui-accent, #6ea8fe);
+  filter: brightness(1.08);
+}
+@media (max-width: 620px) {
+  .rw-overlay {
+    padding: 12px;
+  }
+  .rw-panel {
+    max-height: calc(100vh - 24px);
+  }
+  .rw-grid {
+    grid-template-columns: 1fr;
+  }
+  .rw-footer {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+  .rw-actions {
+    width: 100%;
+  }
+  .rw-actions .rw-button {
+    flex: 1;
+  }
+}
+`;
+
 export function ForkDialog({
   ctx,
   session,
@@ -134,9 +424,22 @@ export function ForkDialog({
   const [prompt, setPrompt] = useState('');
   const [verifyCmd, setVerifyCmd] = useState('');
   const [plan, setPlan] = useState<ForkPlan | null>(null);
-  const [busy, setBusy] = useState(false);
+  const [busyAction, setBusyAction] = useState<'prepare' | 'run' | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
+  const busy = busyAction !== null;
+
+  useEffect(() => {
+    const onKeyDown = (keyEvent: KeyboardEvent): void => {
+      if (keyEvent.key === 'Escape' && !busy) {
+        onClose();
+      }
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => {
+      window.removeEventListener('keydown', onKeyDown);
+    };
+  }, [busy, onClose]);
 
   const resolveLiveParent = async (): Promise<LiveParent> => {
     const active = await host.request<ActiveSessions>('session.active_list', {});
@@ -158,7 +461,7 @@ export function ForkDialog({
   };
 
   const prepare = async (): Promise<void> => {
-    setBusy(true);
+    setBusyAction('prepare');
     setError(null);
     setNotice(null);
     try {
@@ -180,7 +483,7 @@ export function ForkDialog({
     } catch (caught) {
       setError(errorMessage(caught));
     } finally {
-      setBusy(false);
+      setBusyAction(null);
     }
   };
 
@@ -188,7 +491,7 @@ export function ForkDialog({
     if (plan === null) {
       return;
     }
-    setBusy(true);
+    setBusyAction('run');
     setError(null);
     setNotice(null);
     try {
@@ -291,127 +594,175 @@ export function ForkDialog({
     } catch (caught) {
       setError(errorMessage(caught));
     } finally {
-      setBusy(false);
+      setBusyAction(null);
     }
   };
 
+  const fidelity = plan === null ? 'not prepared' : plan.fidelity;
+  const badgeClass =
+    plan === null ? 'rw-badge rw-badge-idle' : plan.fidelity === 'full' ? 'rw-badge rw-badge-ok' : 'rw-badge rw-badge-warn';
+
   return (
-    <div className="fixed inset-0 z-50 flex items-start justify-center overflow-auto bg-black/50 p-6">
-      <div className="w-full max-w-2xl rounded-lg border border-(--ui-border) bg-(--ui-bg) p-4 shadow-xl">
-        <div className="flex items-start justify-between gap-3 border-b border-(--ui-border) pb-2">
-          <div>
-            <div className="text-base font-medium">Rewind to this turn</div>
-            <div className="text-xs text-(--ui-text-tertiary)">
+    <div
+      className="rw-overlay"
+      onMouseDown={(mouseEvent) => {
+        if (mouseEvent.target === mouseEvent.currentTarget && !busy) {
+          onClose();
+        }
+      }}
+    >
+      <style>{DIALOG_CSS}</style>
+      <div className="rw-panel" role="dialog" aria-modal="true" aria-labelledby="rw-title">
+        <header className="rw-header">
+          <div className="rw-heading">
+            <div className="rw-title" id="rw-title">
+              Rewind to this turn
+            </div>
+            <div className="rw-subtitle">
               {formatTime(event.ts)} · {event.preview || 'user turn'}
             </div>
           </div>
           <button
             type="button"
-            className="rounded border border-(--ui-border) px-2 py-1 text-xs"
+            className="rw-close"
             onClick={onClose}
             disabled={busy}
+            aria-label="Close"
           >
-            Close
+            ×
           </button>
-        </div>
+        </header>
 
-        <div className="mt-3 flex flex-col gap-3">
-          <label className="flex flex-col gap-1 text-xs">
-            <span className="text-(--ui-text-tertiary)">
-              Model (leave unchanged to keep the current model)
-            </span>
-            <input
-              className="w-full rounded border border-(--ui-border) bg-transparent p-2 font-mono text-xs"
-              value={model}
-              onChange={(changeEvent) => {
-                setModel(changeEvent.target.value);
-              }}
-              placeholder="provider/model"
-            />
-          </label>
+        <div className="rw-body">
+          <section className="rw-card">
+            <div className="rw-card-head">
+              <span className="rw-card-title">Checkpoint</span>
+              <span className={badgeClass}>{fidelity === 'full' ? 'workspace ready' : fidelity}</span>
+            </div>
+            <div className="rw-chips">
+              <span className="rw-chip">
+                history rows {plan === null ? '—' : plan.fork_row_count}
+              </span>
+              <span className="rw-chip">
+                verify timeout {plan === null ? '—' : `${plan.verify_timeout_seconds}s`}
+              </span>
+              {plan?.snapshot_commit ? (
+                <span className="rw-chip">snapshot {plan.snapshot_commit.slice(0, 8)}</span>
+              ) : null}
+            </div>
+            {plan?.worktree_path ? (
+              <div className="rw-path">{plan.worktree_path}</div>
+            ) : (
+              <div className="rw-note rw-note-muted">
+                Prepares an isolated worktree from the nearest snapshot. The original workspace is not
+                changed.
+              </div>
+            )}
+            {plan !== null && plan.fidelity !== 'full' ? (
+              <div className="rw-note">
+                No workspace snapshot matched this turn. The rerun starts from the current workspace.
+              </div>
+            ) : null}
+            {plan !== null && plan.context_rows === null ? (
+              <div className="rw-note">
+                The live transcript prefix is unavailable. The context pack is the only context.
+              </div>
+            ) : null}
+            {plan !== null && plan.fork_row_count === 0 ? (
+              <div className="rw-note rw-note-muted">
+                This is the first turn. The rerun starts a fresh chat in the restored workspace.
+              </div>
+            ) : null}
+          </section>
 
-          <label className="flex flex-col gap-1 text-xs">
-            <span className="text-(--ui-text-tertiary)">Verify command</span>
-            <input
-              className="w-full rounded border border-(--ui-border) bg-transparent p-2 font-mono text-xs"
-              value={verifyCmd}
-              onChange={(changeEvent) => {
-                setVerifyCmd(changeEvent.target.value);
-              }}
-              placeholder="pytest -q"
-            />
-          </label>
+          <div className="rw-grid">
+            <label className="rw-field">
+              <span className="rw-label">Model</span>
+              <input
+                className="rw-input"
+                value={model}
+                onChange={(changeEvent) => {
+                  setModel(changeEvent.target.value);
+                }}
+                placeholder="provider/model"
+              />
+              <span className="rw-help">Leave unchanged to keep the session model.</span>
+            </label>
 
-          <label className="flex flex-col gap-1 text-xs">
-            <span className="text-(--ui-text-tertiary)">
-              Prompt for the rerun (prepared from the recorded context)
-            </span>
+            <label className="rw-field">
+              <span className="rw-label">Verify command</span>
+              <input
+                className="rw-input"
+                value={verifyCmd}
+                onChange={(changeEvent) => {
+                  setVerifyCmd(changeEvent.target.value);
+                }}
+                placeholder="python -m pytest -q"
+              />
+              <span className="rw-help">
+                Runs in the restored workspace. Use the full interpreter path when needed.
+              </span>
+            </label>
+          </div>
+
+          <label className="rw-field">
+            <span className="rw-label">Prompt for the rerun</span>
             <textarea
-              className="min-h-40 w-full rounded border border-(--ui-border) bg-transparent p-2 font-mono text-xs"
+              className="rw-textarea"
               value={prompt}
               onChange={(changeEvent) => {
                 setPrompt(changeEvent.target.value);
               }}
               placeholder="Prepare the branch to generate a context prompt, or write your own."
             />
+            <span className="rw-help">
+              Prepared from the recorded context. Edit it before running the fork.
+            </span>
           </label>
 
-          {plan !== null ? (
-            <div className="rounded border border-(--ui-border) p-2 text-xs">
-              <div className="flex flex-wrap gap-x-4 gap-y-1 text-(--ui-text-tertiary)">
-                <span>fidelity: {plan.fidelity}</span>
-                <span>history rows before turn: {plan.fork_row_count}</span>
-                <span>verify timeout: {plan.verify_timeout_seconds}s</span>
-              </div>
-              {plan.worktree_path !== null ? (
-                <div className="mt-1 break-all font-mono text-[11px] text-(--ui-text-tertiary)">
-                  workspace: {plan.worktree_path}
-                </div>
-              ) : null}
-              {plan.fidelity !== 'full' ? (
-                <div className="mt-1 text-amber-500">
-                  No workspace snapshot matched this turn. The rerun will start from the current workspace.
-                </div>
-              ) : null}
-              {plan.context_rows === null ? (
-                <div className="mt-1 text-amber-500">
-                  The live transcript prefix is unavailable. The context pack is the only context.
-                </div>
-              ) : null}
-              {plan.fork_row_count === 0 ? (
-                <div className="mt-1 text-(--ui-text-tertiary)">
-                  This is the first turn. The rerun starts a fresh chat in the restored workspace.
-                </div>
-              ) : null}
+          {notice !== null ? (
+            <div className="rw-banner rw-banner-warn" role="status">
+              {notice}
             </div>
           ) : null}
-
-          {notice !== null ? <div className="text-xs text-amber-500">{notice}</div> : null}
-          {error !== null ? <div className="text-xs text-red-500">{error}</div> : null}
-
-          <div className="flex items-center justify-end gap-2">
-            <button
-              type="button"
-              className="rounded border border-(--ui-border) px-3 py-1.5 text-xs disabled:opacity-50"
-              onClick={() => {
-                void prepare();
-              }}
-              disabled={busy}
-            >
-              Prepare branch
-            </button>
-            <button
-              type="button"
-              className="rounded bg-(--ui-accent) px-3 py-1.5 text-xs text-white disabled:opacity-50"
-              onClick={() => {
-                void run();
-              }}
-              disabled={busy || plan === null}
-            >
-              Fork &amp; run
-            </button>
-          </div>
+          {error !== null ? (
+            <div className="rw-banner rw-banner-error" role="alert">
+              {error}
+            </div>
+          ) : null}
         </div>
+
+        <footer className="rw-footer">
+          <span className="rw-hint">The original session and workspace stay untouched.</span>
+          <div className="rw-actions">
+            <button type="button" className="rw-button" onClick={onClose} disabled={busy}>
+              Cancel
+            </button>
+            {plan === null ? (
+              <button
+                type="button"
+                className="rw-button rw-primary"
+                onClick={() => {
+                  void prepare();
+                }}
+                disabled={busy}
+              >
+                {busyAction === 'prepare' ? 'Preparing...' : 'Prepare branch'}
+              </button>
+            ) : (
+              <button
+                type="button"
+                className="rw-button rw-primary"
+                onClick={() => {
+                  void run();
+                }}
+                disabled={busy}
+              >
+                {busyAction === 'run' ? 'Forking...' : 'Fork & run'}
+              </button>
+            )}
+          </div>
+        </footer>
       </div>
     </div>
   );

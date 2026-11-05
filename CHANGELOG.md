@@ -9,6 +9,7 @@
 - Mark a child branch `done` or `failed` from its latest `turn_end`, and derive the rerun outcome in comparisons.
 - Clarify the generated prompt so the restored files are authoritative and transcript claims are treated as history.
 - Document the gateway-environment verify command and the Desktop gateway-ticket restart requirement.
+- Redesign the fork dialog around a solid themed modal, a checkpoint summary, one primary action per stage, Escape-to-close and a responsive layout.
 
 ## 1.0.0
 
