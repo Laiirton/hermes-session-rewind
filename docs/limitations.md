@@ -86,3 +86,21 @@ What is lost is the tool result. The host fires `pre_tool_call` for these nested
 calls but the matching `post_tool_call` never reaches the plugin either, so a
 recovered call stays `pending`. The count of tools a session used is right; the
 outcome of each nested call is not knowable from the hooks.
+
+## A session that never reported its end keeps reading "recording"
+
+The session card and the header badge are both driven by `sessions.ended_at`, which only the
+`on_session_finalize` hook writes. When the gateway is drained with an agent still running, that
+hook does not arrive: `errors.log` shows `Gateway drain timed out after 0.0s with 1 active agent(s)`
+followed by `Session local-… paused: runtime_draining`, and the row is left open forever. The card
+then says "recording" for a session whose last event is hours old.
+
+The plugin does not close the row itself, because it has no signal that means "this agent is
+finished". `session.active_list` answers which sessions have a tab, not which have a running agent;
+the Python side cannot call desktop RPCs at all; and a timeout would be a guess about someone
+else's session, which is exactly the kind of invented semantic this plugin has been removing
+elsewhere. A threshold that is too short would also mislabel a long-running turn as ended.
+
+What is honest here is the wording, and it is under review: "recording" is true of the row and
+possibly false of the world. Until a trustworthy signal exists, the plugin reports what it was
+told and leaves the row open.
