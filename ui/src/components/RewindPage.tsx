@@ -477,7 +477,6 @@ function ComparePanel({
 
 export function RewindPage({ ctx }: { ctx: PluginContext }): ReactNode {
   const activeSessionId = useValue(host.state.activeSessionId);
-  const focusedStoredSessionId = useValue(host.state.focusedStoredSessionId);
   const [sessions, setSessions] = useState<SessionSummary[]>([]);
   const [selectedSessionId, setSelectedSessionId] = useState<string | null>(null);
   const [turns, setTurns] = useState<TurnSummary[]>([]);
@@ -607,11 +606,8 @@ export function RewindPage({ ctx }: { ctx: PluginContext }): ReactNode {
   }, [ctx, selectedEventId]);
 
   const selectedSession = sessions.find((item) => item.session_id === selectedSessionId) ?? null;
-  const live =
-    selectedSession !== null &&
-    selectedSession.ended_at === null &&
-    (selectedSession.session_id === activeSessionId ||
-      selectedSession.session_id === focusedStoredSessionId);
+  const running = selectedSession !== null && selectedSession.ended_at === null;
+  const live = running && selectedSession.session_id === activeSessionId;
 
   const selectSession = (session: SessionSummary): void => {
     setSelectedSessionId(session.session_id);
@@ -675,10 +671,10 @@ export function RewindPage({ ctx }: { ctx: PluginContext }): ReactNode {
               {selectedSession.model ?? 'unknown model'}
             </span>
           ) : null}
-          {live ? (
+          {running ? (
             <span className="flex items-center gap-1 text-emerald-500">
               <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
-              live
+              {live ? 'live' : 'running'}
             </span>
           ) : null}
           <button
