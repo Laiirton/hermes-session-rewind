@@ -167,7 +167,7 @@ def create_router(database: Database, settings: Settings | None = None) -> APIRo
         detail = forks.detail(branch_id)
         if detail is None:
             raise HTTPException(status_code=404, detail="branch not found")
-        return _branch_detail(detail[0], detail[1])
+        return _branch_detail(read_store(), detail[0], detail[1])
 
     @router.post("/branches/{branch_id}/reconcile", response_model=BranchDetail)
     def reconcile_branch(branch_id: str) -> BranchDetail:
@@ -175,7 +175,7 @@ def create_router(database: Database, settings: Settings | None = None) -> APIRo
         detail = forks.detail(branch_id)
         if detail is None:
             raise HTTPException(status_code=404, detail="branch not found")
-        return _branch_detail(detail[0], detail[1])
+        return _branch_detail(read_store(), detail[0], detail[1])
 
     @router.get("/branches/{branch_id}/verify-resolve", response_model=VerifyResolveResponse)
     def resolve_verify_command(
@@ -248,7 +248,7 @@ def create_router(database: Database, settings: Settings | None = None) -> APIRo
         detail = forks.detail(branch_id)
         if detail is None:
             raise HTTPException(status_code=404, detail="branch not found")
-        return _branch_detail(detail[0], detail[1])
+        return _branch_detail(read_store(), detail[0], detail[1])
 
     @router.post("/forks/{branch_id}/verify", response_model=VerifyResponse)
     def verify_fork(branch_id: str) -> VerifyResponse:
@@ -272,7 +272,7 @@ def create_router(database: Database, settings: Settings | None = None) -> APIRo
         detail = forks.detail(branch_id)
         if detail is None:
             raise HTTPException(status_code=404, detail="branch not found")
-        return _branch_detail(detail[0], detail[1])
+        return _branch_detail(read_store(), detail[0], detail[1])
 
     @router.post("/bookmarks", response_model=BookmarkResponse)
     def create_bookmark(payload: BookmarkRequest) -> BookmarkResponse:
@@ -340,10 +340,15 @@ def _turn_summary(row: dict[str, Any]) -> TurnSummary:
     )
 
 
-def _branch_detail(branch: dict[str, Any], run: dict[str, Any] | None) -> BranchDetail:
+def _branch_detail(
+    read: ReadStore, branch: dict[str, Any], run: dict[str, Any] | None
+) -> BranchDetail:
     prompt = branch.get("prompt")
+    child = branch.get("child_session_id")
+    shared = isinstance(child, str) and child != "" and read.count_branches_with_child(child) > 1
     return BranchDetail(
         branch=BranchSummary(**branch),
         run=RunSummary(**run) if run is not None else None,
         prompt=prompt if isinstance(prompt, str) else None,
+        shared_child=shared,
     )

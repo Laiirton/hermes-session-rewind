@@ -137,6 +137,53 @@ def test_compare_and_bookmarks(seeded_database: Database) -> None:
     assert branch.status_code == 404
 
 
+def test_branch_detail_discloses_a_shared_child_session(seeded_database: Database) -> None:
+    from session_rewind.store.repositories import WriteStore
+
+    store = WriteStore(seeded_database.connect())
+    try:
+        for branch_id, parent in (("branch-one", "sess_baseline"), ("branch-two", "sess_branch")):
+            store.create_branch(
+                branch_id,
+                parent,
+                20.0,
+                1,
+                None,
+                None,
+                None,
+                None,
+                "rerun",
+                None,
+                "done",
+                30.0,
+            )
+            store.set_branch_child(branch_id, "sess_child", "stored-child", None, 30.0)
+        store.create_branch(
+            "branch-alone",
+            "sess_baseline",
+            20.0,
+            1,
+            None,
+            None,
+            None,
+            None,
+            "rerun",
+            None,
+            "done",
+            30.0,
+        )
+        store.set_branch_child("branch-alone", "sess_solo", "stored-solo", None, 30.0)
+    finally:
+        store.close()
+    client = _client(seeded_database)
+
+    shared = client.get(f"{PREFIX}/branches/branch-one").json()
+    alone = client.get(f"{PREFIX}/branches/branch-alone").json()
+
+    assert shared["shared_child"] is True
+    assert alone["shared_child"] is False
+
+
 def test_get_branch_does_not_mutate_state(seeded_database: Database) -> None:
     from session_rewind.store.repositories import WriteStore
 

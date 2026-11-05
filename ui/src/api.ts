@@ -113,6 +113,7 @@ export interface BranchDetail {
   branch: BranchSummary;
   run: RunSummary | null;
   prompt: string | null;
+  shared_child: boolean;
 }
 
 export interface CompareSession extends SessionSummary {

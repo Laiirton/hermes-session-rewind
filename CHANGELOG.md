@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- Disclose a branch whose rerun session is claimed by more than one branch. Three branches recorded before the session-id fix share a single child, so the compare screen presented one child's numbers as three independent verdicts; the branch detail now carries a `shared_child` flag and the page says the figures may describe a different fork.
+
+
 - Stop scoring a rerun against a baseline that recorded nothing. Forking the first turn freezes an original with no tokens, no tool calls and no errors, and the verdict still read "left has fewer tool errors", which made the rerun look worse than an attempt that never happened. It now says there is no baseline.
 
 

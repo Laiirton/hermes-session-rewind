@@ -144,6 +144,7 @@ class BranchDetail(BaseModel):
     branch: BranchSummary
     run: RunSummary | None = None
     prompt: str | None = None
+    shared_child: bool = False
 
 
 class CompareSession(SessionSummary):

@@ -686,6 +686,18 @@ class ReadStore:
         finally:
             connection.close()
 
+    def count_branches_with_child(self, child_session_id: str) -> int:
+        connection = self._connect()
+        try:
+            return int(
+                connection.execute(
+                    "SELECT COUNT(*) FROM branches WHERE child_session_id = ?",
+                    (child_session_id,),
+                ).fetchone()[0]
+            )
+        finally:
+            connection.close()
+
     def get_branch_by_child(self, child_session_id: str) -> dict[str, Any] | None:
         connection = self._connect()
         try:

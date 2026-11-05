@@ -423,6 +423,13 @@ function ComparePanel({
         </div>
       </div>
 
+      {detail.shared_child ? (
+        <div className="rounded border border-amber-600/40 bg-amber-500/5 p-2 text-xs text-(--ui-text-tertiary)">
+          Another branch claims this same rerun session, so the numbers below may describe a
+          different fork. It was recorded before the session-id fix.
+        </div>
+      ) : null}
+
       {error !== null ? <div className="text-xs text-red-500">{error}</div> : null}
 
       {compare !== null ? (

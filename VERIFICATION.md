@@ -218,5 +218,7 @@ versioned schema change plus write-path coupling, so it was not done.
 | Display limit | this machine is 1366x768, so a true 1920x1080 window cannot be captured here; 1366x720 is the largest available and the smallest realistic laptop height |
 | Window size 1366x720 | page and dialog both fit: no overflow, no clipped row, footer and primary action visible, dialog body scrolls internally |
 | Live session badge | widened to accept the focused stored session id as well as the runtime id, because the two differ in this build. **Not visually confirmed**: no recorded session in the app was simultaneously unfinished and focused during two attempts, so the condition could not be exercised |
+| Shared-child disclosure | branch `c0373738` of session `local-c5` shows the amber note in the real app, and the three figures below it are labelled as possibly belonging to another fork. Shot `20261105-1125-branch-detail-shared-child-note-dark-1350.png` |
+| Shared-child negative control | branch `3c29d531`, which owns its rerun session, shows no note and a normal verdict ("right has fewer tool errors") against a frozen baseline of 422.368 tokens and 2 errors. Shot `20261105-1125-branch-detail-no-shared-note-dark-1350.png` |
 
 Not yet verified live: the 1920x1080 and 1280x720 layouts (the display is 1366x768), ten consecutive forks through the dialog, and a fork of a session that is itself a rewind child (observed to fail above). Light theme was verified live at 11:29 in both the idle and prepared dialog.
