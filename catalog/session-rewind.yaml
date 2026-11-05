@@ -1,0 +1,39 @@
+name: session-rewind
+title: Rewind
+description: >
+  Session time machine and counterfactual lab: record every turn, fork a user
+  turn with an isolated git worktree restored to that point, switch model or
+  prompt, rerun, and compare outcomes with an objective verify command.
+  Disclosure: stores transcripts and tool payloads locally; runs local git
+  subprocesses (shadow refs, worktrees) and the user-provided verify command;
+  reads state.db read-only; no network, no credentials, no telemetry, no updater.
+repo: https://github.com/Laiirton/hermes-session-rewind
+sha: "0000000000000000000000000000000000000000"
+subdir: plugin
+tier: community
+category: desktop
+maintainer: Laiirton
+docs_url: https://github.com/Laiirton/hermes-session-rewind#readme
+capabilities:
+  provides_tools:
+    - rewind_search
+    - rewind_inspect
+    - rewind_compare
+    - rewind_bookmark
+  provides_hooks:
+    - on_session_start
+    - on_session_end
+    - pre_llm_call
+    - post_llm_call
+    - pre_api_request
+    - post_api_request
+    - pre_tool_call
+    - post_tool_call
+    - post_compaction
+  provides_middleware: []
+  requires_env: []
+requires_hermes: ">=0.22.7"
+platforms:
+  - windows
+version: "1.0.0"
+known_issues: Native fork requires a live session. Snapshots restore git-tracked files only.
