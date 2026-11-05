@@ -65,13 +65,21 @@ Integration tests create a temporary repository and verify:
 
 FastAPI tests cover health, sessions, event pages, event detail, search, snapshots, branches, bookmarks, compare, fork prepare, fork commit, verify, cleanup and error paths.
 
-## Live Hermes Desktop test
+## Live Hermes test
 
-Pending. The plugin has been validated in isolation with the official checker. The next step is installing `plugin/` into the Hermes profile, recording a live session, preparing a fork with a real worktree, running the native branch chain and running a verify command.
+The plugin was installed into the Hermes profile and enabled. A real CLI session ran with `workspace_root` pointing at a demo repository with a failing test.
+
+- The session recorded six events: `session_start`, `user_turn`, `api_request`, `llm_call`, `assistant_response`, `session_end`.
+- The session completed with the configured model.
+- A snapshot was created with `fidelity: full`, three tracked files, a shadow ref in `refs/hermes-rewind/<session>/8` and the expected commit.
+- The fork API was exercised against the live database and snapshot: `prepare` restored a detached worktree from the snapshot, `verify` ran `pytest -q` in the worktree and returned the expected failing exit code, and `cleanup` removed the worktree. The original repository was not modified.
+- The dev-side API harness does not include `hermes_state`, so the transcript row count was reported as zero there. Inside Hermes the read-only `SessionDB` reader supplies the transcript prefix; the UI shows the fidelity badge when the count is unavailable.
+
+The Hermes Desktop visual pass and the 90-second demo are the remaining submission steps. Script: `docs/demo-script.md`.
 
 ## Demo
 
-Pending. Script: `docs/demo-script.md`.
+Pending recording. Script: `docs/demo-script.md`.
 
 ## Catalog
 
