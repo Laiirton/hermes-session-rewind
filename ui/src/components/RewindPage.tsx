@@ -67,7 +67,10 @@ function EventRow({
       }`}
       onClick={onSelect}
     >
-      <span className={`w-16 shrink-0 uppercase ${kindTone(event.kind, event.status)}`}>
+      <span
+        title={event.kind}
+        className={`w-20 shrink-0 truncate uppercase ${kindTone(event.kind, event.status)}`}
+      >
         {kindLabel(event.kind)}
       </span>
       <span className="min-w-0 flex-1 truncate text-(--ui-text-tertiary)">
@@ -189,6 +192,10 @@ function kindLabel(kind: string): string {
       return 'end';
     case 'compaction':
       return 'compact';
+    case 'turn_end':
+      return 'turn';
+    case 'session_finalize':
+      return 'finalize';
     case 'capture_dropped':
       return 'dropped';
     default:
