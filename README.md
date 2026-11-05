@@ -11,7 +11,7 @@ Session Rewind is a Hermes Agent plugin with a Python half (hooks, local event s
 - Snapshots git workspaces with a private index and shadow refs without touching HEAD, the real index or the working tree.
 - Forks a user turn through the public `session.branch` gateway method with the exact history prefix when the session is live. When it is not, the rerun starts a new chat carrying a context pack built from the recorded turns, the files the turn touched and the verify command.
 - Restores the workspace snapshot into an isolated git worktree and starts the rerun there.
-- Lets you change the model, the prompt or both before the rerun.
+- Lets you change the model, the prompt or both before the rerun. The model list comes from the host's own `model.options` with `explicit_only`, so it offers the providers you have configured and their models, never a list you have to type from memory.
 - Freezes the original at the fork point, so the baseline never absorbs work done after the rewind, and lets the verify exit code decide the verdict and the branch state.
 - Resolves the verify command the way the gateway runs it: per-platform splitting, PATH or worktree-relative lookup, batch shims through the shell, and the project's own virtualenv when the restored worktree has none.
 - Runs the user-provided verify command and compares outcome, tokens, tool errors and duration.
@@ -78,7 +78,7 @@ The command runs without a shell, except a Windows `.cmd` or `.bat` shim, which 
 1. Open the Rewind page from the sidebar or the status bar chip.
 2. Select a recorded session and a user turn in the timeline.
 3. Choose Rewind and prepare the branch. The dialog drafts the prompt and shows the isolated workspace; anything that changes the shape of the fork - no matching snapshot, no live transcript, a closed session - is said out loud before you run it.
-4. Adjust the model or prompt, enter the verify command and choose Fork & run. The verify command runs in the gateway environment; use an absolute interpreter path when the tool is not globally on `PATH`.
+4. Pick a model from the providers Hermes is configured for, adjust the prompt, enter the verify command and choose Fork & run. Leaving the model on "Keep the session model" reruns it unchanged. The verify command runs in the gateway environment; use an absolute interpreter path when the tool is not globally on `PATH`.
 5. The child session opens in a new tab. The comparison panel follows the branch.
 6. Run Verify in the isolated worktree, inspect the output and compare both runs.
 7. Cleanup removes the isolated worktree when you are done, and asks first when that workspace still holds files the rerun never committed.

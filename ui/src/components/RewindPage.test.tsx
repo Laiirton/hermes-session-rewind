@@ -3,8 +3,21 @@ import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-li
 import { afterEach, describe, expect, it } from 'vitest';
 
 import { RewindPage } from './RewindPage';
+import {
+  hostCalls,
+  resetHostStub,
+  setConfigSetFailure,
+  setModelOptions
+} from '../../test/pluginSdk';
 import type { PluginContext } from '@hermes/plugin-sdk';
-import type { BranchDetail, BranchSummary, SessionSummary, TurnPage, TurnSummary } from '../api';
+import type {
+  BranchDetail,
+  BranchSummary,
+  ForkPlan,
+  SessionSummary,
+  TurnPage,
+  TurnSummary
+} from '../api';
 
 const TS = 1_700_000_000;
 
@@ -70,18 +83,23 @@ const sessions = [session('a', 12), session('b', 9), session('c', 77)];
 interface Harness {
   ctx: PluginContext;
   requests: () => number;
+  calls: () => { path: string; body: unknown }[];
   emit: (count: number) => void;
 }
 
-function harness(handlers: (path: string) => Promise<unknown> | undefined): Harness {
+function harness(
+  handlers: (path: string, body?: unknown) => Promise<unknown> | undefined
+): Harness {
   const listeners: ((payload: unknown) => void)[] = [];
+  const posted: { path: string; body: unknown }[] = [];
   let counted = 0;
   const ctx = {
     register: (): (() => void) => () => {},
     registerMany: (): (() => void) => () => {},
-    rest: (path: string) => {
+    rest: (path: string, options?: { body?: unknown }) => {
       counted += 1;
-      const answered = handlers(path);
+      posted.push({ path, body: options?.body });
+      const answered = handlers(path, options?.body);
       if (answered === undefined) {
         return Promise.reject(new Error(`unexpected rest path ${path}`));
       }
@@ -110,6 +128,7 @@ function harness(handlers: (path: string) => Promise<unknown> | undefined): Harn
   return {
     ctx,
     requests: (): number => counted,
+    calls: (): { path: string; body: unknown }[] => posted,
     emit: (count: number): void => {
       for (let index = 0; index < count; index += 1) {
         for (const listener of listeners) {
@@ -122,6 +141,7 @@ function harness(handlers: (path: string) => Promise<unknown> | undefined): Harn
 
 afterEach(() => {
   cleanup();
+  resetHostStub();
 });
 
 describe('RewindPage timeline panel', () => {
@@ -245,17 +265,265 @@ describe('RewindPage fork dialog', () => {
 
     const dialog = await screen.findByRole('dialog');
     const css = dialog.parentElement?.querySelector('style')?.textContent ?? '';
-    const controls = ['rw-button', 'rw-primary', 'rw-close', 'rw-preset', 'rw-icon-button'];
+    const controls = [
+      'rw-button',
+      'rw-primary',
+      'rw-close',
+      'rw-preset',
+      'rw-icon-button',
+      'rw-trigger',
+      'rw-option'
+    ];
     const selectors = css
       .split('\n')
       .map((line) => line.trim())
       .filter((line) => line.endsWith('{') || line.endsWith(','));
-    const bare = selectors.filter((line) => controls.some((name) => line.startsWith(`.${name}`)));
+    const bare = selectors.filter((line) =>
+      controls.some((name) => new RegExp(`^\\.${name}(?![a-z0-9-])`).test(line))
+    );
     const scoped = selectors.filter((line) =>
-      controls.some((name) => line.startsWith(`.rw-panel .${name}`))
+      controls.some((name) => new RegExp(`^\\.rw-panel \\.${name}(?![a-z0-9-])`).test(line))
     );
     expect(bare).toEqual([]);
     expect(scoped.length).toBeGreaterThan(0);
+  });
+});
+
+describe('RewindPage model picker', () => {
+  function prepareBody(calls: { path: string; body: unknown }[]): Record<string, unknown> {
+    const hit = calls.find((call) => call.path === '/forks/prepare');
+    return (hit?.body ?? {}) as Record<string, unknown>;
+  }
+
+  async function awaitPrepare(host: Harness): Promise<Record<string, unknown>> {
+    await waitFor(() =>
+      expect(host.calls().some((call) => call.path === '/forks/prepare')).toBe(true)
+    );
+    return prepareBody(host.calls());
+  }
+
+  it('lists the models under the providers Hermes is configured for', async () => {
+    const turnsA = deferred<TurnPage>();
+    const turnsB = deferred<TurnPage>();
+    const host = harness(routeTurns(turnsA, turnsB));
+    render(<RewindPage ctx={host.ctx} />);
+    turnsA.resolve(page([turn('a', 'the a turn')]));
+    await screen.findByText('the a turn');
+
+    fireEvent.click(screen.getByRole('button', { name: 'Rewind' }));
+    const dialog = await screen.findByRole('dialog');
+
+    fireEvent.click(within(dialog).getByRole('button', { name: /^Model/ }));
+
+    expect(await within(dialog).findByText('Nous Portal')).toBeDefined();
+    expect(within(dialog).getByText('NVIDIA NIM')).toBeDefined();
+    expect(within(dialog).getByRole('option', { name: /anthropic\/claude-fable/ })).toBeDefined();
+    expect(within(dialog).getByRole('option', { name: /Keep the session model/ })).toBeDefined();
+    expect(within(dialog).getAllByText('session')).toHaveLength(1);
+  });
+
+  it('sends the provider with the model so an id shared by two providers is not guessed', async () => {
+    const turnsA = deferred<TurnPage>();
+    const turnsB = deferred<TurnPage>();
+    const host = harness(routeFork(turnsA, turnsB));
+    render(<RewindPage ctx={host.ctx} />);
+    turnsA.resolve(page([turn('a', 'the a turn')]));
+    await screen.findByText('the a turn');
+
+    fireEvent.click(screen.getByRole('button', { name: 'Rewind' }));
+    const dialog = await screen.findByRole('dialog');
+
+    fireEvent.click(within(dialog).getByRole('button', { name: /^Model/ }));
+    fireEvent.click(await within(dialog).findByRole('option', { name: /nvidia\/nemotron-3\.5/ }));
+
+    expect(within(dialog).getByRole('button', { name: /^Model/ }).textContent).toContain(
+      'nvidia/nemotron-3.5'
+    );
+
+    fireEvent.click(within(dialog).getByRole('button', { name: /Prepare branch/ }));
+    const body = await awaitPrepare(host);
+    expect(body.model).toBe('nvidia/nemotron-3.5');
+    expect(body.provider).toBe('nvidia');
+  });
+
+  it('asks for no switch at all when the session model is kept', async () => {
+    const turnsA = deferred<TurnPage>();
+    const turnsB = deferred<TurnPage>();
+    const host = harness(routeFork(turnsA, turnsB));
+    render(<RewindPage ctx={host.ctx} />);
+    turnsA.resolve(page([turn('a', 'the a turn')]));
+    await screen.findByText('the a turn');
+
+    fireEvent.click(screen.getByRole('button', { name: 'Rewind' }));
+    const dialog = await screen.findByRole('dialog');
+
+    fireEvent.click(within(dialog).getByRole('button', { name: /^Model/ }));
+    fireEvent.click(await within(dialog).findByRole('option', { name: /nvidia\/nemotron-3\.5/ }));
+    fireEvent.click(within(dialog).getByRole('button', { name: /^Model/ }));
+    fireEvent.click(await within(dialog).findByRole('option', { name: /Keep the session model/ }));
+
+    fireEvent.click(within(dialog).getByRole('button', { name: /Prepare branch/ }));
+    const kept = await awaitPrepare(host);
+    expect(kept.model).toBeNull();
+    expect(kept.provider).toBeNull();
+  });
+
+  it('narrows the list as the search is typed', async () => {
+    const turnsA = deferred<TurnPage>();
+    const turnsB = deferred<TurnPage>();
+    const host = harness(routeTurns(turnsA, turnsB));
+    render(<RewindPage ctx={host.ctx} />);
+    turnsA.resolve(page([turn('a', 'the a turn')]));
+    await screen.findByText('the a turn');
+
+    fireEvent.click(screen.getByRole('button', { name: 'Rewind' }));
+    const dialog = await screen.findByRole('dialog');
+
+    fireEvent.click(within(dialog).getByRole('button', { name: /^Model/ }));
+    await within(dialog).findByText('Nous Portal');
+    fireEvent.change(within(dialog).getByRole('textbox', { name: 'Search models' }), {
+      target: { value: 'fable' }
+    });
+
+    expect(within(dialog).queryByText('NVIDIA NIM')).toBeNull();
+    expect(within(dialog).getByRole('option', { name: /anthropic\/claude-fable/ })).toBeDefined();
+    expect(within(dialog).getAllByRole('option')).toHaveLength(2);
+  });
+
+  it('offers a typed id as the value only when nothing in the catalog matches', async () => {
+    const turnsA = deferred<TurnPage>();
+    const turnsB = deferred<TurnPage>();
+    const host = harness(routeFork(turnsA, turnsB));
+    render(<RewindPage ctx={host.ctx} />);
+    turnsA.resolve(page([turn('a', 'the a turn')]));
+    await screen.findByText('the a turn');
+
+    fireEvent.click(screen.getByRole('button', { name: 'Rewind' }));
+    const dialog = await screen.findByRole('dialog');
+
+    fireEvent.click(within(dialog).getByRole('button', { name: /^Model/ }));
+    await within(dialog).findByText('Nous Portal');
+    fireEvent.change(within(dialog).getByRole('textbox', { name: 'Search models' }), {
+      target: { value: 'local/llama-3' }
+    });
+
+    fireEvent.click(await within(dialog).findByRole('option', { name: /as typed/ }));
+    fireEvent.click(within(dialog).getByRole('button', { name: /Prepare branch/ }));
+
+    const body = await awaitPrepare(host);
+    expect(body.model).toBe('local/llama-3');
+    expect(body.provider).toBeNull();
+  });
+
+  it('closes the picker with Escape before it closes the dialog', async () => {
+    const turnsA = deferred<TurnPage>();
+    const turnsB = deferred<TurnPage>();
+    const host = harness(routeTurns(turnsA, turnsB));
+    render(<RewindPage ctx={host.ctx} />);
+    turnsA.resolve(page([turn('a', 'the a turn')]));
+    await screen.findByText('the a turn');
+
+    fireEvent.click(screen.getByRole('button', { name: 'Rewind' }));
+    const dialog = await screen.findByRole('dialog');
+
+    fireEvent.click(within(dialog).getByRole('button', { name: /^Model/ }));
+    await within(dialog).findByText('Nous Portal');
+
+    fireEvent.keyDown(window, { key: 'Escape' });
+    expect(within(dialog).queryByText('Nous Portal')).toBeNull();
+    expect(screen.queryByRole('dialog')).not.toBeNull();
+
+    fireEvent.keyDown(window, { key: 'Escape' });
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
+  });
+
+  it('says so and keeps the session model when the catalog cannot be read', async () => {
+    setModelOptions({});
+    const turnsA = deferred<TurnPage>();
+    const turnsB = deferred<TurnPage>();
+    const host = harness(routeFork(turnsA, turnsB));
+    render(<RewindPage ctx={host.ctx} />);
+    turnsA.resolve(page([turn('a', 'the a turn')]));
+    await screen.findByText('the a turn');
+
+    fireEvent.click(screen.getByRole('button', { name: 'Rewind' }));
+    const dialog = await screen.findByRole('dialog');
+
+    expect(
+      await within(dialog).findByText(
+        'Could not read the model list, so the rerun keeps the session model.'
+      )
+    ).toBeDefined();
+
+    fireEvent.click(within(dialog).getByRole('button', { name: /Prepare branch/ }));
+    expect((await awaitPrepare(host)).model).toBeNull();
+  });
+
+  it('does not list a provider that offers no model', async () => {
+    setModelOptions({
+      providers: [
+        { slug: 'nous', name: 'Nous Portal', is_current: true, models: ['test/model'] },
+        { slug: 'openrouter', name: 'OpenRouter', is_current: false, models: [] }
+      ],
+      model: 'test/model',
+      provider: 'nous'
+    });
+    const turnsA = deferred<TurnPage>();
+    const turnsB = deferred<TurnPage>();
+    const host = harness(routeTurns(turnsA, turnsB));
+    render(<RewindPage ctx={host.ctx} />);
+    turnsA.resolve(page([turn('a', 'the a turn')]));
+    await screen.findByText('the a turn');
+
+    fireEvent.click(screen.getByRole('button', { name: 'Rewind' }));
+    const dialog = await screen.findByRole('dialog');
+    fireEvent.click(within(dialog).getByRole('button', { name: /^Model/ }));
+
+    await within(dialog).findByText('Nous Portal');
+    expect(within(dialog).queryByText('OpenRouter')).toBeNull();
+  });
+
+  async function forkWithOtherModel(): Promise<void> {
+    const turnsA = deferred<TurnPage>();
+    const turnsB = deferred<TurnPage>();
+    const host = harness(routeFork(turnsA, turnsB));
+    render(<RewindPage ctx={host.ctx} />);
+    turnsA.resolve(page([turn('a', 'the a turn')]));
+    await screen.findByText('the a turn');
+
+    fireEvent.click(screen.getByRole('button', { name: 'Rewind' }));
+    const dialog = await screen.findByRole('dialog');
+    fireEvent.click(within(dialog).getByRole('button', { name: /^Model/ }));
+    fireEvent.click(await within(dialog).findByRole('option', { name: /nvidia\/nemotron-3\.5/ }));
+    fireEvent.click(within(dialog).getByRole('button', { name: /Prepare branch/ }));
+    await waitFor(() => expect(prepareBody(host.calls()).model).toBe('nvidia/nemotron-3.5'));
+    fireEvent.click(within(dialog).getByRole('button', { name: /Fork & run/ }));
+  }
+
+  it('opens the rerun session before switching its model', async () => {
+    await forkWithOtherModel();
+    await waitFor(() =>
+      expect(hostCalls().some((call) => call.name === 'prompt.submit')).toBe(true)
+    );
+
+    const names = hostCalls().map((call) => call.name);
+    expect(names).toContain('config.set');
+    expect(names.indexOf('openSession')).toBeLessThan(names.indexOf('config.set'));
+  });
+
+  it('says out loud when the model switch does not apply', async () => {
+    setConfigSetFailure(true);
+    await forkWithOtherModel();
+
+    await waitFor(
+      () =>
+        expect(
+          hostCalls().some((call) => call.kind === 'notify' && call.name.startsWith('warning:'))
+        ).toBe(true),
+      { timeout: 4000 }
+    );
+    const warning = hostCalls().find((call) => call.name.startsWith('warning:'));
+    expect(warning?.name).toContain('nvidia/nemotron-3.5');
   });
 });
 
@@ -398,5 +666,50 @@ function routeTurns(
       return Promise.resolve([]);
     }
     return undefined;
+  };
+}
+
+function planFixture(overrides: Partial<ForkPlan> = {}): ForkPlan {
+  return {
+    branch_id: 'branch-1',
+    parent_session_id: 'session-a',
+    fork_before_ts: TS,
+    fork_row_count: 2,
+    snapshot_id: 1,
+    snapshot_commit: 'abcdef1234567890',
+    worktree_path: '/work/.hermes-rewind/abcdef12',
+    prompt: 'the recorded context',
+    model: null,
+    provider: null,
+    verify_cmd: null,
+    verify_timeout_seconds: 120,
+    fidelity: 'full',
+    context_rows: 2,
+    verify_presets: ['python -m pytest -q'],
+    ...overrides
+  };
+}
+
+function routeFork(
+  turnsA: { promise: Promise<TurnPage> },
+  turnsB: { promise: Promise<TurnPage> },
+  onPrepare?: (body: unknown) => void
+): (path: string, body?: unknown) => Promise<unknown> | undefined {
+  const turns = routeTurns(turnsA, turnsB);
+  return (path: string, body?: unknown) => {
+    if (path === '/forks/prepare') {
+      onPrepare?.(body);
+      return Promise.resolve(planFixture());
+    }
+    if (path.includes('/commit')) {
+      return Promise.resolve(branchDetail('/work/.hermes-rewind/branch-1'));
+    }
+    if (path === '/sessions/session-a/branches') {
+      return Promise.resolve([branchSummary('running', '/work/.hermes-rewind/branch-1')]);
+    }
+    if (path.includes('/reconcile') || path.includes('/branches/branch-1')) {
+      return Promise.resolve(branchDetail('/work/.hermes-rewind/branch-1'));
+    }
+    return turns(path);
   };
 }

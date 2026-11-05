@@ -7,6 +7,14 @@ import { commitFork, prepareFork, resolveVerify } from '../api';
 import type { EventSummary, ForkPlan, SessionSummary, VerifyResolution } from '../api';
 import { errorMessage, formatTime, shortId } from '../format';
 import { branchPoint } from '../forkPrefix';
+import {
+  differsFromSession,
+  modelDirective,
+  orderProviders,
+  parseCatalog,
+  searchProviders
+} from '../models';
+import type { ModelCatalog, ModelProvider } from '../models';
 import { Icon } from './icons';
 import type { HistoryResult } from '../forkPrefix';
 
@@ -41,6 +49,7 @@ interface ConfigSetResult {
 
 const VERIFY_PRESETS = ['python -m pytest -q', 'npm test', 'cargo test', 'go test ./...'];
 const RESOLVE_DEBOUNCE_MS = 350;
+const REVISION_SETTLE_MS = 400;
 
 interface LiveParent {
   runtimeId: string | undefined;
@@ -210,7 +219,9 @@ const DIALOG_CSS = `
 .rw-panel .rw-button:focus-visible,
 .rw-panel .rw-close:focus-visible,
 .rw-panel .rw-preset:focus-visible,
-.rw-panel .rw-icon-button:focus-visible {
+.rw-panel .rw-icon-button:focus-visible,
+.rw-panel .rw-trigger:focus-visible,
+.rw-panel .rw-option:focus-visible {
   outline: 2px solid var(--ui-stroke-primary);
   outline-offset: 2px;
 }
@@ -397,6 +408,161 @@ const DIALOG_CSS = `
   line-height: 1.45;
   color: var(--ui-text-tertiary);
 }
+.rw-panel .rw-trigger {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 8px 10px;
+  font: inherit;
+  font-size: 12px;
+  text-align: left;
+  color: var(--ui-text-primary);
+  cursor: pointer;
+  background: var(--ui-bg-card);
+  border: 1px solid var(--ui-stroke-secondary);
+  border-radius: calc(var(--radius-scalar, 0.2) * .5rem);
+  transition: border-color 120ms ease-out, background-color 120ms ease-out;
+}
+.rw-panel .rw-trigger:hover:not(:disabled) {
+  background: var(--ui-control-hover-background);
+}
+.rw-panel .rw-trigger:disabled {
+  cursor: default;
+  opacity: 0.5;
+}
+.rw-panel .rw-trigger-open,
+.rw-panel .rw-trigger-open:hover:not(:disabled) {
+  background: var(--ui-bg-card);
+  border-color: var(--ui-stroke-primary);
+}
+.rw-trigger-text {
+  min-width: 0;
+  overflow: hidden;
+  font-family: var(--dt-font-mono, ui-monospace, SFMono-Regular, Menlo, Consolas, monospace);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.rw-trigger-provider {
+  flex: none;
+  font-size: 11px;
+  color: var(--ui-text-tertiary);
+}
+.rw-trigger-caret {
+  display: inline-grid;
+  flex: none;
+  place-items: center;
+  color: var(--ui-text-tertiary);
+  transition: transform 140ms ease-out;
+}
+.rw-trigger-caret[data-open='true'] {
+  transform: rotate(90deg);
+}
+.rw-picker {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px;
+  background: var(--ui-bg-card);
+  border: 1px solid var(--ui-stroke-tertiary);
+  border-radius: calc(var(--radius-scalar, 0.2) * .625rem);
+}
+.rw-search {
+  box-sizing: border-box;
+  width: 100%;
+  padding: 7px 9px;
+  font: inherit;
+  font-size: 12px;
+  color: var(--ui-text-primary);
+  background: var(--ui-bg-elevated);
+  border: 1px solid var(--ui-stroke-secondary);
+  border-radius: calc(var(--radius-scalar, 0.2) * .5rem);
+}
+.rw-search:focus {
+  border-color: var(--ui-stroke-primary);
+  outline: none;
+}
+.rw-picker-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  max-height: 236px;
+  overflow-y: auto;
+}
+.rw-group-head {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 8px 8px 3px;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ui-text-tertiary);
+  background: var(--ui-bg-card);
+}
+.rw-panel .rw-option {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 6px 8px;
+  font: inherit;
+  font-size: 12px;
+  text-align: left;
+  color: var(--ui-text-secondary);
+  cursor: pointer;
+  background: transparent;
+  border: 0;
+  border-radius: calc(var(--radius-scalar, 0.2) * .5rem);
+  transition: color 120ms ease-out, background-color 120ms ease-out;
+}
+.rw-panel .rw-option:hover:not(:disabled) {
+  color: var(--ui-text-primary);
+  background: var(--ui-control-hover-background);
+}
+.rw-panel .rw-option[aria-selected='true'] {
+  color: var(--ui-text-primary);
+  background: color-mix(in srgb, var(--ui-accent) 14%, transparent);
+}
+.rw-option-text {
+  min-width: 0;
+  overflow: hidden;
+  font-family: var(--dt-font-mono, ui-monospace, SFMono-Regular, Menlo, Consolas, monospace);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.rw-option-tag {
+  flex: none;
+  padding: 1px 6px;
+  font-size: 10px;
+  color: var(--ui-text-tertiary);
+  border: 1px solid var(--ui-stroke-tertiary);
+  border-radius: calc(var(--radius-scalar, 0.2) * .5rem);
+}
+.rw-panel .rw-option-keep {
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  margin-bottom: 4px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--ui-stroke-tertiary);
+  border-radius: 0;
+}
+.rw-option-sub {
+  font-family: var(--dt-font-mono, ui-monospace, SFMono-Regular, Menlo, Consolas, monospace);
+  font-size: 11px;
+  color: var(--ui-text-tertiary);
+}
+.rw-picker-empty {
+  padding: 10px 8px;
+  font-size: 11px;
+  color: var(--ui-text-tertiary);
+}
 .rw-resolved {
   display: flex;
   flex-direction: column;
@@ -419,11 +585,6 @@ const DIALOG_CSS = `
   line-height: 1.5;
   border: 1px solid transparent;
   border-radius: calc(var(--radius-scalar, 0.2) * .5rem);
-}
-.rw-banner-warn {
-  color: var(--ui-yellow);
-  background: color-mix(in srgb, var(--ui-yellow) 10%, transparent);
-  border-color: color-mix(in srgb, var(--ui-yellow) 30%, transparent);
 }
 .rw-banner-error {
   color: var(--ui-red);
@@ -545,14 +706,22 @@ export function ForkDialog({
   onClose,
   onCreated
 }: ForkDialogProps): ReactNode {
-  const [model, setModel] = useState(session.model ?? '');
+  const [model, setModel] = useState('');
+  const [provider, setProvider] = useState<string | null>(null);
+  const [catalog, setCatalog] = useState<ModelCatalog>({
+    providers: [],
+    currentModel: null,
+    currentProvider: null
+  });
+  const [catalogFailed, setCatalogFailed] = useState(false);
+  const [pickerOpen, setPickerOpen] = useState(false);
+  const [modelQuery, setModelQuery] = useState('');
   const [prompt, setPrompt] = useState('');
   const [verifyCmd, setVerifyCmd] = useState('');
   const [plan, setPlan] = useState<ForkPlan | null>(null);
   const [resolution, setResolution] = useState<VerifyResolution | null>(null);
   const [busyAction, setBusyAction] = useState<'prepare' | 'run' | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [notice, setNotice] = useState<string | null>(null);
   const [closing, setClosing] = useState(false);
   const disposers = useRef<(() => void)[]>([]);
   const busy = busyAction !== null;
@@ -586,6 +755,10 @@ export function ForkDialog({
   useEffect(() => {
     const onKeyDown = (keyEvent: KeyboardEvent): void => {
       if (keyEvent.key === 'Escape' && !busy) {
+        if (pickerOpen) {
+          setPickerOpen(false);
+          return;
+        }
         close();
         return;
       }
@@ -594,6 +767,9 @@ export function ForkDialog({
         return;
       }
       if (keyEvent.key === 'Enter' && (keyEvent.metaKey || keyEvent.ctrlKey) && !busy) {
+        if (pickerOpen) {
+          return;
+        }
         keyEvent.preventDefault();
         submitRef.current();
       }
@@ -602,7 +778,7 @@ export function ForkDialog({
     return (): void => {
       window.removeEventListener('keydown', onKeyDown);
     };
-  }, [busy, close]);
+  }, [busy, close, pickerOpen]);
 
   useEffect(() => {
     const command = verifyCmd.trim();
@@ -630,6 +806,52 @@ export function ForkDialog({
     };
   }, [ctx, plan, verifyCmd]);
 
+  useEffect(() => {
+    let cancelled = false;
+    host
+      .request<unknown>('model.options', { explicit_only: true, include_unconfigured: false })
+      .then((payload) => {
+        if (cancelled) {
+          return;
+        }
+        const parsed = parseCatalog(payload);
+        setCatalog(parsed);
+        setCatalogFailed(parsed.providers.length === 0);
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setCatalogFailed(true);
+        }
+      });
+    return (): void => {
+      cancelled = true;
+    };
+  }, []);
+
+  const orderedProviders = orderProviders(catalog, session.provider);
+  const visibleProviders: ModelProvider[] = searchProviders(orderedProviders, modelQuery);
+  const chosenModel = model.trim() === '' ? (session.model ?? '') : model.trim();
+  const chosenProviderSlug = provider ?? session.provider;
+  const chosenProviderName =
+    chosenProviderSlug === null
+      ? ''
+      : (catalog.providers.find((row) => row.slug === chosenProviderSlug)?.name ??
+        chosenProviderSlug);
+
+  const pickModel = (slug: string, modelId: string): void => {
+    setModel(modelId);
+    setProvider(slug);
+    setPickerOpen(false);
+    setModelQuery('');
+  };
+
+  const keepSessionModel = (): void => {
+    setModel('');
+    setProvider(null);
+    setPickerOpen(false);
+    setModelQuery('');
+  };
+
   const resolveLiveParent = async (): Promise<LiveParent> => {
     const active = await host.request<ActiveSessions>('session.active_list', {});
     const activeSessions = Array.isArray(active.sessions) ? active.sessions : [];
@@ -652,7 +874,6 @@ export function ForkDialog({
   const prepare = async (): Promise<void> => {
     setBusyAction('prepare');
     setError(null);
-    setNotice(null);
     try {
       const liveParent = await resolveLiveParent();
       const prepared = await prepareFork(ctx, {
@@ -660,7 +881,7 @@ export function ForkDialog({
         stored_session_id: liveParent.storedId,
         event_id: event.id,
         model: model.trim() || null,
-        provider: null,
+        provider,
         prompt: prompt.trim() || null,
         verify_cmd: verifyCmd.trim() || null
       });
@@ -668,9 +889,6 @@ export function ForkDialog({
       setPrompt(prepared.prompt);
       if (prepared.verify_presets.length > 0 && verifyCmd.trim() === '') {
         setVerifyCmd(prepared.verify_presets[0] ?? '');
-      }
-      if (prepared.model !== null) {
-        setModel(prepared.model);
       }
     } catch (caught) {
       setError(errorMessage(caught));
@@ -685,7 +903,6 @@ export function ForkDialog({
     }
     setBusyAction('run');
     setError(null);
-    setNotice(null);
     try {
       const liveParent = await resolveLiveParent();
       const runtimeId = liveParent.runtimeId;
@@ -748,24 +965,50 @@ export function ForkDialog({
               );
         }
       }
-      if (model.trim() && model.trim() !== (session.model ?? '')) {
-        try {
-          const config = await host.request<ConfigSetResult>('config.set', {
+      // The desktop client only knows a session's revision once that session has been opened, and
+      // config.set is refused locally before the request is sent without it. Opening first is what
+      // makes a model switch on a branched child land on the child instead of failing in silence.
+      await labelled(
+        'could not open the rerun session',
+        host.openSession(childStoredId, { intent: 'tab' })
+      );
+      if (differsFromSession(model.trim(), provider, session.model, session.provider)) {
+        const value = modelDirective(model.trim(), provider);
+        const attempt = (): Promise<ConfigSetResult> =>
+          host.request<ConfigSetResult>('config.set', {
             key: 'model',
-            value: model.trim(),
+            value,
             session_id: childId,
             confirm_expensive_model: false
           });
-          if (config.confirm_required === true) {
-            setNotice(
-              config.confirm_message ??
-                'The model switch needs confirmation; the branch continues with the current model.'
-            );
+        let switched = false;
+        let confirmMessage: string | null = null;
+        let failure = '';
+        for (let tryNumber = 0; tryNumber < 2 && !switched; tryNumber += 1) {
+          try {
+            const config = await attempt();
+            switched = true;
+            confirmMessage =
+              config.confirm_required === true ? (config.confirm_message ?? null) : null;
+          } catch (caught) {
+            failure = errorMessage(caught);
+            await new Promise((ready) => {
+              setTimeout(ready, REVISION_SETTLE_MS);
+            });
           }
-        } catch {
-          setNotice(
-            'The branch was created, but the model switch failed; the rerun uses the current model.'
-          );
+        }
+        if (!switched) {
+          host.notify({
+            kind: 'warning',
+            message: `The rerun runs on ${session.model ?? 'the session model'}, not ${model.trim()}.`,
+            detail: failure
+          });
+        } else if (confirmMessage !== null) {
+          host.notify({
+            kind: 'info',
+            message: confirmMessage,
+            detail: `The rerun started before the switch could be confirmed; ${model.trim()} applies from the next turn.`
+          });
         }
       }
       const finalPrompt = prompt.trim() || plan.prompt;
@@ -774,8 +1017,8 @@ export function ForkDialog({
         commitFork(ctx, plan.branch_id, {
           child_session_id: childId,
           child_stored_session_id: childStoredId,
-          model: model.trim() || null,
-          provider: null,
+          model: model.trim() || session.model,
+          provider: provider ?? session.provider,
           prompt: finalPrompt,
           verify_cmd: verifyCmd.trim() || null
         })
@@ -785,7 +1028,6 @@ export function ForkDialog({
         host.request('prompt.submit', { session_id: childId, text: finalPrompt })
       );
       onCreated(plan.branch_id);
-      host.openSession(childStoredId, { intent: 'tab' });
       onClose();
     } catch (caught) {
       setError(errorMessage(caught));
@@ -889,11 +1131,6 @@ export function ForkDialog({
               {error}
             </div>
           ) : null}
-          {notice !== null ? (
-            <div className="rw-banner rw-banner-warn" role="status">
-              {notice}
-            </div>
-          ) : null}
 
           {prepared && plan.worktree_path ? (
             <div className="rw-path">
@@ -930,19 +1167,115 @@ export function ForkDialog({
           ) : null}
 
           <div className="rw-grid">
-            <label className="rw-field">
-              <span className="rw-label">Model</span>
-              <input
-                className="rw-input"
-                value={model}
-                onChange={(changeEvent) => {
-                  setModel(changeEvent.target.value);
+            <div className="rw-field">
+              <span className="rw-label" id="rw-model-label">
+                Model
+              </span>
+              <button
+                type="button"
+                className={`rw-trigger${pickerOpen ? ' rw-trigger-open' : ''}`}
+                onClick={() => {
+                  setPickerOpen(!pickerOpen);
                 }}
-                placeholder="provider/model"
-              />
-              <span className="rw-help">Leave unchanged to keep the session model.</span>
-            </label>
-
+                disabled={busy}
+                aria-haspopup="listbox"
+                aria-expanded={pickerOpen}
+                aria-labelledby="rw-model-label rw-model-value"
+              >
+                <span className="rw-trigger-text" id="rw-model-value">
+                  {chosenModel === '' ? 'Session model' : chosenModel}
+                </span>
+                {chosenProviderName === '' ? null : (
+                  <span className="rw-trigger-provider">{chosenProviderName}</span>
+                )}
+                <span className="rw-trigger-caret" aria-hidden="true" data-open={pickerOpen}>
+                  <Icon name="chevron" size={12} />
+                </span>
+              </button>
+              {pickerOpen ? (
+                <div className="rw-picker">
+                  <input
+                    className="rw-search"
+                    value={modelQuery}
+                    onChange={(changeEvent) => {
+                      setModelQuery(changeEvent.target.value);
+                    }}
+                    onKeyDown={(keyEvent) => {
+                      const first = visibleProviders[0];
+                      if (keyEvent.key === 'Enter' && first !== undefined) {
+                        keyEvent.preventDefault();
+                        pickModel(first.slug, first.models[0] ?? '');
+                      }
+                    }}
+                    placeholder="Search models"
+                    aria-label="Search models"
+                    autoFocus
+                  />
+                  <div className="rw-picker-list" role="listbox" aria-label="Models">
+                    <button
+                      type="button"
+                      className="rw-option rw-option-keep"
+                      role="option"
+                      aria-selected={model.trim() === ''}
+                      onClick={keepSessionModel}
+                    >
+                      Keep the session model
+                      {session.model === null ? null : (
+                        <span className="rw-option-sub">{session.model}</span>
+                      )}
+                    </button>
+                    {visibleProviders.map((row) => (
+                      <div className="rw-group" role="group" aria-label={row.name} key={row.slug}>
+                        <div className="rw-group-head">
+                          <span>{row.name}</span>
+                          <span className="rw-count">{row.models.length}</span>
+                        </div>
+                        {row.models.map((modelId) => (
+                          <button
+                            type="button"
+                            className="rw-option"
+                            role="option"
+                            key={modelId}
+                            aria-selected={modelId === model.trim() && row.slug === provider}
+                            onClick={() => {
+                              pickModel(row.slug, modelId);
+                            }}
+                          >
+                            <span className="rw-option-text">{modelId}</span>
+                            {modelId === session.model ? (
+                              <span className="rw-option-tag">session</span>
+                            ) : null}
+                          </button>
+                        ))}
+                      </div>
+                    ))}
+                    {visibleProviders.length === 0 && modelQuery.trim() !== '' ? (
+                      <button
+                        type="button"
+                        className="rw-option"
+                        role="option"
+                        onClick={() => {
+                          setModel(modelQuery.trim());
+                          setProvider(null);
+                          setPickerOpen(false);
+                          setModelQuery('');
+                        }}
+                      >
+                        <span className="rw-option-text">Use “{modelQuery.trim()}” as typed</span>
+                      </button>
+                    ) : null}
+                    {visibleProviders.length === 0 && modelQuery.trim() === '' ? (
+                      <div className="rw-picker-empty">No configured provider offers a model.</div>
+                    ) : null}
+                  </div>
+                </div>
+              ) : null}
+              <span className="rw-help">
+                {catalogFailed
+                  ? 'Could not read the model list, so the rerun keeps the session model.'
+                  : 'Lists the providers configured in Hermes.'}
+              </span>
+            </div>
             <label className="rw-field">
               <span className="rw-label">Verify command</span>
               <input

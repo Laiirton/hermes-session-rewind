@@ -100,6 +100,44 @@ reset without depending on stylesheet order. Two things follow for anyone extend
    the element first - if the token resolves and the declaration does not apply, the cause
    is the cascade, not the palette.
 
+## A session the desktop has not opened cannot be given a model
+
+`config.set` with `key: 'model'` and a `session_id` is the documented way to switch one
+session's model, and for a session the user is looking at it works. For a session the plugin
+has just created or branched it does not, and the failure is not on the gateway:
+
+```
+Session revision unavailable; reopen the session before editing metadata
+```
+
+That string is thrown by the desktop bundle (`assets/actions-*.js`, in `retainedMutation`),
+which keeps a `revisions` map per session and refuses to build the request envelope without
+an `expected_revision`. The map fills when the session is opened, so the call never reaches
+the gateway at all - which is why nothing is logged server-side and why the reply looks like
+a generic client error. `config.get` on the same id answers `invalid_params` instead.
+
+The fork therefore opens the child session before switching its model:
+
+```
+branch / create  ->  openSession(child)  ->  config.set  ->  commit  ->  prompt.submit
+```
+
+Two consequences worth knowing before changing this order:
+
+1. `openSession` navigates the app to the new tab, so anything that still has to talk to the
+   plugin's own backend belongs before it. Recording the branch after the switch works
+   because the plugin page is still mounted while the awaited chain continues; it is not a
+   safe place to put a step whose failure the dialog must show.
+2. A failed switch has nowhere to be shown, because the dialog closes as the tab opens. It
+   raises `host.notify` instead. Reverting this order silently reintroduces the original bug:
+   the rerun runs on the parent's model, the branch row records the model the user chose, and
+   the only proof is the child's recorded `llm_call`.
+
+`session.create` is the one path that does not need a revision: it accepts `model` and
+`provider` as per-session overrides, applied before the agent is built, and the reply's
+`response_model` confirms them. `session.branch` accepts neither, which is why the branch
+path needs the open-first sequence rather than a create parameter.
+
 ## Session outcome codes
 
 The session cards and the comparison panel used to print the `outcome` string
