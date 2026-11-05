@@ -137,6 +137,14 @@ Observed in the real Hermes Desktop app through Computer Use; screenshots are ke
 | Redaction | probed live: `sk-proj-…`, bare JWTs, numeric `token` values and 7-character `password=` values were all stored unredacted before the fix; each now has a regression test and ordinary text is still untouched |
 | Context pack of a rewind child | one preamble only, with `Original user task:` quoting "Diga apenas: pronto"; the earlier nesting duplicated the preamble and replayed stale claims |
 
+## Shadow refs in the real repository
+
+The demo repository carries 11 `refs/hermes-rewind/*` refs after roughly two hours of
+recording, forking and cleaning, and its `.git` is 159 KB with 20 loose objects. Snapshot
+trees that match an earlier commit reuse the same objects, so the refs are not the linear
+growth the audit assumed. No pruning cap was added, because nothing measured justified
+deleting rewind points that a user can still select.
+
 ## Tool surface privacy
 
 Tool handlers returned `str(exception)` for every failure, so a foreign-key violation
