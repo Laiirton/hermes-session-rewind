@@ -2,12 +2,15 @@ from __future__ import annotations
 
 import os
 import shlex
+import shutil
 import subprocess
+import sys
 import time
 from dataclasses import dataclass
 from pathlib import Path
 
 MAX_OUTPUT_CHARS = 20000
+_BATCH_SUFFIXES = (".cmd", ".bat")
 
 
 @dataclass(frozen=True, slots=True)
@@ -18,20 +21,55 @@ class VerifyResult:
     timed_out: bool
 
 
+def split_command(command: str) -> list[str]:
+    if sys.platform == "win32":
+        return [token.strip('"') for token in shlex.split(command, posix=False)]
+    return shlex.split(command, posix=True)
+
+
+def _locate(program: str, cwd: Path | None) -> str | None:
+    if cwd is not None and ("\\" in program or "/" in program):
+        candidate = cwd / program
+        if candidate.exists():
+            return str(candidate)
+    return shutil.which(program)
+
+
+def resolve_argv(command: str, cwd: Path | None = None) -> list[str]:
+    args = split_command(command)
+    if not args:
+        raise LookupError("empty verify command")
+    program = _locate(args[0], cwd)
+    if program is None:
+        raise LookupError(f"verify command is not on the gateway PATH: {args[0]}")
+    if sys.platform == "win32" and program.lower().endswith(_BATCH_SUFFIXES):
+        shell = os.environ.get("COMSPEC", "cmd.exe")
+        return [shell, "/c", program, *args[1:]]
+    return [program, *args[1:]]
+
+
+def resolved_command(command: str) -> str | None:
+    try:
+        return " ".join(resolve_argv(command))
+    except (LookupError, ValueError):
+        return None
+
+
 class VerifyRunner:
     def run(self, command: str, cwd: Path, timeout_seconds: float) -> VerifyResult:
         started = time.monotonic()
-        try:
-            args = shlex.split(command, posix=True)
-        except ValueError as exc:
-            return VerifyResult(None, str(exc), _elapsed_ms(started), False)
-        if not args:
-            return VerifyResult(None, "empty verify command", _elapsed_ms(started), False)
         if not cwd.exists():
             return VerifyResult(None, "worktree does not exist", _elapsed_ms(started), False)
         try:
+            argv = resolve_argv(command, cwd)
+        except LookupError as exc:
+            return VerifyResult(None, str(exc), _elapsed_ms(started), False)
+        except ValueError as exc:
+            message = f"could not parse the verify command: {exc}"
+            return VerifyResult(None, message, _elapsed_ms(started), False)
+        try:
             result = subprocess.run(
-                args,
+                argv,
                 cwd=str(cwd),
                 capture_output=True,
                 text=True,

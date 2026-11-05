@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 
 class HealthResponse(BaseModel):
@@ -174,23 +174,35 @@ class BookmarkResponse(BaseModel):
     created_at: float
 
 
-class ForkPrepareRequest(BaseModel):
+MAX_VERIFY_CMD_CHARS = 500
+
+
+class VerifyCommandInput(BaseModel):
+    verify_cmd: str | None = Field(default=None, max_length=MAX_VERIFY_CMD_CHARS)
+
+    @field_validator("verify_cmd")
+    @classmethod
+    def _verify_cmd_is_one_line(cls, value: str | None) -> str | None:
+        if value is not None and any(char in value for char in ("\r", "\n", "\x00")):
+            raise ValueError("verify command must be a single line without control characters")
+        return value
+
+
+class ForkPrepareRequest(VerifyCommandInput):
     session_id: str
     stored_session_id: str | None = None
     event_id: int
     model: str | None = None
     provider: str | None = None
     prompt: str | None = None
-    verify_cmd: str | None = None
 
 
-class ForkCommitRequest(BaseModel):
+class ForkCommitRequest(VerifyCommandInput):
     child_session_id: str
     child_stored_session_id: str | None = None
     model: str | None = None
     provider: str | None = None
     prompt: str | None = None
-    verify_cmd: str | None = None
 
 
 class ForkPlanResponse(BaseModel):
@@ -205,6 +217,7 @@ class ForkPlanResponse(BaseModel):
     model: str | None = None
     provider: str | None = None
     verify_cmd: str | None = None
+    verify_resolved: str | None = None
     verify_timeout_seconds: int
     fidelity: str
     context_rows: int | None = None

@@ -151,6 +151,7 @@ export interface ForkPlan {
   model: string | null;
   provider: string | null;
   verify_cmd: string | null;
+  verify_resolved: string | null;
   verify_timeout_seconds: number;
   fidelity: string;
   context_rows: number | null;

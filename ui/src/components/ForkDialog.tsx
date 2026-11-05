@@ -56,6 +56,13 @@ interface ConfigSetResult {
   confirm_message?: string;
 }
 
+const VERIFY_PRESETS = [
+  'python -m pytest -q',
+  'npm test',
+  'cargo test',
+  'go test ./...'
+];
+
 interface LiveParent {
   runtimeId: string | undefined;
   storedId: string | null;
@@ -259,6 +266,29 @@ const DIALOG_CSS = `
   color: var(--ui-text-tertiary, rgba(236, 236, 241, 0.56));
   border: 1px solid var(--ui-border, rgba(255, 255, 255, 0.12));
   border-radius: 6px;
+}
+.rw-preset {
+  padding: 3px 8px;
+  font: inherit;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 11px;
+  color: var(--ui-text-tertiary, rgba(236, 236, 241, 0.56));
+  cursor: pointer;
+  background: transparent;
+  border: 1px solid var(--ui-border, rgba(255, 255, 255, 0.12));
+  border-radius: 6px;
+}
+.rw-preset:hover {
+  color: var(--ui-text, #ececf1);
+  border-color: var(--ui-accent, #6ea8fe);
+}
+.rw-resolved {
+  margin-top: 6px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 11px;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+  color: var(--ui-text-tertiary, rgba(236, 236, 241, 0.56));
 }
 .rw-path {
   margin-top: 10px;
@@ -699,9 +729,31 @@ export function ForkDialog({
                 }}
                 placeholder="python -m pytest -q"
               />
+              <div className="rw-chips">
+                {VERIFY_PRESETS.map((preset) => (
+                  <button
+                    type="button"
+                    key={preset}
+                    className="rw-preset"
+                    onClick={() => {
+                      setVerifyCmd(preset);
+                    }}
+                    disabled={busy}
+                  >
+                    {preset}
+                  </button>
+                ))}
+              </div>
               <span className="rw-help">
-                Runs in the restored workspace. Use the full interpreter path when needed.
+                Runs in the restored workspace with the gateway environment.
               </span>
+              {plan !== null && verifyCmd.trim() !== '' ? (
+                <span className="rw-resolved">
+                  {plan.verify_resolved === null
+                    ? 'Not found on the gateway PATH. Use the full interpreter path.'
+                    : `Resolves to ${plan.verify_resolved}`}
+                </span>
+              ) : null}
             </label>
           </div>
 

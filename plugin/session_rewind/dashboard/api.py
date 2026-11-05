@@ -8,7 +8,7 @@ from fastapi import APIRouter, HTTPException, Query
 
 from ..fork.planner import ForkError, ForkPlanner, ForkRequest
 from ..fork.service import ForkService
-from ..fork.verify import VerifyRunner
+from ..fork.verify import VerifyRunner, resolved_command
 from ..gitrepo.shadow import GitShadow
 from ..gitrepo.worktree import WorktreeManager
 from ..metrics import compare_verdict
@@ -195,6 +195,9 @@ def create_router(database: Database, settings: Settings | None = None) -> APIRo
             model=plan.model,
             provider=plan.provider,
             verify_cmd=plan.verify_cmd,
+            verify_resolved=(
+                resolved_command(plan.verify_cmd) if plan.verify_cmd is not None else None
+            ),
             verify_timeout_seconds=plan.verify_timeout_seconds,
             fidelity=plan.fidelity,
             context_rows=plan.context_rows,
