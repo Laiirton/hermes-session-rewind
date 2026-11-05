@@ -3,6 +3,8 @@ from __future__ import annotations
 import json
 from typing import Any
 
+from .contextpack import unwrap_rewound_task
+
 
 def parse_payload(event: dict[str, Any]) -> dict[str, Any]:
     raw = event.get("payload_json")
@@ -30,6 +32,8 @@ def preview(payload: dict[str, Any]) -> str:
         text = (
             value if isinstance(value, str) else json.dumps(value, ensure_ascii=False, default=str)
         )
+        if key == "user_message":
+            text = unwrap_rewound_task(text)
         return text[:300]
     return ""
 

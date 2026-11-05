@@ -3,14 +3,11 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-from session_rewind.fork.planner import (
-    PREAMBLE_HEAD,
-    ForkPlanner,
-    ForkRequest,
-    unwrap_rewound_task,
-)
+from session_rewind.contextpack import PREAMBLE_HEAD, unwrap_rewound_task
+from session_rewind.fork.planner import ForkPlanner, ForkRequest
 from session_rewind.gitrepo.shadow import GitShadow
 from session_rewind.gitrepo.worktree import WorktreeManager
+from session_rewind.serialization import event_summary
 from session_rewind.settings import Settings
 from session_rewind.store.db import Database, EventRecord
 from session_rewind.store.repositories import WriteStore
@@ -215,6 +212,19 @@ def test_unwrap_drops_a_disclaimer_left_inside_the_task() -> None:
     )
 
     assert unwrap_rewound_task(legacy) == "Fix the failing pytest suite"
+
+
+def test_preview_of_a_rewound_turn_shows_the_task() -> None:
+    event = {
+        "id": 1,
+        "session_id": "s_pack",
+        "seq": 2,
+        "ts": 10.0,
+        "kind": "user_turn",
+        "payload_json": json.dumps({"user_message": _pack(NESTED_TASK)}),
+    }
+
+    assert event_summary(event)["preview"] == NESTED_TASK
 
 
 def test_unwrap_repeats_for_deeper_nesting() -> None:

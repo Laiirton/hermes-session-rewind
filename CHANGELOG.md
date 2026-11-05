@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- The timeline shows what the user actually asked, even for a turn produced by an earlier rewind: the preview now unwraps the context pack instead of opening with "You are continuing a Hermes session from a rewound checkpoint." Old packs without the delimiters, including one nested twice, unwrap to the same sentence.
+
 - The recording-failure and tool-rejection tests now prove what they claim: the sink counts the submissions it refused, and the tool errors are compared against their exact sentences instead of `"error" in result`.
 
 - Say what the page actually knows when a turn query comes back empty: a session with recorded events no longer claims that no user turns were recorded, it reports that nothing came back and points at Refresh.
