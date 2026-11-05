@@ -381,7 +381,7 @@ function ComparePanel({
             onClick={() => {
               void verify();
             }}
-            disabled={busy || !branch.verify_cmd}
+            disabled={busy || !branch.verify_cmd || !branch.worktree_path}
           >
             Verify
           </button>
@@ -391,7 +391,7 @@ function ComparePanel({
             onClick={() => {
               void cleanup();
             }}
-            disabled={busy || branch.state === 'cleaned'}
+            disabled={busy || !branch.worktree_path}
           >
             Cleanup
           </button>
