@@ -477,6 +477,7 @@ function ComparePanel({
 
 export function RewindPage({ ctx }: { ctx: PluginContext }): ReactNode {
   const activeSessionId = useValue(host.state.activeSessionId);
+  const focusedStoredSessionId = useValue(host.state.focusedStoredSessionId);
   const [sessions, setSessions] = useState<SessionSummary[]>([]);
   const [selectedSessionId, setSelectedSessionId] = useState<string | null>(null);
   const [turns, setTurns] = useState<TurnSummary[]>([]);
@@ -604,7 +605,8 @@ export function RewindPage({ ctx }: { ctx: PluginContext }): ReactNode {
   const live =
     selectedSession !== null &&
     selectedSession.ended_at === null &&
-    selectedSession.session_id === activeSessionId;
+    (selectedSession.session_id === activeSessionId ||
+      selectedSession.session_id === focusedStoredSessionId);
 
   const selectSession = (session: SessionSummary): void => {
     setSelectedSessionId(session.session_id);

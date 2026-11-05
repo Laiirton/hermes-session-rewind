@@ -169,4 +169,6 @@ from 53.6 ms to 30.8 ms over 100,000 rows in isolation, so the `GROUP BY` scan
 dominates and the JSON extraction is not the bottleneck. That did not justify a
 versioned schema change plus write-path coupling, so it was not done.
 
+| Live session badge | widened to accept the focused stored session id as well as the runtime id, because the two differ in this build. **Not visually confirmed**: no recorded session in the app was simultaneously unfinished and focused during two attempts, so the condition could not be exercised |
+
 Not yet verified live: light theme, 1920x1080 and 1280x720 layouts, ten consecutive forks, and a fork of a session that is itself a rewind child (observed to fail above).
