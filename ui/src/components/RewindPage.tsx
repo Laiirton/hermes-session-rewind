@@ -380,6 +380,14 @@ function ComparePanel({
 
   const branch = detail.branch;
   const run = detail.run;
+  const verifyBlock = !branch.verify_cmd
+    ? 'No verify command was recorded for this branch.'
+    : !branch.worktree_path
+      ? 'The workspace of this branch was cleaned.'
+      : undefined;
+  const cleanupBlock = branch.worktree_path
+    ? undefined
+    : 'This branch has no workspace left to remove.';
   return (
     <div className="flex flex-col gap-2">
       <div className="flex items-center justify-between gap-2">
@@ -396,6 +404,7 @@ function ComparePanel({
           <button
             type="button"
             className="rounded border border-(--ui-border) px-2 py-1 disabled:opacity-50"
+            title={verifyBlock}
             onClick={() => {
               void verify();
             }}
@@ -406,6 +415,7 @@ function ComparePanel({
           <button
             type="button"
             className="rounded border border-(--ui-border) px-2 py-1 disabled:opacity-50"
+            title={cleanupBlock}
             onClick={() => {
               void cleanup();
             }}
@@ -424,7 +434,7 @@ function ComparePanel({
       </div>
 
       {detail.shared_child ? (
-        <div className="rounded border border-amber-600/40 bg-amber-500/5 p-2 text-xs text-(--ui-text-tertiary)">
+        <div className="rounded border border-amber-600/40 bg-amber-500/5 p-2 text-xs text-(--ui-text)">
           Another branch claims this same rerun session, so the numbers below may describe a
           different fork. It was recorded before the session-id fix.
         </div>
@@ -810,7 +820,11 @@ export function RewindPage({ ctx }: { ctx: PluginContext }): ReactNode {
                 >
                   <span className="font-mono">{shortId(branch.id)}</span>
                   <span className={`uppercase ${stateTone(branch.state)}`}>{branch.state}</span>
-                  <span className="text-(--ui-text-tertiary)">{branch.fork_row_count} rows</span>
+                  <span className="text-(--ui-text-tertiary)">
+                    {branch.fork_row_count > 0
+                      ? plural(branch.fork_row_count, 'message')
+                      : 'context pack'}
+                  </span>
                 </button>
               ))}
             </div>

@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- Say what a branch actually carried into the rerun. The chips read "0 rows" for every fork that started a new chat, which looked like a defect; they now read "context pack" there and "N messages" when the original transcript was branched. Verify and Cleanup now carry a reason for being disabled, and the shared-child note uses the primary text colour so it stays readable on a light background.
+
+
 - Disclose a branch whose rerun session is claimed by more than one branch. Three branches recorded before the session-id fix share a single child, so the compare screen presented one child's numbers as three independent verdicts; the branch detail now carries a `shared_child` flag and the page says the figures may describe a different fork.
 
 
