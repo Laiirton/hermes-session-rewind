@@ -12,6 +12,8 @@ from ..store.repositories import ReadStore, WriteStore
 from .planner import ForkError, ForkPlan, ForkPlanner, ForkRequest
 from .verify import VerifyResult, VerifyRunner
 
+PREPARED_TTL_SECONDS = 900.0
+
 
 class ForkService:
     def __init__(
@@ -29,7 +31,29 @@ class ForkService:
         self._worktrees = worktrees
 
     def prepare(self, request: ForkRequest) -> ForkPlan:
+        self.sweep(request.session_id)
         return self._planner.prepare(request)
+
+    def sweep(self, parent_session_id: str) -> int:
+        abandoned = ReadStore(self._database).list_abandoned_prepared(
+            parent_session_id,
+            time.time() - PREPARED_TTL_SECONDS,
+        )
+        discarded = 0
+        store = WriteStore(self._database.connect())
+        try:
+            for branch in abandoned:
+                worktree = branch.get("worktree_path")
+                if isinstance(worktree, str) and worktree and Path(worktree).exists():
+                    try:
+                        self._remove_worktree(branch)
+                    except ForkError:
+                        continue
+                store.set_branch_state(str(branch["id"]), "discarded", time.time())
+                discarded += 1
+        finally:
+            store.close()
+        return discarded
 
     def commit(
         self,
@@ -126,20 +150,35 @@ class ForkService:
         branch = ReadStore(self._database).get_branch(branch_id)
         if branch is None:
             raise ForkError("branch not found")
-        worktree = branch.get("worktree_path")
-        snapshot_id = branch.get("snapshot_id")
-        if isinstance(worktree, str) and worktree and isinstance(snapshot_id, int):
-            snapshot = ReadStore(self._database).get_snapshot(snapshot_id)
-            if snapshot is not None:
-                try:
-                    self._worktrees.remove(Path(snapshot["repo_root"]), Path(worktree))
-                except GitError as exc:
-                    raise ForkError(f"could not remove the workspace: {exc}") from exc
+        self._remove_worktree(branch)
         store = WriteStore(self._database.connect())
         try:
             store.set_branch_state(branch_id, "cleaned", time.time())
         finally:
             store.close()
+
+    def _remove_worktree(self, branch: dict[str, Any]) -> None:
+        worktree = branch.get("worktree_path")
+        if not isinstance(worktree, str) or not worktree:
+            return
+        root = self._repo_root(branch)
+        if root is None:
+            return
+        try:
+            self._worktrees.remove(root, Path(worktree))
+        except GitError as exc:
+            raise ForkError(f"could not remove the workspace: {exc}") from exc
+
+    def _repo_root(self, branch: dict[str, Any]) -> Path | None:
+        read = ReadStore(self._database)
+        snapshot_id = branch.get("snapshot_id")
+        if isinstance(snapshot_id, int):
+            snapshot = read.get_snapshot(snapshot_id)
+            if snapshot is not None:
+                return Path(str(snapshot["repo_root"]))
+        parent = read.get_session(str(branch.get("parent_session_id", "")))
+        cwd = parent.get("cwd") if parent is not None else None
+        return Path(str(cwd)) if isinstance(cwd, str) and cwd else None
 
     def detail(self, branch_id: str) -> tuple[dict[str, Any], dict[str, Any] | None] | None:
         read = ReadStore(self._database)

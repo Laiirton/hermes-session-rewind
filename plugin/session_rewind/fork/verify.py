@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import os
+import re
 import shlex
 import shutil
 import subprocess
@@ -11,6 +12,8 @@ from pathlib import Path
 
 MAX_OUTPUT_CHARS = 20000
 _BATCH_SUFFIXES = (".cmd", ".bat")
+_PYTHON_NAME = re.compile(r"^python3?(\.\d+)?(\.exe)?$", re.IGNORECASE)
+_VENV_LAYOUTS = ("Scripts/python.exe", "bin/python")
 
 
 @dataclass(frozen=True, slots=True)
@@ -27,11 +30,24 @@ def split_command(command: str) -> list[str]:
     return shlex.split(command, posix=True)
 
 
-def _locate(program: str, cwd: Path | None) -> str | None:
-    if cwd is not None and ("\\" in program or "/" in program):
-        candidate = cwd / program
+def _workspace_python(cwd: Path) -> Path | None:
+    for layout in _VENV_LAYOUTS:
+        candidate = cwd / ".venv" / layout
         if candidate.exists():
-            return str(candidate)
+            return candidate
+    return None
+
+
+def _locate(program: str, cwd: Path | None) -> str | None:
+    if cwd is not None:
+        if _PYTHON_NAME.match(Path(program).name):
+            interpreter = _workspace_python(cwd)
+            if interpreter is not None:
+                return str(interpreter)
+        if "\\" in program or "/" in program:
+            candidate = cwd / program
+            if candidate.exists():
+                return str(candidate)
     return shutil.which(program)
 
 
@@ -48,9 +64,9 @@ def resolve_argv(command: str, cwd: Path | None = None) -> list[str]:
     return [program, *args[1:]]
 
 
-def resolved_command(command: str) -> str | None:
+def resolved_command(command: str, cwd: Path | None = None) -> str | None:
     try:
-        return " ".join(resolve_argv(command))
+        return " ".join(resolve_argv(command, cwd))
     except (LookupError, ValueError):
         return None
 

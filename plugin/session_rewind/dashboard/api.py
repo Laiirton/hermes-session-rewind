@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import sqlite3
 import time
+from pathlib import Path
 from typing import Any
 
 from fastapi import APIRouter, HTTPException, Query
@@ -195,9 +196,7 @@ def create_router(database: Database, settings: Settings | None = None) -> APIRo
             model=plan.model,
             provider=plan.provider,
             verify_cmd=plan.verify_cmd,
-            verify_resolved=(
-                resolved_command(plan.verify_cmd) if plan.verify_cmd is not None else None
-            ),
+            verify_resolved=_resolved_verify(plan.verify_cmd, plan.worktree_path),
             verify_timeout_seconds=plan.verify_timeout_seconds,
             fidelity=plan.fidelity,
             context_rows=plan.context_rows,
@@ -296,6 +295,12 @@ def create_router(database: Database, settings: Settings | None = None) -> APIRo
         )
 
     return router
+
+
+def _resolved_verify(verify_cmd: str | None, worktree_path: str | None) -> str | None:
+    if verify_cmd is None:
+        return None
+    return resolved_command(verify_cmd, Path(worktree_path) if worktree_path else None)
 
 
 def _turn_summary(row: dict[str, Any]) -> TurnSummary:

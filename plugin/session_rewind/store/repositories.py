@@ -602,6 +602,23 @@ class ReadStore:
         finally:
             connection.close()
 
+    def list_abandoned_prepared(
+        self, parent_session_id: str, older_than: float
+    ) -> list[dict[str, Any]]:
+        connection = self._connect()
+        try:
+            rows = connection.execute(
+                """
+                SELECT * FROM branches
+                WHERE parent_session_id = ? AND state = 'prepared' AND updated_at < ?
+                ORDER BY created_at ASC
+                """,
+                (parent_session_id, older_than),
+            ).fetchall()
+            return [dict(row) for row in rows]
+        finally:
+            connection.close()
+
     def get_branch(self, branch_id: str) -> dict[str, Any] | None:
         connection = self._connect()
         try:
