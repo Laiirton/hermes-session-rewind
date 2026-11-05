@@ -9,6 +9,10 @@ def compare_verdict(left: dict[str, Any] | None, right: dict[str, Any] | None) -
     verify_exit = right.get("verify_exit")
     if verify_exit is not None and int(verify_exit) != 0:
         return f"right failed verification (exit {int(verify_exit)})"
+    left_tokens = int(left.get("tokens_in", 0)) + int(left.get("tokens_out", 0))
+    left_work = int(left.get("tool_calls", 0)) + int(left.get("tool_errors", 0))
+    if left_tokens == 0 and left_work == 0:
+        return "nothing was recorded before the fork, so the rerun has no baseline"
     left_errors = int(left.get("tool_errors", 0))
     right_errors = int(right.get("tool_errors", 0))
     if left_errors != right_errors:
@@ -17,7 +21,6 @@ def compare_verdict(left: dict[str, Any] | None, right: dict[str, Any] | None) -
             if right_errors < left_errors
             else "left has fewer tool errors"
         )
-    left_tokens = int(left.get("tokens_in", 0)) + int(left.get("tokens_out", 0))
     right_tokens = int(right.get("tokens_in", 0)) + int(right.get("tokens_out", 0))
     if left_tokens != right_tokens:
         return "right uses fewer tokens" if right_tokens < left_tokens else "left uses fewer tokens"

@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- Stop scoring a rerun against a baseline that recorded nothing. Forking the first turn freezes an original with no tokens, no tool calls and no errors, and the verdict still read "left has fewer tool errors", which made the rerun look worse than an attempt that never happened. It now says there is no baseline.
+
+
 - Record the rerun's runtime session id in `child_session_id` and the host session key only in `child_stored_session_id`. The dialog sent the same key for both, so every branch of a session whose key was shared pointed at one child record — the collision the claim guard has been refusing since.
 
 
