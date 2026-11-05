@@ -116,11 +116,13 @@ def test_verify_runner_drops_coverage_environment(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     monkeypatch.setenv("COVERAGE_PROCESS_START", "coverage.rc")
+    monkeypatch.setenv("COV_CORE_SOURCE", "session_rewind")
     runner = VerifyRunner()
     result = runner.run(
-        "python -c \"import os; print(os.environ.get('COVERAGE_PROCESS_START'))\"",
+        "python -c \"import os; print(os.environ.get('COVERAGE_PROCESS_START'), "
+        "os.environ.get('COV_CORE_SOURCE'))\"",
         tmp_path,
         10,
     )
     assert result.exit_code == 0
-    assert "None" in result.output
+    assert result.output.strip() == "None None"

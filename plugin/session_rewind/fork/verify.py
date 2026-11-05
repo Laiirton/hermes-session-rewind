@@ -48,7 +48,11 @@ class VerifyRunner:
 
 
 def _verify_env() -> dict[str, str]:
-    return {key: value for key, value in os.environ.items() if not key.startswith("COVERAGE_")}
+    return {
+        key: value
+        for key, value in os.environ.items()
+        if not key.startswith(("COVERAGE_", "COV_CORE_"))
+    }
 
 
 def _elapsed_ms(started: float) -> float:
