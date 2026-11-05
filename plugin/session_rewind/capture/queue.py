@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import queue
+import sqlite3
 import threading
 import time
 from collections.abc import Callable
@@ -17,6 +18,7 @@ from .normalize import PayloadNormalizer, Redactor
 LOGGER = get_logger("capture")
 BATCH_SIZE = 100
 QUEUE_SIZE = 10000
+MAX_WRITE_FAILURES = 3
 
 
 @dataclass(frozen=True, slots=True)
@@ -57,6 +59,9 @@ class CaptureService:
             daemon=True,
         )
 
+    def pending(self) -> int:
+        return self._queue.qsize()
+
     def start(self) -> None:
         if self._started:
             return
@@ -88,13 +93,13 @@ class CaptureService:
         return value
 
     def _run(self) -> None:
+        normalizer = PayloadNormalizer(
+            self._settings.max_payload_bytes,
+            Redactor(self._settings.redact_secrets),
+        )
         store: WriteStore | None = None
+        failures = 0
         try:
-            store = WriteStore(self._database.connect())
-            normalizer = PayloadNormalizer(
-                self._settings.max_payload_bytes,
-                Redactor(self._settings.redact_secrets),
-            )
             while not (self._closing.is_set() and self._queue.empty()):
                 try:
                     first = self._queue.get(timeout=0.25)
@@ -106,13 +111,61 @@ class CaptureService:
                         batch.append(self._queue.get_nowait())
                     except queue.Empty:
                         break
-                self._write_batch(store, normalizer, batch)
-            self._drain(store, normalizer)
+                if store is None:
+                    store = self._open_store()
+                    if store is None:
+                        self._requeue(batch)
+                        continue
+                try:
+                    self._write_batch(store, normalizer, batch)
+                    failures = 0
+                except (sqlite3.Error, OSError):
+                    LOGGER.exception("capture batch failed; reopening the store")
+                    self._close_store(store)
+                    store = None
+                    failures += 1
+                    if failures < MAX_WRITE_FAILURES:
+                        self._requeue(batch)
+                    else:
+                        failures = 0
+                        self._count_dropped(len(batch))
+            store = self._open_store() if store is None else store
+            if store is None:
+                self._count_dropped(self._queue.qsize())
+            else:
+                self._drain(store, normalizer)
         except Exception:
             LOGGER.exception("capture writer stopped")
         finally:
-            if store is not None:
-                store.close()
+            self._close_store(store)
+
+    def _open_store(self) -> WriteStore | None:
+        try:
+            return WriteStore(self._database.connect())
+        except (sqlite3.Error, OSError):
+            LOGGER.exception("capture writer could not open the store")
+            return None
+
+    @staticmethod
+    def _close_store(store: WriteStore | None) -> None:
+        if store is not None:
+            store.close()
+
+    def _requeue(self, batch: list[CaptureItem]) -> None:
+        returned = 0
+        for item in batch:
+            try:
+                self._queue.put_nowait(item)
+                returned += 1
+            except queue.Full:
+                break
+        lost = len(batch) - returned
+        if lost:
+            self._count_dropped(lost)
+
+    def _count_dropped(self, count: int) -> None:
+        with self._dropped_lock:
+            self._dropped += count
 
     def _drain(self, store: WriteStore, normalizer: PayloadNormalizer) -> None:
         batch: list[CaptureItem] = []
