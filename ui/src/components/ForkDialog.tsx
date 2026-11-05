@@ -121,7 +121,7 @@ const DIALOG_CSS = `
   color: var(--ui-text-primary);
   background: var(--ui-bg-elevated);
   border: 1px solid var(--ui-stroke-secondary);
-  border-radius: 14px;
+  border-radius: calc(var(--radius-scalar, 0.2) * 1rem);
   box-shadow: var(--shadow-md);
   animation: rw-rise 180ms cubic-bezier(0.22, 1, 0.36, 1);
 }
@@ -161,7 +161,7 @@ const DIALOG_CSS = `
   color: var(--ui-accent);
   background: var(--ui-bg-card);
   border: 1px solid var(--ui-stroke-tertiary);
-  border-radius: 10px;
+  border-radius: calc(var(--radius-scalar, 0.2) * .625rem);
 }
 .rw-heading {
   min-width: 0;
@@ -193,7 +193,7 @@ const DIALOG_CSS = `
   cursor: pointer;
   background: transparent;
   border: 0;
-  border-radius: 8px;
+  border-radius: calc(var(--radius-scalar, 0.2) * .5rem);
   transition: color 120ms ease-out, background-color 120ms ease-out;
 }
 .rw-close:hover:not(:disabled) {
@@ -234,7 +234,7 @@ const DIALOG_CSS = `
   font-size: 12px;
   background: var(--ui-bg-card);
   border: 1px solid var(--ui-stroke-tertiary);
-  border-radius: 8px;
+  border-radius: calc(var(--radius-scalar, 0.2) * .5rem);
 }
 .rw-turn-time {
   flex: none;
@@ -252,7 +252,7 @@ const DIALOG_CSS = `
   padding: 12px;
   background: var(--ui-bg-card);
   border: 1px solid var(--ui-stroke-tertiary);
-  border-radius: 10px;
+  border-radius: calc(var(--radius-scalar, 0.2) * .625rem);
 }
 .rw-card-head {
   display: flex;
@@ -292,7 +292,7 @@ const DIALOG_CSS = `
   line-height: 1.6;
   color: var(--ui-text-secondary);
   border: 1px solid var(--ui-stroke-tertiary);
-  border-radius: 999px;
+  border-radius: calc(var(--radius-scalar, 0.2) * .5rem);
 }
 .rw-badge-ok {
   color: var(--ui-green);
@@ -313,7 +313,7 @@ const DIALOG_CSS = `
   list-style: none;
   background: var(--ui-stroke-tertiary);
   border: 1px solid var(--ui-stroke-tertiary);
-  border-radius: 8px;
+  border-radius: calc(var(--radius-scalar, 0.2) * .5rem);
   overflow: hidden;
 }
 .rw-stat {
@@ -385,7 +385,7 @@ const DIALOG_CSS = `
   cursor: pointer;
   background: transparent;
   border: 0;
-  border-radius: 6px;
+  border-radius: calc(var(--radius-scalar, 0.2) * .5rem);
   transition: color 120ms ease-out, background-color 120ms ease-out;
 }
 .rw-icon-button:hover:not(:disabled) {
@@ -433,7 +433,7 @@ const DIALOG_CSS = `
   outline: none;
   background: var(--ui-bg-card);
   border: 1px solid var(--ui-stroke-secondary);
-  border-radius: 8px;
+  border-radius: calc(var(--radius-scalar, 0.2) * .5rem);
   transition: border-color 120ms ease-out, box-shadow 120ms ease-out;
 }
 .rw-input {
@@ -464,7 +464,7 @@ const DIALOG_CSS = `
   cursor: pointer;
   background: transparent;
   border: 1px solid var(--ui-stroke-tertiary);
-  border-radius: 6px;
+  border-radius: calc(var(--radius-scalar, 0.2) * .5rem);
   transition: color 120ms ease-out, background-color 120ms ease-out, border-color 120ms ease-out;
 }
 .rw-preset:hover:not(:disabled) {
@@ -494,7 +494,7 @@ const DIALOG_CSS = `
   font-size: 12px;
   line-height: 1.5;
   border: 1px solid transparent;
-  border-radius: 8px;
+  border-radius: calc(var(--radius-scalar, 0.2) * .5rem);
 }
 .rw-banner-warn {
   color: var(--ui-yellow);
@@ -544,7 +544,7 @@ const DIALOG_CSS = `
   cursor: pointer;
   background: transparent;
   border: 1px solid var(--ui-stroke-secondary);
-  border-radius: 8px;
+  border-radius: calc(var(--radius-scalar, 0.2) * .5rem);
   transition: color 120ms ease-out, background-color 120ms ease-out, border-color 120ms ease-out;
 }
 .rw-button:hover:not(:disabled) {
@@ -570,7 +570,7 @@ const DIALOG_CSS = `
   line-height: 1.5;
   color: color-mix(in srgb, var(--dt-primary-foreground, #fcfcfc) 78%, transparent);
   background: color-mix(in srgb, var(--dt-primary-foreground, #fcfcfc) 18%, transparent);
-  border-radius: 4px;
+  border-radius: calc(var(--radius-scalar, 0.2) * .5rem);
 }
 .rw-spinner {
   width: 12px;
@@ -608,7 +608,7 @@ const DIALOG_CSS = `
   }
   .rw-stat {
     border: 1px solid var(--ui-stroke-tertiary);
-    border-radius: 8px;
+    border-radius: calc(var(--radius-scalar, 0.2) * .5rem);
   }
   .rw-footer {
     align-items: flex-start;

@@ -82,9 +82,10 @@ const PAGE_CSS = `
 .rp-shell {
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  gap: 16px;
   height: 100%;
   min-height: 0;
+  padding: 22px 24px;
   font-size: 13px;
   color: var(--ui-text-primary);
 }
@@ -108,7 +109,7 @@ const PAGE_CSS = `
   color: var(--ui-accent);
   background: var(--ui-bg-card);
   border: 1px solid var(--ui-stroke-tertiary);
-  border-radius: 10px;
+  border-radius: calc(var(--radius-scalar, 0.2) * .625rem);
 }
 .rp-title {
   font-size: 17px;
@@ -137,7 +138,7 @@ const PAGE_CSS = `
   white-space: nowrap;
   background: var(--ui-bg-card);
   border: 1px solid var(--ui-stroke-tertiary);
-  border-radius: 999px;
+  border-radius: calc(var(--radius-scalar, 0.2) * .5rem);
 }
 .rp-live {
   display: inline-flex;
@@ -163,7 +164,7 @@ const PAGE_CSS = `
   color: var(--ui-text-primary);
   background: var(--ui-bg-card);
   border: 1px solid var(--ui-stroke-secondary);
-  border-radius: 8px;
+  border-radius: calc(var(--radius-scalar, 0.2) * .5rem);
   transition: color 120ms ease-out, background-color 120ms ease-out, border-color 120ms ease-out;
 }
 .rp-button:hover:not(:disabled) {
@@ -189,10 +190,10 @@ const PAGE_CSS = `
   min-height: 0;
 }
 .rp-side {
-  width: 238px;
+  width: 250px;
   flex: none;
   overflow-y: auto;
-  padding-right: 14px;
+  padding-right: 18px;
   border-right: 1px solid var(--ui-stroke-tertiary);
 }
 .rp-main {
@@ -237,7 +238,7 @@ const PAGE_CSS = `
   text-align: left;
   background: var(--ui-bg-card);
   border: 1px solid var(--ui-stroke-tertiary);
-  border-radius: 10px;
+  border-radius: calc(var(--radius-scalar, 0.2) * .625rem);
   transition: color 120ms ease-out, background-color 120ms ease-out, border-color 120ms ease-out;
 }
 .rp-session:hover {
@@ -313,7 +314,7 @@ const PAGE_CSS = `
   font-size: 11px;
   background: var(--ui-bg-card);
   border: 1px solid var(--ui-stroke-tertiary);
-  border-radius: 8px;
+  border-radius: calc(var(--radius-scalar, 0.2) * .5rem);
   transition: color 120ms ease-out, background-color 120ms ease-out, border-color 120ms ease-out;
 }
 .rp-chip:hover {
@@ -336,7 +337,7 @@ const PAGE_CSS = `
   text-transform: uppercase;
   color: var(--ui-text-secondary);
   border: 1px solid var(--ui-stroke-tertiary);
-  border-radius: 999px;
+  border-radius: calc(var(--radius-scalar, 0.2) * .5rem);
 }
 .rp-badge[data-tone="ok"] {
   color: var(--ui-green);
@@ -379,7 +380,7 @@ const PAGE_CSS = `
   min-width: 0;
   padding: 8px 6px;
   text-align: left;
-  border-radius: 8px;
+  border-radius: calc(var(--radius-scalar, 0.2) * .5rem);
   transition: background-color 120ms ease-out;
 }
 .rp-turn-row:hover {
@@ -434,7 +435,7 @@ const PAGE_CSS = `
   padding: 3px 6px;
   font-size: 11px;
   text-align: left;
-  border-radius: 6px;
+  border-radius: calc(var(--radius-scalar, 0.2) * .5rem);
   transition: background-color 120ms ease-out;
 }
 .rp-event:hover {
@@ -480,7 +481,7 @@ const PAGE_CSS = `
   color: var(--ui-text-tertiary);
   background: var(--ui-bg-card);
   border: 1px solid var(--ui-stroke-tertiary);
-  border-radius: 8px;
+  border-radius: calc(var(--radius-scalar, 0.2) * .5rem);
   transition: color 120ms ease-out, background-color 120ms ease-out;
 }
 .rp-load-more:hover:not(:disabled) {
@@ -493,17 +494,17 @@ const PAGE_CSS = `
   color: var(--ui-text-tertiary);
 }
 .rp-payload {
-  width: 288px;
+  width: 292px;
   flex: none;
   overflow-y: auto;
-  padding-left: 14px;
+  padding-left: 18px;
   border-left: 1px solid var(--ui-stroke-tertiary);
 }
 .rp-panel {
   padding: 11px 12px;
   background: var(--ui-bg-card);
   border: 1px solid var(--ui-stroke-tertiary);
-  border-radius: 10px;
+  border-radius: calc(var(--radius-scalar, 0.2) * .625rem);
 }
 .rp-panel-head {
   display: flex;
@@ -562,7 +563,7 @@ const PAGE_CSS = `
   color: var(--ui-text-secondary);
   background: var(--ui-bg-card);
   border: 1px solid var(--ui-stroke-tertiary);
-  border-radius: 8px;
+  border-radius: calc(var(--radius-scalar, 0.2) * .5rem);
 }
 .rp-verdict .rp-icon {
   flex: none;
@@ -584,7 +585,7 @@ const PAGE_CSS = `
   overflow-wrap: anywhere;
   background: var(--ui-bg-card);
   border: 1px solid var(--ui-stroke-tertiary);
-  border-radius: 8px;
+  border-radius: calc(var(--radius-scalar, 0.2) * .5rem);
 }
 .rp-disclosure {
   font-size: 11px;
@@ -612,7 +613,7 @@ const PAGE_CSS = `
   font-size: 11px;
   line-height: 1.5;
   border: 1px solid transparent;
-  border-radius: 8px;
+  border-radius: calc(var(--radius-scalar, 0.2) * .5rem);
 }
 .rp-note-warn {
   color: var(--ui-yellow);
@@ -627,7 +628,7 @@ const PAGE_CSS = `
   padding: 10px 12px;
   background: color-mix(in srgb, var(--ui-red) 7%, transparent);
   border: 1px solid color-mix(in srgb, var(--ui-red) 32%, transparent);
-  border-radius: 10px;
+  border-radius: calc(var(--radius-scalar, 0.2) * .625rem);
 }
 .rp-confirm-copy {
   margin-bottom: 4px;
