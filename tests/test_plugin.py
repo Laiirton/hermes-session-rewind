@@ -54,6 +54,7 @@ def test_register_uses_public_plugin_surface(
     assert [name for name, _ in ctx.hooks] == [
         "on_session_start",
         "on_session_end",
+        "on_session_finalize",
         "pre_llm_call",
         "post_llm_call",
         "pre_api_request",

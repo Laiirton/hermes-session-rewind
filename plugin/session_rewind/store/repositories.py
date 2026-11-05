@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import re
 import sqlite3
 from collections.abc import Iterable
@@ -115,6 +116,20 @@ class WriteStore:
             self._connection.execute(
                 "UPDATE sessions SET ended_at = ?, outcome = ? WHERE session_id = ?",
                 (ts, outcome, session_id),
+            )
+
+    def complete_child_branch(self, session_id: str, state: str, ts: float) -> None:
+        with self._connection:
+            self._connection.execute(
+                """
+                UPDATE branches SET state = ?, updated_at = ?
+                WHERE id = (
+                    SELECT id FROM branches
+                    WHERE child_session_id = ? AND state IN ('prepared', 'running')
+                    ORDER BY created_at DESC LIMIT 1
+                )
+                """,
+                (state, ts, session_id),
             )
 
     def add_snapshot(
@@ -277,6 +292,7 @@ class WriteStore:
         model: str | None,
         provider: str | None,
         prompt: str | None,
+        verify_cmd: str | None,
         updated_at: float,
     ) -> None:
         with self._connection:
@@ -286,10 +302,11 @@ class WriteStore:
                     model = COALESCE(?, model),
                     provider = COALESCE(?, provider),
                     prompt = COALESCE(?, prompt),
+                    verify_cmd = COALESCE(?, verify_cmd),
                     updated_at = ?
                 WHERE id = ?
                 """,
-                (model, provider, prompt, updated_at, branch_id),
+                (model, provider, prompt, verify_cmd, updated_at, branch_id),
             )
 
     def set_run_verify(
@@ -611,4 +628,26 @@ class ReadStore:
                     "duration_ms": duration_ms,
                 }
             )
+        if metrics.get("outcome") is None:
+            turn = connection.execute(
+                "SELECT payload_json FROM events "
+                "WHERE session_id = ? AND kind = 'turn_end' ORDER BY seq DESC LIMIT 1",
+                (session_id,),
+            ).fetchone()
+            if turn is not None:
+                metrics["outcome"] = _last_turn_outcome(turn["payload_json"])
         return metrics
+
+
+def _last_turn_outcome(payload_json: str) -> str | None:
+    try:
+        payload = json.loads(payload_json)
+    except ValueError:
+        return None
+    if not isinstance(payload, dict):
+        return None
+    if payload.get("completed"):
+        return "completed"
+    if payload.get("failed") or payload.get("interrupted"):
+        return "failed"
+    return None

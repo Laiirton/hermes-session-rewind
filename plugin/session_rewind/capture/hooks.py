@@ -60,7 +60,24 @@ class HookRecorder:
             CaptureItem(
                 session_id=_session_id(session_id),
                 ts=time.time(),
-                kind="session_end",
+                kind="turn_end",
+                payload=payload,
+            )
+        )
+
+    def on_session_finalize(
+        self,
+        session_id: str | None = None,
+        platform: str | None = None,
+        reason: str | None = None,
+        **kwargs: Any,
+    ) -> None:
+        payload = _compact({"reason": reason, "platform": platform})
+        self._submit(
+            CaptureItem(
+                session_id=_session_id(session_id),
+                ts=time.time(),
+                kind="session_finalize",
                 payload=payload,
             )
         )

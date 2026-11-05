@@ -91,6 +91,7 @@ class BranchSummary(BaseModel):
     worktree_path: str | None = None
     model: str | None = None
     provider: str | None = None
+    verify_cmd: str | None = None
     state: str
     created_at: float
     updated_at: float
@@ -160,6 +161,7 @@ class ForkCommitRequest(BaseModel):
     model: str | None = None
     provider: str | None = None
     prompt: str | None = None
+    verify_cmd: str | None = None
 
 
 class ForkPlanResponse(BaseModel):

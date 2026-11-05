@@ -50,6 +50,7 @@ def _hooks(recorder: HookRecorder) -> list[tuple[str, Callable[..., None]]]:
     return [
         ("on_session_start", recorder.on_session_start),
         ("on_session_end", recorder.on_session_end),
+        ("on_session_finalize", recorder.on_session_finalize),
         ("pre_llm_call", recorder.pre_llm_call),
         ("post_llm_call", recorder.post_llm_call),
         ("pre_api_request", recorder.pre_api_request),

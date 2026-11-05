@@ -101,6 +101,36 @@ def test_snapshots_branches_runs_and_bookmarks(database: Database) -> None:
     assert run["verify_exit"] == 0
     assert read.list_branches("sess_1")[0]["id"] == "branch_1"
 
+    store = WriteStore(database.connect())
+    try:
+        store.complete_child_branch("child_1", "done", 14.0)
+    finally:
+        store.close()
+    branch_after = read.get_branch("branch_1")
+    assert branch_after is not None
+    assert branch_after["state"] == "done"
+
+
+def test_metrics_use_last_turn_outcome(database: Database) -> None:
+    store = WriteStore(database.connect())
+    try:
+        store.upsert_session("sess_turn", 1.0)
+        store.append_events(
+            [
+                EventRecord(
+                    session_id="sess_turn",
+                    ts=2.0,
+                    kind="turn_end",
+                    payload_json=json.dumps({"completed": True}),
+                )
+            ]
+        )
+    finally:
+        store.close()
+    metrics = ReadStore(database).session_metrics("sess_turn")
+    assert metrics is not None
+    assert metrics["outcome"] == "completed"
+
 
 def test_compare_sessions(seeded_database: Database) -> None:
     comparison = ReadStore(seeded_database).compare_sessions("sess_baseline", "sess_branch")

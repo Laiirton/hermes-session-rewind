@@ -191,7 +191,8 @@ class ForkPlanner:
         lines = [
             "You are continuing a Hermes session from a rewound checkpoint.",
             (
-                "The workspace has been restored to the selected turn."
+                "The workspace is restored to the state recorded before the selected turn. "
+                "Treat the files on disk as authoritative."
                 if restored
                 else "The workspace could not be restored; inspect it before editing."
             ),
@@ -211,7 +212,10 @@ class ForkPlanner:
                 "",
                 "Constraints:",
                 "- Inspect the restored workspace before changing anything.",
-                "- Do not redo work that is already present.",
+                (
+                    "- Complete the original task against the current files; earlier transcript "
+                    "claims are history, not proof that the workspace already contains the change."
+                ),
                 (
                     f"- Run `{verify_cmd}` when done and report the exit code."
                     if verify_cmd

@@ -44,8 +44,8 @@ def test_capture_service_writes_and_closes(database: Database) -> None:
         CaptureItem(
             session_id="s1",
             ts=now + 3,
-            kind="session_end",
-            payload={"completed": True},
+            kind="session_finalize",
+            payload={"reason": "shutdown"},
         )
     )
     service.close()
@@ -55,13 +55,13 @@ def test_capture_service_writes_and_closes(database: Database) -> None:
     sessions = read.list_sessions(limit=10, offset=0)
     assert len(sessions) == 1
     assert sessions[0]["session_id"] == "s1"
-    assert sessions[0]["outcome"] == "completed"
+    assert sessions[0]["outcome"] == "shutdown"
     events = read.list_events("s1", limit=10)
     assert [event["kind"] for event in events] == [
         "session_start",
         "user_turn",
         "tool_result",
-        "session_end",
+        "session_finalize",
     ]
 
 

@@ -74,6 +74,7 @@ export interface BranchSummary {
   worktree_path: string | null;
   model: string | null;
   provider: string | null;
+  verify_cmd: string | null;
   state: string;
   created_at: number;
   updated_at: number;
@@ -144,6 +145,7 @@ export interface ForkCommitInput {
   model: string | null;
   provider: string | null;
   prompt: string | null;
+  verify_cmd: string | null;
 }
 
 export interface VerifyResult {
@@ -154,11 +156,7 @@ export interface VerifyResult {
 }
 
 function post<T>(ctx: PluginContext, path: string, body: unknown): Promise<T> {
-  return ctx.rest<T>(path, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(body)
-  });
+  return ctx.rest<T>(path, { method: 'POST', body } as unknown as RequestInit);
 }
 
 export async function getSessions(ctx: PluginContext): Promise<SessionSummary[]> {

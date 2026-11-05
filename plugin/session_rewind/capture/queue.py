@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import queue
 import threading
 import time
@@ -164,7 +165,7 @@ class CaptureService:
                 value = _optional_text(item.payload.get(key))
                 if value is not None and meta.get(key) is None:
                     meta[key] = value
-            if item.kind == "session_end":
+            if item.kind == "session_finalize":
                 endings.append((item.session_id, item.ts, _outcome(item.payload)))
         dropped = self._take_dropped()
         if dropped and records:
@@ -180,6 +181,15 @@ class CaptureService:
         for session_id, meta in sessions.items():
             store.upsert_session(session_id, started.get(session_id, time.time()), **meta)
         inserted = store.append_events(records)
+        for record in records:
+            if record.kind == "turn_end":
+                outcome = _turn_outcome(record.payload_json)
+                if outcome is not None:
+                    store.complete_child_branch(
+                        record.session_id,
+                        "done" if outcome == "completed" else "failed",
+                        record.ts,
+                    )
         for session_id, ts, outcome in endings:
             store.end_session(session_id, ts, outcome)
         if self._event_sink is None:
@@ -201,14 +211,22 @@ def _optional_text(value: Any) -> str | None:
     return None
 
 
-def _outcome(payload: dict[str, Any]) -> str:
+def _turn_outcome(payload_json: str) -> str | None:
+    try:
+        payload = json.loads(payload_json)
+    except ValueError:
+        return None
+    if not isinstance(payload, dict):
+        return None
     if payload.get("completed"):
         return "completed"
-    if payload.get("failed"):
+    if payload.get("failed") or payload.get("interrupted"):
         return "failed"
-    if payload.get("interrupted"):
-        return "interrupted"
-    reason = payload.get("turn_exit_reason")
+    return None
+
+
+def _outcome(payload: dict[str, Any]) -> str:
+    reason = payload.get("reason")
     if isinstance(reason, str) and reason:
         return reason
-    return "ended"
+    return "finalized"

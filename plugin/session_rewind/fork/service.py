@@ -39,6 +39,7 @@ class ForkService:
         model: str | None,
         provider: str | None,
         prompt: str | None,
+        verify_cmd: str | None = None,
     ) -> None:
         branch = ReadStore(self._database).get_branch(branch_id)
         if branch is None:
@@ -51,6 +52,7 @@ class ForkService:
                 model=model,
                 provider=provider,
                 prompt=prompt,
+                verify_cmd=verify_cmd,
                 updated_at=now,
             )
             store.set_branch_child(

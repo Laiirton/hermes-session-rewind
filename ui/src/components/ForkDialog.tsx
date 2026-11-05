@@ -19,6 +19,11 @@ interface BranchRpcResult {
   stored_session_id: string;
 }
 
+interface CreateRpcResult {
+  session_id: string;
+  stored_session_id: string;
+}
+
 interface ActiveSession {
   id: string;
   session_key: string;
@@ -28,9 +33,32 @@ interface ActiveSessions {
   sessions?: ActiveSession[];
 }
 
+interface SessionTitleResult {
+  title: string;
+  session_key?: string | null;
+}
+
+interface HistoryMessage {
+  role: string;
+  text?: string | null;
+  content?: unknown;
+  timestamp?: number | null;
+  row_id?: number | null;
+}
+
+interface HistoryResult {
+  count: number;
+  messages?: HistoryMessage[];
+}
+
 interface ConfigSetResult {
   confirm_required?: boolean;
   confirm_message?: string;
+}
+
+interface LiveParent {
+  runtimeId: string | undefined;
+  storedId: string | null;
 }
 
 interface ForkDialogProps {
@@ -47,6 +75,54 @@ function delay(ms: number): Promise<void> {
   });
 }
 
+function messageText(message: HistoryMessage): string {
+  if (typeof message.text === 'string' && message.text.trim()) {
+    return message.text.trim();
+  }
+  const content = message.content;
+  if (typeof content === 'string') {
+    return content.trim();
+  }
+  if (Array.isArray(content)) {
+    return content
+      .map((part) => {
+        if (typeof part !== 'object' || part === null || !('text' in part)) {
+          return '';
+        }
+        const text = (part as { text?: unknown }).text;
+        return typeof text === 'string' ? text : '';
+      })
+      .join('')
+      .trim();
+  }
+  return '';
+}
+
+function branchPoint(messages: HistoryMessage[] | undefined, forkTs: number): number | null {
+  const rows = (messages ?? []).filter(
+    (message) =>
+      (message.role === 'user' || message.role === 'assistant') &&
+      messageText(message).length > 0 &&
+      typeof message.row_id === 'number'
+  );
+  let target = -1;
+  for (let index = 0; index < rows.length; index += 1) {
+    const row = rows[index];
+    if (row === undefined) {
+      continue;
+    }
+    const timestamp = row.timestamp;
+    if (row.role === 'user' && typeof timestamp === 'number' && timestamp <= forkTs + 0.5) {
+      target = index;
+    }
+  }
+  if (target <= 0) {
+    return null;
+  }
+  const rowId = rows[target - 1]?.row_id;
+  return typeof rowId === 'number' && rowId > 0 ? rowId : null;
+}
+
 export function ForkDialog({
   ctx,
   session,
@@ -61,16 +137,35 @@ export function ForkDialog({
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
-  const live = session.ended_at === null;
+
+  const resolveLiveParent = async (): Promise<LiveParent> => {
+    const active = await host.request<ActiveSessions>('session.active_list', {});
+    const activeSessions = Array.isArray(active.sessions) ? active.sessions : [];
+    const runtimeId =
+      activeSessions.find((item) => item.session_key === session.session_id)?.id ??
+      activeSessions.find((item) => item.id === session.session_id)?.id;
+    if (runtimeId === undefined) {
+      return { runtimeId: undefined, storedId: session.stored_session_id };
+    }
+    try {
+      const titled = await host.request<SessionTitleResult>('session.title', {
+        session_id: runtimeId
+      });
+      return { runtimeId, storedId: titled.session_key ?? session.stored_session_id };
+    } catch {
+      return { runtimeId, storedId: session.stored_session_id };
+    }
+  };
 
   const prepare = async (): Promise<void> => {
     setBusy(true);
     setError(null);
     setNotice(null);
     try {
+      const liveParent = await resolveLiveParent();
       const prepared = await prepareFork(ctx, {
         session_id: session.session_id,
-        stored_session_id: session.stored_session_id,
+        stored_session_id: liveParent.storedId,
         event_id: event.id,
         model: model.trim() || null,
         provider: null,
@@ -97,23 +192,47 @@ export function ForkDialog({
     setError(null);
     setNotice(null);
     try {
-      const active = await host.request<ActiveSessions>('session.active_list', {});
-      const activeSessions = Array.isArray(active.sessions) ? active.sessions : [];
-      const parentRuntimeId =
-        activeSessions.find((item) => item.session_key === session.session_id)?.id ??
-        activeSessions.find((item) => item.id === session.session_id)?.id;
-      if (parentRuntimeId === undefined) {
+      const liveParent = await resolveLiveParent();
+      if (liveParent.runtimeId === undefined) {
         throw new Error('The session is not live. Open it in Hermes Desktop and try again.');
       }
-      const branch = await host.request<BranchRpcResult>('session.branch', {
-        session_id: parentRuntimeId,
-        count: plan.fork_row_count,
-        name: `↺ ${session.title ?? shortId(session.session_id)}`,
-        idempotency_key: crypto.randomUUID()
-      });
-      const childId = branch.session_id;
-      const childStoredId = branch.stored_session_id;
-      if (plan.worktree_path !== null) {
+      const title = `↺ ${session.title ?? shortId(session.session_id)}`;
+      let throughId: number | null = null;
+      try {
+        const history = await host.request<HistoryResult>('session.history', {
+          session_id: liveParent.runtimeId
+        });
+        throughId = branchPoint(history.messages, plan.fork_before_ts);
+      } catch {
+        throughId = null;
+      }
+      let childId: string;
+      let childStoredId: string;
+      let freshSession = false;
+      if (throughId !== null) {
+        const branch = await host.request<BranchRpcResult>('session.branch', {
+          session_id: liveParent.runtimeId,
+          through_message_id: throughId
+        });
+        childId = branch.session_id;
+        childStoredId = branch.stored_session_id;
+      } else {
+        const createParams: Record<string, unknown> = {
+          source: 'desktop',
+          title
+        };
+        if (plan.worktree_path !== null) {
+          createParams.cwd = plan.worktree_path;
+        }
+        if (liveParent.storedId !== null) {
+          createParams.parent_session_id = liveParent.storedId;
+        }
+        const created = await host.request<CreateRpcResult>('session.create', createParams);
+        childId = created.session_id;
+        childStoredId = created.stored_session_id;
+        freshSession = true;
+      }
+      if (!freshSession && plan.worktree_path !== null) {
         try {
           await host.request('session.cwd.set', {
             session_id: childId,
@@ -134,16 +253,22 @@ export function ForkDialog({
         }
       }
       if (model.trim() && model.trim() !== (session.model ?? '')) {
-        const config = await host.request<ConfigSetResult>('config.set', {
-          key: 'model',
-          value: model.trim(),
-          session_id: childId,
-          confirm_expensive_model: false
-        });
-        if (config.confirm_required === true) {
+        try {
+          const config = await host.request<ConfigSetResult>('config.set', {
+            key: 'model',
+            value: model.trim(),
+            session_id: childId,
+            confirm_expensive_model: false
+          });
+          if (config.confirm_required === true) {
+            setNotice(
+              config.confirm_message ??
+                'The model switch needs confirmation; the branch continues with the current model.'
+            );
+          }
+        } catch {
           setNotice(
-            config.confirm_message ??
-              'The model switch needs confirmation; the branch continues with the current model.'
+            'The branch was created, but the model switch failed; the rerun uses the current model.'
           );
         }
       }
@@ -157,7 +282,8 @@ export function ForkDialog({
         child_stored_session_id: childStoredId,
         model: model.trim() || null,
         provider: null,
-        prompt: finalPrompt
+        prompt: finalPrompt,
+        verify_cmd: verifyCmd.trim() || null
       });
       onCreated(plan.branch_id);
       host.openSession(childStoredId, { intent: 'tab' });
@@ -188,12 +314,6 @@ export function ForkDialog({
             Close
           </button>
         </div>
-
-        {!live ? (
-          <div className="mt-2 text-xs text-amber-500">
-            This session has ended. The native branch requires a live session.
-          </div>
-        ) : null}
 
         <div className="mt-3 flex flex-col gap-3">
           <label className="flex flex-col gap-1 text-xs">
@@ -240,8 +360,7 @@ export function ForkDialog({
             <div className="rounded border border-(--ui-border) p-2 text-xs">
               <div className="flex flex-wrap gap-x-4 gap-y-1 text-(--ui-text-tertiary)">
                 <span>fidelity: {plan.fidelity}</span>
-                <span>context rows: {plan.context_rows ?? 'unavailable'}</span>
-                <span>branch rows: {plan.fork_row_count}</span>
+                <span>history rows before turn: {plan.fork_row_count}</span>
                 <span>verify timeout: {plan.verify_timeout_seconds}s</span>
               </div>
               {plan.worktree_path !== null ? (
@@ -256,7 +375,12 @@ export function ForkDialog({
               ) : null}
               {plan.context_rows === null ? (
                 <div className="mt-1 text-amber-500">
-                  The transcript prefix is unavailable. The context pack is the only context.
+                  The live transcript prefix is unavailable. The context pack is the only context.
+                </div>
+              ) : null}
+              {plan.fork_row_count === 0 ? (
+                <div className="mt-1 text-(--ui-text-tertiary)">
+                  This is the first turn. The rerun starts a fresh chat in the restored workspace.
                 </div>
               ) : null}
             </div>
@@ -282,7 +406,7 @@ export function ForkDialog({
               onClick={() => {
                 void run();
               }}
-              disabled={busy || plan === null || !live}
+              disabled={busy || plan === null}
             >
               Fork &amp; run
             </button>

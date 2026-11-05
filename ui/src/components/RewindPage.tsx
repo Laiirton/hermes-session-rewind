@@ -295,7 +295,7 @@ function ComparePanel({
             onClick={() => {
               void verify();
             }}
-            disabled={busy}
+            disabled={busy || !branch.verify_cmd}
           >
             Verify
           </button>

@@ -46,18 +46,21 @@ def test_session_and_model_hooks() -> None:
         turn_id="turn-1",
     )
     recorder.on_session_end(session_id="s1", completed=True)
+    recorder.on_session_finalize(session_id="s1", reason="shutdown")
     assert [item.kind for item in sink.items] == [
         "session_start",
         "user_turn",
         "assistant_response",
         "llm_call",
-        "session_end",
+        "turn_end",
+        "session_finalize",
     ]
     assert sink.items[1].payload["history_messages"] == 1
     assert sink.items[3].payload["prompt_tokens"] == 3
     assert sink.items[3].payload["completion_tokens"] == 4
     assert sink.items[3].duration_ms == 1500.0
     assert sink.items[4].payload["completed"] is True
+    assert sink.items[5].payload["reason"] == "shutdown"
 
 
 def test_tool_hooks_and_result_omission() -> None:
