@@ -1,4 +1,4 @@
-import{host as Tt,KEYBINDS_AREA as Et,PALETTE_AREA as It,ROUTES_AREA as Mt,SIDEBAR_NAV_AREA as $t,STATUSBAR_AREAS as Lt}from"@hermes/plugin-sdk";import{host as Re,useValue as rt}from"@hermes/plugin-sdk";var oe="/rewind";import{jsx as nt,jsxs as ot}from"react/jsx-runtime";function Ce(){let e=rt(Re.state.activeSessionId);return ot("button",{type:"button",className:"flex items-center gap-1",onClick:()=>{Re.navigate(oe)},title:"Open Session Rewind",children:[nt("span",{className:`h-1.5 w-1.5 rounded-full ${e===null?"bg-(--ui-text-tertiary)":"bg-emerald-500"}`}),"Rewind"]})}import{host as vt,useValue as bt}from"@hermes/plugin-sdk";import{useEffect as K,useRef as wt,useState as b}from"react";function ie(e,t,s){return e.rest(t,{method:"POST",body:s})}var ye=100;async function Pe(e){return(await e.rest(`/sessions?limit=${ye}`)).items}async function he(e,t,s=null){let m=s===null?"":`&before_seq=${s}`;return e.rest(`/sessions/${encodeURIComponent(t)}/turns?limit=40${m}`)}async function Te(e,t,s,m){return(await e.rest(`/sessions/${encodeURIComponent(t)}/events?limit=200&after_seq=${s-1}&before_seq=${m+1}`)).items}function Ee(e,t){return e.rest(`/events/${t}`)}function Ie(e,t){return e.rest(`/sessions/${encodeURIComponent(t)}/snapshots`)}function Me(e,t){return e.rest(`/sessions/${encodeURIComponent(t)}/branches`)}function $e(e,t){return ie(e,`/branches/${encodeURIComponent(t)}/reconcile`,{})}function Le(e,t,s,m=null){let u=m===null?"":`&before_ts=${m}`;return e.rest(`/compare?left=${encodeURIComponent(t)}&right=${encodeURIComponent(s)}${u}`)}function De(e,t){return ie(e,"/forks/prepare",t)}function Fe(e,t,s){return ie(e,`/forks/${encodeURIComponent(t)}/commit`,s)}function ze(e,t){return ie(e,`/forks/${encodeURIComponent(t)}/verify`,{})}function Ae(e,t,s){return e.rest(`/branches/${encodeURIComponent(t)}/verify-resolve?cmd=${encodeURIComponent(s)}`)}function Be(e,t){return e.rest(`/forks/${encodeURIComponent(t)}/workspace`)}function _e(e,t){return ie(e,`/forks/${encodeURIComponent(t)}/cleanup`,{})}function le(e){return new Date(e*1e3).toLocaleTimeString([],{hour:"2-digit",minute:"2-digit",second:"2-digit"})}function ue(e){return e.toLocaleString()}function me(e){return e===null?"":e<1e3?`${Math.round(e)}ms`:`${(e/1e3).toFixed(1)}s`}var st=/Error invoking remote method '[^']+':\s*Error:\s*\d+:\s*(\{.*\})/s;function T(e){let t=e instanceof Error?e.message:typeof e=="string"?e:"Unexpected error",s=st.exec(t),m=s?.[1];if(s===null||m===void 0)return t;let u=at(m);return u===void 0?t:t.replace(s[0],u)}function at(e){try{let t=JSON.parse(e);return typeof t.detail=="string"&&t.detail.length>0?t.detail:void 0}catch{return}}function J(e,t=8){return e.length<=t?e:e.slice(0,t)}function M(e,t){return`${e} ${e===1?t:`${t}s`}`}function ke(e){return e===0?"passed":`failed (exit ${e})`}var it={completed:"completed",agent_close:"closed with the app",ws_orphan_reap:"ended with its window",startup_orphan_reap:"ended with its window"};function fe(e){return e===null?"recording":it[e]??e}function qe(e){return e===null?"open at freeze":fe(e)}function He(e,t){return e===0?"":e>=t?`${t}+`:`${e}`}function lt(e){return new Date(e*1e3).toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"})}function Oe(e){return e===null?"recording, nothing captured yet":`recording \xB7 last event ${lt(e)}`}function Ve(e,t){return t!==null?`The turns could not be loaded: ${t}`:e===0?"No user turns recorded yet for this session.":`The recording holds ${M(e,"event")} but no user turn.`}function Ue(e){return e===null?"Git could not read this workspace, so it may hold edits that were never committed. Deleting it would remove them for good.":`This workspace holds ${M(e,"uncommitted file")}. Deleting it removes them for good; the rerun conversation stays in the recording.`}import{host as V}from"@hermes/plugin-sdk";import{useCallback as dt,useEffect as ge,useRef as Ne,useState as U}from"react";function ut(e){if(typeof e.text=="string"&&e.text.trim())return e.text.trim();let t=e.content;return typeof t=="string"?t.trim():Array.isArray(t)?t.map(s=>{if(typeof s!="object"||s===null||!("text"in s))return"";let m=s.text;return typeof m=="string"?m:""}).join("").trim():""}function We(e,t){let s=(e??[]).filter(d=>(d.role==="user"||d.role==="assistant")&&ut(d).length>0&&typeof d.row_id=="number"),m=-1;for(let d=0;d<s.length;d+=1){let L=s[d];if(L===void 0)continue;let p=L.timestamp;L.role==="user"&&typeof p=="number"&&p<=t+.5&&(m=d)}if(m<=0)return null;let u=s[m-1]?.row_id;return typeof u=="number"&&u>0?u:null}import{jsx as o,jsxs as g}from"react/jsx-runtime";var ct=["python -m pytest -q","npm test","cargo test","go test ./..."],pt=350;function de(e,t){return t.catch(s=>{throw new Error(`${e}: ${T(s)}`)})}function mt(e){if(e===null)return[];let t=e.querySelectorAll('button, input, textarea, [tabindex]:not([tabindex="-1"])');return Array.from(t).filter(s=>!s.hasAttribute("disabled"))}function ft(e,t){let s=mt(e),m=s[0],u=s[s.length-1];if(e===null||m===void 0||u===void 0)return;let d=document.activeElement;if(!e.contains(d)){t.preventDefault(),m.focus();return}t.shiftKey&&d===m?(t.preventDefault(),u.focus()):!t.shiftKey&&d===u&&(t.preventDefault(),m.focus())}var gt={rewind:"M3 12a9 9 0 1 0 3-6.7M3 4v5h5",branch:"M6 3v12M6 21a3 3 0 1 0 0-6 3 3 0 0 0 0 6ZM6 6a3 3 0 1 0 0-6 3 3 0 0 0 0 6ZM18 9a3 3 0 1 0-3-3M15 9v3a3 3 0 0 0 3 3h3",lock:"M7 11V8a5 5 0 0 1 10 0v3M5 11h14v10H5z",folder:"M3 7h6l2 2h10v11H3z",close:"M5 5l14 14M19 5L5 19",dot:"M12 12h.01"};function W({name:e,size:t=14}){return o("svg",{"aria-hidden":"true",className:"rw-icon",viewBox:"0 0 24 24",width:t,height:t,fill:"none",stroke:"currentColor",strokeWidth:1.75,strokeLinecap:"round",strokeLinejoin:"round",focusable:"false",children:o("path",{d:gt[e]})})}var xt=`
+import{host as Tr,KEYBINDS_AREA as zr,PALETTE_AREA as Mr,ROUTES_AREA as Ir,SIDEBAR_NAV_AREA as Lr,STATUSBAR_AREAS as $r}from"@hermes/plugin-sdk";import{host as Ce,useValue as nr}from"@hermes/plugin-sdk";var oe="/rewind";import{jsx as or,jsxs as ar}from"react/jsx-runtime";function Pe(){let e=nr(Ce.state.activeSessionId);return ar("button",{type:"button",className:"flex items-center gap-1",onClick:()=>{Ce.navigate(oe)},title:"Open Session Rewind",children:[or("span",{className:`h-1.5 w-1.5 rounded-full ${e===null?"bg-(--ui-text-tertiary)":"bg-emerald-500"}`}),"Rewind"]})}import{host as xr,useValue as hr}from"@hermes/plugin-sdk";import{useEffect as K,useRef as wr,useState as x}from"react";function se(e,r,a){return e.rest(r,{method:"POST",body:a})}var we=100;async function Ee(e){return(await e.rest(`/sessions?limit=${we}`)).items}async function ye(e,r,a=null){let m=a===null?"":`&before_seq=${a}`;return e.rest(`/sessions/${encodeURIComponent(r)}/turns?limit=40${m}`)}async function Te(e,r,a,m){return(await e.rest(`/sessions/${encodeURIComponent(r)}/events?limit=200&after_seq=${a-1}&before_seq=${m+1}`)).items}function ze(e,r){return e.rest(`/events/${r}`)}function Me(e,r){return e.rest(`/sessions/${encodeURIComponent(r)}/snapshots`)}function Ie(e,r){return e.rest(`/sessions/${encodeURIComponent(r)}/branches`)}function Le(e,r){return se(e,`/branches/${encodeURIComponent(r)}/reconcile`,{})}function $e(e,r,a,m=null){let u=m===null?"":`&before_ts=${m}`;return e.rest(`/compare?left=${encodeURIComponent(r)}&right=${encodeURIComponent(a)}${u}`)}function De(e,r){return se(e,"/forks/prepare",r)}function Fe(e,r,a){return se(e,`/forks/${encodeURIComponent(r)}/commit`,a)}function Ae(e,r){return se(e,`/forks/${encodeURIComponent(r)}/verify`,{})}function qe(e,r,a){return e.rest(`/branches/${encodeURIComponent(r)}/verify-resolve?cmd=${encodeURIComponent(a)}`)}function Be(e,r){return e.rest(`/forks/${encodeURIComponent(r)}/workspace`)}function ke(e,r){return se(e,`/forks/${encodeURIComponent(r)}/cleanup`,{})}function le(e){return new Date(e*1e3).toLocaleTimeString([],{hour:"2-digit",minute:"2-digit",second:"2-digit"})}function ue(e){return e.toLocaleString()}function me(e){return e===null?"":e<1e3?`${Math.round(e)}ms`:`${(e/1e3).toFixed(1)}s`}var ir=/Error invoking remote method '[^']+':\s*Error:\s*\d+:\s*(\{.*\})/s;function T(e){let r=e instanceof Error?e.message:typeof e=="string"?e:"Unexpected error",a=ir.exec(r),m=a?.[1];if(a===null||m===void 0)return r;let u=sr(m);return u===void 0?r:r.replace(a[0],u)}function sr(e){try{let r=JSON.parse(e);return typeof r.detail=="string"&&r.detail.length>0?r.detail:void 0}catch{return}}function Z(e,r=8){return e.length<=r?e:e.slice(0,r)}function I(e,r){return`${e} ${e===1?r:`${r}s`}`}function _e(e){return e===0?"passed":`failed (exit ${e})`}var lr={completed:"completed",agent_close:"closed with the app",ws_orphan_reap:"ended with its window",startup_orphan_reap:"ended with its window"};function fe(e){return e===null?"recording":lr[e]??e}function He(e){return e===null?"open at freeze":fe(e)}function Oe(e,r){return e===0?"":e>=r?`${r}+`:`${e}`}function ur(e){return new Date(e*1e3).toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"})}function Ve(e){return e===null?"recording, nothing captured yet":`recording \xB7 last event ${ur(e)}`}function Ue(e,r){return r!==null?`The turns could not be loaded: ${r}`:e===0?"No user turns recorded yet for this session.":`The recording holds ${I(e,"event")} but no user turn.`}function We(e){return e===null?"Git could not read this workspace, so it may hold edits that were never committed. Deleting it would remove them for good.":`This workspace holds ${I(e,"uncommitted file")}. Deleting it removes them for good; the rerun conversation stays in the recording.`}import{host as U}from"@hermes/plugin-sdk";import{useCallback as cr,useEffect as ge,useRef as Ne,useState as W}from"react";function dr(e){if(typeof e.text=="string"&&e.text.trim())return e.text.trim();let r=e.content;return typeof r=="string"?r.trim():Array.isArray(r)?r.map(a=>{if(typeof a!="object"||a===null||!("text"in a))return"";let m=a.text;return typeof m=="string"?m:""}).join("").trim():""}function Ke(e,r){let a=(e??[]).filter(d=>(d.role==="user"||d.role==="assistant")&&dr(d).length>0&&typeof d.row_id=="number"),m=-1;for(let d=0;d<a.length;d+=1){let $=a[d];if($===void 0)continue;let c=$.timestamp;$.role==="user"&&typeof c=="number"&&c<=r+.5&&(m=d)}if(m<=0)return null;let u=a[m-1]?.row_id;return typeof u=="number"&&u>0?u:null}import{jsx as je}from"react/jsx-runtime";var pr={rewind:"M3 12a9 9 0 1 0 3-6.7M3 4v5h5",refresh:"M20 11a8 8 0 0 0-14 5l-2 2M4 13a8 8 0 0 0 14-5l2-2",branch:"M6 3v12M6 21a3 3 0 1 0 0-6 3 3 0 0 0 0 6ZM6 6a3 3 0 1 0 0-6 3 3 0 0 0 0 6ZM18 9a3 3 0 1 0-3-3M15 9v3a3 3 0 0 0 3 3h3",lock:"M7 11V8a5 5 0 0 1 10 0v3M5 11h14v10H5z",folder:"M3 7h6l2 2h10v11H3z",close:"M5 5l14 14M19 5L5 19",chevron:"M9 6l6 6-6 6",info:"M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18ZM12 11v6M12 7.5h.01"};function P({name:e,size:r=14,className:a}){return je("svg",{"aria-hidden":"true",className:a,viewBox:"0 0 24 24",width:r,height:r,fill:"none",stroke:"currentColor",strokeWidth:1.75,strokeLinecap:"round",strokeLinejoin:"round",focusable:"false",children:je("path",{d:pr[e]})})}import{jsx as i,jsxs as g}from"react/jsx-runtime";var mr=["python -m pytest -q","npm test","cargo test","go test ./..."],fr=350;function de(e,r){return r.catch(a=>{throw new Error(`${e}: ${T(a)}`)})}function gr(e){if(e===null)return[];let r=e.querySelectorAll('button, input, textarea, [tabindex]:not([tabindex="-1"])');return Array.from(r).filter(a=>!a.hasAttribute("disabled"))}function vr(e,r){let a=gr(e),m=a[0],u=a[a.length-1];if(e===null||m===void 0||u===void 0)return;let d=document.activeElement;if(!e.contains(d)){r.preventDefault(),m.focus();return}r.shiftKey&&d===m?(r.preventDefault(),u.focus()):!r.shiftKey&&d===u&&(r.preventDefault(),m.focus())}var br=`
 .rw-overlay {
   position: fixed;
   inset: 0;
@@ -251,7 +251,7 @@ import{host as Tt,KEYBINDS_AREA as Et,PALETTE_AREA as It,ROUTES_AREA as Mt,SIDEB
   line-height: 1.5;
   color: var(--ui-text-secondary);
 }
-.rw-note .rw-icon {
+.rw-note svg {
   flex: none;
   margin-top: 2px;
   color: var(--ui-accent);
@@ -259,7 +259,7 @@ import{host as Tt,KEYBINDS_AREA as Et,PALETTE_AREA as It,ROUTES_AREA as Mt,SIDEB
 .rw-note-warn {
   color: var(--ui-yellow);
 }
-.rw-note-warn .rw-icon {
+.rw-note-warn svg {
   color: var(--ui-yellow);
 }
 .rw-path {
@@ -527,27 +527,634 @@ import{host as Tt,KEYBINDS_AREA as Et,PALETTE_AREA as It,ROUTES_AREA as Mt,SIDEB
     justify-content: center;
   }
 }
-`;function Ke({ctx:e,session:t,event:s,onClose:m,onCreated:u}){let[d,L]=U(t.model??""),[p,F]=U(""),[y,w]=U(""),[c,E]=U(null),[N,I]=U(null),[P,q]=U(null),[j,z]=U(null),[h,_]=U(null),[Z,se]=U(!1),Q=Ne([]),l=P!==null,S=Ne(null),A=Ne(()=>{}),D=dt(()=>{l||(se(!0),Q.current.push(e.setTimeout(m,100)))},[l,e,m]);ge(()=>{let i=Q.current;return()=>{for(let x of i)x()}},[]),ge(()=>{let i=document.activeElement;return S.current?.focus(),()=>{i?.focus()}},[]),ge(()=>{let i=x=>{if(x.key==="Escape"&&!l){D();return}if(x.key==="Tab"){ft(S.current,x);return}x.key==="Enter"&&(x.metaKey||x.ctrlKey)&&!l&&(x.preventDefault(),A.current())};return window.addEventListener("keydown",i),()=>{window.removeEventListener("keydown",i)}},[l,D]),ge(()=>{let i=y.trim();if(c===null||i===""){I(null);return}let x=!1,$=e.setTimeout(()=>{Ae(e,c.branch_id,i).then(f=>{x||I(f)}).catch(()=>{x||I(null)})},pt);return()=>{x=!0,$()}},[e,c,y]);let C=async()=>{let i=await V.request("session.active_list",{}),x=Array.isArray(i.sessions)?i.sessions:[],$=x.find(f=>f.session_key===t.session_id)?.id??x.find(f=>f.id===t.session_id)?.id;if($===void 0)return{runtimeId:void 0,storedId:t.stored_session_id};try{let f=await V.request("session.title",{session_id:$});return{runtimeId:$,storedId:f.session_key??t.stored_session_id}}catch{return{runtimeId:$,storedId:t.stored_session_id}}},X=async()=>{q("prepare"),z(null),_(null);try{let i=await C(),x=await De(e,{session_id:t.session_id,stored_session_id:i.storedId,event_id:s.id,model:d.trim()||null,provider:null,prompt:p.trim()||null,verify_cmd:y.trim()||null});E(x),F(x.prompt),x.verify_presets.length>0&&y.trim()===""&&w(x.verify_presets[0]??""),x.model!==null&&L(x.model)}catch(i){z(T(i))}finally{q(null)}},ee=async()=>{if(c!==null){q("run"),z(null),_(null);try{let i=await C(),x=i.runtimeId,$=`\u21BA ${t.title??J(t.session_id)} \xB7 ${J(c.branch_id)}`,f=null;if(x!==void 0)try{let R=await V.request("session.history",{session_id:x});f=We(R.messages,c.fork_before_ts)}catch{f=null}let H,ne,Y=!1;if(f!==null&&x!==void 0){let R=await de("could not branch the session",V.request("session.branch",{session_id:x,through_message_id:f}));H=R.session_id,ne=R.stored_session_id}else{let R={source:"desktop",title:$};c.worktree_path!==null&&(R.cwd=c.worktree_path),i.storedId!==null&&(R.parent_session_id=i.storedId);let te=await de("could not create the branch session",V.request("session.create",R));H=te.session_id,ne=te.stored_session_id,Y=!0}if(Y&&c.worktree_path!==null){let R=()=>V.request("session.cwd.set",{session_id:H,cwd:c.worktree_path});try{await de("could not attach the isolated workspace",R())}catch(te){throw te instanceof Error?new Error(`The rerun was not started because the isolated workspace could not be attached: ${T(te)}`):new Error("The rerun was not started because the isolated workspace could not be attached.")}}if(d.trim()&&d.trim()!==(t.model??""))try{let R=await V.request("config.set",{key:"model",value:d.trim(),session_id:H,confirm_expensive_model:!1});R.confirm_required===!0&&_(R.confirm_message??"The model switch needs confirmation; the branch continues with the current model.")}catch{_("The branch was created, but the model switch failed; the rerun uses the current model.")}let pe=p.trim()||c.prompt;await de("could not record the branch",Fe(e,c.branch_id,{child_session_id:H,child_stored_session_id:ne,model:d.trim()||null,provider:null,prompt:pe,verify_cmd:y.trim()||null})),await de("could not start the rerun",V.request("prompt.submit",{session_id:H,text:pe})),u(c.branch_id),V.openSession(ne,{intent:"tab"}),m()}catch(i){z(T(i))}finally{q(null)}}};A.current=()=>{c===null?X():ee()};let k=c!==null,G=k?c.fidelity==="full"?"ok":"warn":"idle",xe=`rw-badge ${G==="ok"?"rw-badge-ok":G==="warn"?"rw-badge-warn":""}`,ce=k?c.fork_row_count>0?`${M(c.fork_row_count,"message")}`:"context pack":"\u2014",ve=k?c.worktree_path?"git worktree":"shared workspace":"\u2014",be=y.trim();return g("div",{className:"rw-overlay","data-closing":Z?"true":"false",onMouseDown:i=>{i.target===i.currentTarget&&D()},children:[o("style",{children:xt}),g("div",{className:"rw-panel",role:"dialog","aria-modal":"true","aria-labelledby":"rw-title","aria-describedby":"rw-reassure",tabIndex:-1,ref:S,children:[g("header",{className:"rw-head",children:[o("span",{className:"rw-mark",children:o(W,{name:"rewind",size:16})}),g("div",{className:"rw-heading",children:[o("div",{className:"rw-eyebrow",children:"Session Rewind"}),o("div",{className:"rw-title",id:"rw-title",children:"Rewind to this turn"})]}),o("button",{type:"button",className:"rw-close",onClick:D,disabled:l,"aria-label":"Close",children:o(W,{name:"close",size:15})})]}),g("div",{className:"rw-body",children:[g("div",{className:"rw-turn",children:[o("span",{className:"rw-turn-time",children:le(s.ts)}),o("span",{className:"rw-turn-text",children:s.preview||"user turn"})]}),j!==null?o("div",{className:"rw-banner rw-banner-error",role:"alert",children:j}):null,h!==null?o("div",{className:"rw-banner rw-banner-warn",role:"status",children:h}):null,g("section",{className:"rw-card",children:[g("div",{className:"rw-card-head",children:[g("span",{className:"rw-card-title",children:[o("span",{className:"rw-state-dot","data-tone":G==="idle"?void 0:G}),"Checkpoint"]}),o("span",{className:xe,children:k?G==="ok"?"workspace ready":"context pack":"not prepared"})]}),g("ul",{className:"rw-stats",children:[g("li",{className:"rw-stat",children:[o("span",{className:"rw-stat-label",children:"carries"}),o("span",{className:"rw-stat-value",children:ce})]}),g("li",{className:"rw-stat",children:[o("span",{className:"rw-stat-label",children:"verify timeout"}),o("span",{className:"rw-stat-value",children:k?`${c.verify_timeout_seconds}s`:"\u2014"})]}),g("li",{className:"rw-stat",children:[o("span",{className:"rw-stat-label",children:"isolation"}),o("span",{className:"rw-stat-value",children:ve})]})]}),k&&c.worktree_path?g("div",{className:"rw-path",children:[o("span",{className:"rw-path-text",title:c.worktree_path,children:c.worktree_path}),o("button",{type:"button",className:"rw-icon-button",onClick:()=>{e.os.revealPath(c.worktree_path??"")},disabled:l,"aria-label":"Reveal the isolated workspace",children:o(W,{name:"folder",size:13})}),c.snapshot_commit?g("span",{className:"rw-count",children:["snapshot ",c.snapshot_commit.slice(0,8)]}):null]}):g("div",{className:"rw-note",children:[o(W,{name:"branch"}),o("span",{children:"Prepares an isolated worktree from the nearest snapshot. The original workspace is not changed."})]}),k&&c.fidelity!=="full"?g("div",{className:"rw-note rw-note-warn",children:[o(W,{name:"branch"}),o("span",{children:"No workspace snapshot matched this turn. The rerun starts from the current workspace."})]}):null,k&&c.context_rows===null?g("div",{className:"rw-note rw-note-warn",children:[o(W,{name:"branch"}),o("span",{children:"The live transcript prefix is unavailable. The context pack is the only context."})]}):null,k&&t.ended_at!==null?g("div",{className:"rw-note",children:[o(W,{name:"branch"}),o("span",{children:"This session is closed, so the rerun starts a new chat carrying the recorded context instead of branching the original transcript."})]}):null,k&&c.fork_row_count===0&&t.ended_at===null?g("div",{className:"rw-note",children:[o(W,{name:"branch"}),o("span",{children:"This is the first turn. The rerun starts a fresh chat in the restored workspace."})]}):null]}),g("div",{className:"rw-grid",children:[g("label",{className:"rw-field",children:[o("span",{className:"rw-label",children:"Model"}),o("input",{className:"rw-input",value:d,onChange:i=>{L(i.target.value)},placeholder:"provider/model"}),o("span",{className:"rw-help",children:"Leave unchanged to keep the session model."})]}),g("label",{className:"rw-field",children:[o("span",{className:"rw-label",children:"Verify command"}),o("input",{className:"rw-input",value:y,onChange:i=>{w(i.target.value)},placeholder:"python -m pytest -q"}),o("div",{className:"rw-chips",children:(c?.verify_presets.length?c.verify_presets:ct).map(i=>o("button",{type:"button",className:"rw-preset","aria-pressed":i===be,onClick:()=>{w(i)},disabled:l,children:i},i))}),o("span",{className:"rw-help",children:"Runs in the restored workspace with the gateway environment."}),N!==null&&N.command===y.trim()?o("span",{className:"rw-resolved",children:N.resolved===null?"Not found in the gateway environment. Use the full interpreter path.":`Resolves to ${N.resolved}`}):null]})]}),g("label",{className:"rw-field",children:[g("span",{className:"rw-label-row",children:[o("span",{className:"rw-label",children:"Prompt for the rerun"}),g("span",{className:"rw-count","aria-live":"polite",children:[p.length," chars"]})]}),o("textarea",{className:"rw-textarea",value:p,onChange:i=>{F(i.target.value)},placeholder:"Prepare the branch to generate a context prompt, or write your own."}),o("span",{className:"rw-help",children:"Prepared from the recorded context. Edit it before running the fork."})]})]}),g("footer",{className:"rw-footer",children:[g("span",{className:"rw-reassure",id:"rw-reassure",children:[o(W,{name:"lock",size:13}),o("span",{children:"Original session and workspace stay untouched."})]}),g("div",{className:"rw-actions",children:[o("button",{type:"button",className:"rw-button",onClick:D,disabled:l,children:"Cancel"}),k?g("button",{type:"button",className:"rw-button rw-primary",onClick:()=>{ee()},disabled:l,"aria-busy":P==="run",children:[P==="run"?o("span",{className:"rw-spinner"}):null,P==="run"?"Forking":"Fork & run",P==="run"?null:o("span",{className:"rw-kbd",children:"Ctrl \u21B5"})]}):g("button",{type:"button",className:"rw-button rw-primary",onClick:()=>{X()},disabled:l,"aria-busy":P==="prepare",children:[P==="prepare"?o("span",{className:"rw-spinner"}):null,P==="prepare"?"Preparing":"Prepare branch",P==="prepare"?null:o("span",{className:"rw-kbd",children:"Ctrl \u21B5"})]})]})]})]})]})}function Se(e,t,s){let m=new Set(t.map(d=>d.id)),u=s.filter(d=>d.session_id===e&&!m.has(d.id));return[...t,...u]}import{Fragment as Qe,jsx as r,jsxs as a}from"react/jsx-runtime";var yt="[data-rw-confirm]";function je(){let e=document.activeElement;return e instanceof HTMLElement&&e.closest(yt)!==null}var ht=`
-.rw-page :is(button, input, textarea, summary, [tabindex]):focus-visible {
-  outline: 2px solid var(--ui-accent, #4f8cff);
+`;function Ge({ctx:e,session:r,event:a,onClose:m,onCreated:u}){let[d,$]=W(r.model??""),[c,F]=W(""),[w,h]=W(""),[p,z]=W(null),[N,M]=W(null),[E,H]=W(null),[j,A]=W(null),[y,k]=W(null),[J,ae]=W(!1),Q=Ne([]),l=E!==null,S=Ne(null),q=Ne(()=>{}),D=cr(()=>{l||(ae(!0),Q.current.push(e.setTimeout(m,100)))},[l,e,m]);ge(()=>{let s=Q.current;return()=>{for(let v of s)v()}},[]),ge(()=>{let s=document.activeElement;return S.current?.focus(),()=>{s?.focus()}},[]),ge(()=>{let s=v=>{if(v.key==="Escape"&&!l){D();return}if(v.key==="Tab"){vr(S.current,v);return}v.key==="Enter"&&(v.metaKey||v.ctrlKey)&&!l&&(v.preventDefault(),q.current())};return window.addEventListener("keydown",s),()=>{window.removeEventListener("keydown",s)}},[l,D]),ge(()=>{let s=w.trim();if(p===null||s===""){M(null);return}let v=!1,L=e.setTimeout(()=>{qe(e,p.branch_id,s).then(f=>{v||M(f)}).catch(()=>{v||M(null)})},fr);return()=>{v=!0,L()}},[e,p,w]);let C=async()=>{let s=await U.request("session.active_list",{}),v=Array.isArray(s.sessions)?s.sessions:[],L=v.find(f=>f.session_key===r.session_id)?.id??v.find(f=>f.id===r.session_id)?.id;if(L===void 0)return{runtimeId:void 0,storedId:r.stored_session_id};try{let f=await U.request("session.title",{session_id:L});return{runtimeId:L,storedId:f.session_key??r.stored_session_id}}catch{return{runtimeId:L,storedId:r.stored_session_id}}},X=async()=>{H("prepare"),A(null),k(null);try{let s=await C(),v=await De(e,{session_id:r.session_id,stored_session_id:s.storedId,event_id:a.id,model:d.trim()||null,provider:null,prompt:c.trim()||null,verify_cmd:w.trim()||null});z(v),F(v.prompt),v.verify_presets.length>0&&w.trim()===""&&h(v.verify_presets[0]??""),v.model!==null&&$(v.model)}catch(s){A(T(s))}finally{H(null)}},ee=async()=>{if(p!==null){H("run"),A(null),k(null);try{let s=await C(),v=s.runtimeId,L=`\u21BA ${r.title??Z(r.session_id)} \xB7 ${Z(p.branch_id)}`,f=null;if(v!==void 0)try{let R=await U.request("session.history",{session_id:v});f=Ke(R.messages,p.fork_before_ts)}catch{f=null}let O,ne,Y=!1;if(f!==null&&v!==void 0){let R=await de("could not branch the session",U.request("session.branch",{session_id:v,through_message_id:f}));O=R.session_id,ne=R.stored_session_id}else{let R={source:"desktop",title:L};p.worktree_path!==null&&(R.cwd=p.worktree_path),s.storedId!==null&&(R.parent_session_id=s.storedId);let re=await de("could not create the branch session",U.request("session.create",R));O=re.session_id,ne=re.stored_session_id,Y=!0}if(Y&&p.worktree_path!==null){let R=()=>U.request("session.cwd.set",{session_id:O,cwd:p.worktree_path});try{await de("could not attach the isolated workspace",R())}catch(re){throw re instanceof Error?new Error(`The rerun was not started because the isolated workspace could not be attached: ${T(re)}`):new Error("The rerun was not started because the isolated workspace could not be attached.")}}if(d.trim()&&d.trim()!==(r.model??""))try{let R=await U.request("config.set",{key:"model",value:d.trim(),session_id:O,confirm_expensive_model:!1});R.confirm_required===!0&&k(R.confirm_message??"The model switch needs confirmation; the branch continues with the current model.")}catch{k("The branch was created, but the model switch failed; the rerun uses the current model.")}let ce=c.trim()||p.prompt;await de("could not record the branch",Fe(e,p.branch_id,{child_session_id:O,child_stored_session_id:ne,model:d.trim()||null,provider:null,prompt:ce,verify_cmd:w.trim()||null})),await de("could not start the rerun",U.request("prompt.submit",{session_id:O,text:ce})),u(p.branch_id),U.openSession(ne,{intent:"tab"}),m()}catch(s){A(T(s))}finally{H(null)}}};q.current=()=>{p===null?X():ee()};let _=p!==null,G=_?p.fidelity==="full"?"ok":"warn":"idle",ve=`rw-badge ${G==="ok"?"rw-badge-ok":G==="warn"?"rw-badge-warn":""}`,pe=_?p.fork_row_count>0?`${I(p.fork_row_count,"message")}`:"context pack":"\u2014",be=_?p.worktree_path?"git worktree":"shared workspace":"\u2014",xe=w.trim();return g("div",{className:"rw-overlay","data-closing":J?"true":"false",onMouseDown:s=>{s.target===s.currentTarget&&D()},children:[i("style",{children:br}),g("div",{className:"rw-panel",role:"dialog","aria-modal":"true","aria-labelledby":"rw-title","aria-describedby":"rw-reassure",tabIndex:-1,ref:S,children:[g("header",{className:"rw-head",children:[i("span",{className:"rw-mark",children:i(P,{name:"rewind",size:16})}),g("div",{className:"rw-heading",children:[i("div",{className:"rw-eyebrow",children:"Session Rewind"}),i("div",{className:"rw-title",id:"rw-title",children:"Rewind to this turn"})]}),i("button",{type:"button",className:"rw-close",onClick:D,disabled:l,"aria-label":"Close",children:i(P,{name:"close",size:15})})]}),g("div",{className:"rw-body",children:[g("div",{className:"rw-turn",children:[i("span",{className:"rw-turn-time",children:le(a.ts)}),i("span",{className:"rw-turn-text",children:a.preview||"user turn"})]}),j!==null?i("div",{className:"rw-banner rw-banner-error",role:"alert",children:j}):null,y!==null?i("div",{className:"rw-banner rw-banner-warn",role:"status",children:y}):null,g("section",{className:"rw-card",children:[g("div",{className:"rw-card-head",children:[g("span",{className:"rw-card-title",children:[i("span",{className:"rw-state-dot","data-tone":G==="idle"?void 0:G}),"Checkpoint"]}),i("span",{className:ve,children:_?G==="ok"?"workspace ready":"context pack":"not prepared"})]}),g("ul",{className:"rw-stats",children:[g("li",{className:"rw-stat",children:[i("span",{className:"rw-stat-label",children:"carries"}),i("span",{className:"rw-stat-value",children:pe})]}),g("li",{className:"rw-stat",children:[i("span",{className:"rw-stat-label",children:"verify timeout"}),i("span",{className:"rw-stat-value",children:_?`${p.verify_timeout_seconds}s`:"\u2014"})]}),g("li",{className:"rw-stat",children:[i("span",{className:"rw-stat-label",children:"isolation"}),i("span",{className:"rw-stat-value",children:be})]})]}),_&&p.worktree_path?g("div",{className:"rw-path",children:[i("span",{className:"rw-path-text",title:p.worktree_path,children:p.worktree_path}),i("button",{type:"button",className:"rw-icon-button",onClick:()=>{e.os.revealPath(p.worktree_path??"")},disabled:l,"aria-label":"Reveal the isolated workspace",children:i(P,{name:"folder",size:13})}),p.snapshot_commit?g("span",{className:"rw-count",children:["snapshot ",p.snapshot_commit.slice(0,8)]}):null]}):g("div",{className:"rw-note",children:[i(P,{name:"branch"}),i("span",{children:"Prepares an isolated worktree from the nearest snapshot. The original workspace is not changed."})]}),_&&p.fidelity!=="full"?g("div",{className:"rw-note rw-note-warn",children:[i(P,{name:"branch"}),i("span",{children:"No workspace snapshot matched this turn. The rerun starts from the current workspace."})]}):null,_&&p.context_rows===null?g("div",{className:"rw-note rw-note-warn",children:[i(P,{name:"branch"}),i("span",{children:"The live transcript prefix is unavailable. The context pack is the only context."})]}):null,_&&r.ended_at!==null?g("div",{className:"rw-note",children:[i(P,{name:"branch"}),i("span",{children:"This session is closed, so the rerun starts a new chat carrying the recorded context instead of branching the original transcript."})]}):null,_&&p.fork_row_count===0&&r.ended_at===null?g("div",{className:"rw-note",children:[i(P,{name:"branch"}),i("span",{children:"This is the first turn. The rerun starts a fresh chat in the restored workspace."})]}):null]}),g("div",{className:"rw-grid",children:[g("label",{className:"rw-field",children:[i("span",{className:"rw-label",children:"Model"}),i("input",{className:"rw-input",value:d,onChange:s=>{$(s.target.value)},placeholder:"provider/model"}),i("span",{className:"rw-help",children:"Leave unchanged to keep the session model."})]}),g("label",{className:"rw-field",children:[i("span",{className:"rw-label",children:"Verify command"}),i("input",{className:"rw-input",value:w,onChange:s=>{h(s.target.value)},placeholder:"python -m pytest -q"}),i("div",{className:"rw-chips",children:(p?.verify_presets.length?p.verify_presets:mr).map(s=>i("button",{type:"button",className:"rw-preset","aria-pressed":s===xe,onClick:()=>{h(s)},disabled:l,children:s},s))}),i("span",{className:"rw-help",children:"Runs in the restored workspace with the gateway environment."}),N!==null&&N.command===w.trim()?i("span",{className:"rw-resolved",children:N.resolved===null?"Not found in the gateway environment. Use the full interpreter path.":`Resolves to ${N.resolved}`}):null]})]}),g("label",{className:"rw-field",children:[g("span",{className:"rw-label-row",children:[i("span",{className:"rw-label",children:"Prompt for the rerun"}),g("span",{className:"rw-count","aria-live":"polite",children:[c.length," chars"]})]}),i("textarea",{className:"rw-textarea",value:c,onChange:s=>{F(s.target.value)},placeholder:"Prepare the branch to generate a context prompt, or write your own."}),i("span",{className:"rw-help",children:"Prepared from the recorded context. Edit it before running the fork."})]})]}),g("footer",{className:"rw-footer",children:[g("span",{className:"rw-reassure",id:"rw-reassure",children:[i(P,{name:"lock",size:13}),i("span",{children:"Original session and workspace stay untouched."})]}),g("div",{className:"rw-actions",children:[i("button",{type:"button",className:"rw-button",onClick:D,disabled:l,children:"Cancel"}),_?g("button",{type:"button",className:"rw-button rw-primary",onClick:()=>{ee()},disabled:l,"aria-busy":E==="run",children:[E==="run"?i("span",{className:"rw-spinner"}):null,E==="run"?"Forking":"Fork & run",E==="run"?null:i("span",{className:"rw-kbd",children:"Ctrl \u21B5"})]}):g("button",{type:"button",className:"rw-button rw-primary",onClick:()=>{X()},disabled:l,"aria-busy":E==="prepare",children:[E==="prepare"?i("span",{className:"rw-spinner"}):null,E==="prepare"?"Preparing":"Prepare branch",E==="prepare"?null:i("span",{className:"rw-kbd",children:"Ctrl \u21B5"})]})]})]})]})]})}function Se(e,r,a){let m=new Set(r.map(d=>d.id)),u=a.filter(d=>d.session_id===e&&!m.has(d.id));return[...r,...u]}import{Fragment as Re,jsx as t,jsxs as o}from"react/jsx-runtime";var yr="[data-rw-confirm]";function Ye(){let e=document.activeElement;return e instanceof HTMLElement&&e.closest(yr)!==null}var kr=`
+.rw-page :is(button, summary, [tabindex]):focus-visible {
+  outline: 2px solid var(--ui-stroke-primary);
   outline-offset: 1px;
 }
-.rw-page button:not(:disabled) {
+.rw-page :is(input, textarea):focus-visible {
+  outline: none;
+}
+.rw-page button {
+  font: inherit;
+  color: inherit;
   cursor: pointer;
-}
-.rw-note-warn {
-  background: color-mix(in srgb, var(--ui-yellow) 8%, transparent);
-  border-color: color-mix(in srgb, var(--ui-yellow) 30%, transparent);
-}
-.rw-confirm {
-  background: color-mix(in srgb, var(--ui-red) 8%, transparent);
-  border-color: color-mix(in srgb, var(--ui-red) 32%, transparent);
-}
-.rw-confirm-delete {
-  color: var(--ui-red);
-  border-color: color-mix(in srgb, var(--ui-red) 45%, transparent);
+  background: transparent;
+  border: 0;
 }
 .rw-page button:disabled {
   cursor: not-allowed;
+  opacity: 0.5;
 }
-`,_t=new Set(["done","failed","cleaned","discarded"]);function kt(e){return me(Math.max(0,(e.work_ts-e.ts)*1e3))}function Nt({event:e,selected:t,onSelect:s}){return a("button",{type:"button",className:`flex w-full items-center gap-2 py-0.5 pl-19 text-left text-xs ${t?"bg-white/5":""}`,onClick:s,children:[r("span",{title:e.kind,className:`w-20 shrink-0 truncate uppercase ${Ye(e.kind,e.status)}`,children:Ge(e.kind)}),r("span",{className:"min-w-0 flex-1 truncate text-(--ui-text-tertiary)",children:e.name??e.preview}),r("span",{className:"w-14 shrink-0 text-right font-mono",children:me(e.duration_ms)})]})}var St=new Set(["api_request","llm_call"]);function Rt({turn:e,expanded:t,events:s,loading:m,selectedEventId:u,onToggle:d,onFork:L,onSelectEvent:p}){let F=(s??[]).filter(w=>!St.has(w.kind)),y=(s??[]).length-F.length;return a("div",{className:"border-b border-(--ui-stroke-tertiary) pb-1",children:[a("div",{className:"flex items-center gap-2",children:[a("button",{type:"button",className:"flex min-w-0 flex-1 items-center gap-2 py-1 text-left",onClick:d,"aria-expanded":t,children:[r("span",{className:"w-3 shrink-0 text-xs text-(--ui-text-tertiary)","aria-hidden":"true",children:t?"\u25BE":"\u25B8"}),r("span",{className:"w-16 shrink-0 font-mono text-xs text-(--ui-text-tertiary)",children:le(e.ts)}),r("span",{className:"min-w-0 flex-1 truncate",children:e.preview||"User turn"}),r("span",{className:"shrink-0 text-xs text-(--ui-text-tertiary)",children:M(e.tool_calls,"tool")}),e.tool_errors>0?r("span",{className:"shrink-0 text-xs text-(--ui-red)",children:M(e.tool_errors,"error")}):null,r("span",{className:"w-14 shrink-0 text-right font-mono text-xs text-(--ui-text-tertiary)",children:kt(e)})]}),r("button",{type:"button",className:"shrink-0 rounded border border-(--ui-stroke-secondary) px-2 py-0.5 text-xs",onClick:L,children:"Rewind"})]}),t?r("div",{className:"flex flex-col gap-0.5 pb-1",children:m?r("div",{className:"pl-19 text-xs text-(--ui-text-tertiary)",children:"Loading events..."}):a(Qe,{children:[F.map(w=>r(Nt,{event:w,selected:u===w.id,onSelect:()=>{p(w)}},w.id)),y>0?a("div",{className:"pl-19 text-xs text-(--ui-text-tertiary)",children:[M(e.api_requests,"model request")," \xB7",M(e.event_count,"event")," ","in this turn"]}):null]})}):null]})}function Ge(e){switch(e){case"user_turn":return"user";case"assistant_response":return"reply";case"tool_call":return"tool";case"tool_result":return"result";case"api_request":return"request";case"llm_call":return"usage";case"session_start":return"start";case"session_end":return"end";case"compaction":return"compact";case"turn_end":return"turn";case"session_finalize":return"finalize";case"capture_dropped":return"dropped";default:return e}}function Ye(e,t){return e==="tool_result"&&t==="error"?"text-(--ui-red)":e==="assistant_response"||e==="tool_result"?"text-(--ui-green)":e==="user_turn"?"text-(--ui-accent)":e==="tool_call"?"text-(--ui-purple)":e==="api_request"||e==="llm_call"?"text-(--ui-orange)":e==="compaction"?"text-(--ui-text-secondary)":"text-(--ui-text-tertiary)"}function Je(e){return e==="done"?"text-(--ui-green)":e==="failed"?"text-(--ui-red)":e==="running"?"text-(--ui-accent)":"text-(--ui-text-tertiary)"}function re({label:e,value:t}){return a("div",{className:"flex items-center justify-between gap-2",children:[r("span",{className:"text-(--ui-text-tertiary)",children:e}),r("span",{className:"font-mono tabular-nums",children:t})]})}function Ct({detail:e}){return e===null?r("div",{className:"text-xs text-(--ui-text-tertiary)",children:"Select an event to inspect its payload."}):a("div",{className:"flex flex-col gap-2",children:[a("div",{className:"flex items-center justify-between gap-2 text-xs",children:[r("span",{className:`font-medium ${Ye(e.kind,e.status)}`,children:Ge(e.kind)}),a("span",{className:"font-mono text-(--ui-text-tertiary)",children:["#",e.id," \xB7 seq ",e.seq]})]}),a("div",{className:"text-xs text-(--ui-text-tertiary)",children:[e.name??"event",e.status!==null?` \xB7 ${e.status}`:"",e.duration_ms!==null?` \xB7 ${me(e.duration_ms)}`:""]}),r("pre",{className:"max-h-96 overflow-auto whitespace-pre-wrap break-words rounded border border-(--ui-stroke-tertiary) p-2 font-mono text-xs",children:JSON.stringify(e.payload,null,2)})]})}function Pt({ctx:e,branchId:t,refreshTick:s,onClose:m,onRefresh:u}){let[d,L]=b(null),[p,F]=b(null),[y,w]=b(!1),[c,E]=b(null),[N,I]=b(null),P=wt(null);K(()=>{let l=!1,S=null,A=async()=>{try{let C=await $e(e,t);if(l)return!0;L(C),E(null);let X=C.branch.child_session_id;if(X!==null){let ee=await Le(e,C.branch.parent_session_id,X,C.branch.fork_before_ts);l||F(ee)}else F(null);return _t.has(C.branch.state)}catch(C){return l||E(T(C)),!1}},D=async()=>{let C=await A();!l&&!C&&(S=e.setTimeout(()=>{D()},2500))};return D(),()=>{l=!0,S!==null&&S()}},[e,t,s]);let q=async()=>{w(!0),E(null);try{await ze(e,t),u()}catch(l){E(T(l))}finally{w(!1)}},j=async l=>{w(!0),E(null),I(null);try{await _e(e,t),u()}catch(S){E(T(S)),I(l)}finally{w(!1)}},z=async()=>{w(!0),E(null);try{let l=await Be(e,t);l.uncommitted===0?(await _e(e,t),u()):I(l)}catch(l){E(T(l))}finally{w(!1)}};if(K(()=>{I(null)},[t]),K(()=>{if(N===null)return;let l=S=>{S.key==="Escape"&&je()&&I(null)};return window.addEventListener("keydown",l),()=>{window.removeEventListener("keydown",l)}},[N]),K(()=>{if(N===null)return;let l=document.activeElement;return P.current?.focus(),()=>{l instanceof HTMLElement&&l.focus()}},[N]),d===null)return r("div",{className:"text-xs text-(--ui-text-tertiary)",children:"Loading branch..."});let h=d.branch,_=d.run,Z=_?.verify_exit??p?.right?.verify_exit??null,se=h.verify_cmd?h.worktree_path?void 0:"The workspace of this branch was cleaned.":"No verify command was recorded for this branch.",Q=h.worktree_path?void 0:"This branch has no workspace left to remove.";return a("div",{className:"flex flex-col gap-2",children:[a("div",{className:"flex items-center justify-between gap-2",children:[a("div",{className:"flex items-center gap-2 text-xs",children:[a("span",{className:"font-medium",children:["Branch ",J(h.id)]}),r("span",{className:`uppercase ${Je(h.state)}`,children:h.state}),_!==null&&_.verify_exit!==null?a("span",{className:_.verify_exit===0?"text-(--ui-green)":"text-(--ui-red)",children:["verify ",ke(_.verify_exit)]}):null]}),a("div",{className:"flex items-center gap-2 text-xs",children:[r("button",{type:"button",className:"rounded border border-(--ui-stroke-secondary) px-2 py-1 disabled:opacity-50",title:se,onClick:()=>{q()},disabled:y||!h.verify_cmd||!h.worktree_path,children:"Verify"}),r("button",{type:"button",className:"rounded border border-(--ui-stroke-secondary) px-2 py-1 disabled:opacity-50",title:Q,onClick:()=>{z()},disabled:y||!h.worktree_path,children:"Cleanup"}),r("button",{type:"button",className:"rounded border border-(--ui-stroke-secondary) px-2 py-1",onClick:m,children:"Hide"})]})]}),d.shared_child?r("div",{className:"rw-note-warn rounded border p-2 text-xs text-(--ui-text-primary)",children:"Another branch claims this same rerun session, so the numbers below may describe a different fork. It was recorded before the session-id fix."}):null,c!==null?r("div",{className:"text-xs text-(--ui-red)",children:c}):null,N!==null?a("div",{className:"rw-confirm rounded border p-2 text-xs",ref:P,role:"alertdialog","aria-label":"Confirm workspace cleanup","data-rw-confirm":"true",tabIndex:-1,children:[r("div",{className:"mb-1 text-(--ui-text-primary)",children:Ue(N.uncommitted)}),r("div",{className:"mb-2 break-all text-(--ui-text-tertiary)",children:N.worktree_path}),a("div",{className:"flex items-center gap-2",children:[r("button",{type:"button",className:"rw-confirm-delete rounded border px-2 py-1 disabled:opacity-50",onClick:()=>{j(N)},disabled:y,children:"Delete workspace"}),r("button",{type:"button",className:"rounded border border-(--ui-stroke-secondary) px-2 py-1",onClick:()=>{I(null)},children:"Cancel"})]})]}):null,p!==null?a("div",{className:"grid grid-cols-2 gap-2 text-xs",children:[a("div",{className:"rounded border border-(--ui-stroke-tertiary) p-2",children:[a("div",{className:"mb-1 text-(--ui-text-tertiary)",children:["Original",p.left?.frozen_at?` \xB7 frozen ${le(p.left.frozen_at)}`:""]}),r(re,{label:"outcome",value:p.left===null?"not recorded":qe(p.left.outcome)}),r(re,{label:"tokens",value:p.left===null?"n/a":ue(p.left.tokens_in+p.left.tokens_out)}),r(re,{label:"tool errors",value:p.left===null?"n/a":String(p.left.tool_errors)})]}),a("div",{className:"rounded border border-(--ui-stroke-tertiary) p-2",children:[r("div",{className:"mb-1 text-(--ui-text-tertiary)",children:"Rerun"}),r(re,{label:"outcome",value:p.right===null?"not recorded":fe(p.right.outcome)}),r(re,{label:"verify",value:Z===null?"not run":ke(Z)}),r(re,{label:"tokens",value:p.right===null?"n/a":ue(p.right.tokens_in+p.right.tokens_out)}),r(re,{label:"tool errors",value:p.right===null?"n/a":String(p.right.tool_errors)})]}),a("div",{className:"col-span-2 text-(--ui-text-tertiary)",children:["Verdict: ",p.verdict]})]}):r("div",{className:"text-xs text-(--ui-text-tertiary)",children:h.state==="cleaned"||h.state==="discarded"?"The rerun never started, and its workspace is gone.":"Waiting for the rerun to start."}),_!==null&&_.verify_out?r("pre",{className:"max-h-32 overflow-auto whitespace-pre-wrap break-words rounded border border-(--ui-stroke-tertiary) p-2 font-mono text-xs",children:_.verify_out}):null,d.prompt!==null?a("details",{className:"text-xs text-(--ui-text-tertiary)",children:[r("summary",{children:"Prompt"}),r("pre",{className:"mt-1 max-h-32 overflow-auto whitespace-pre-wrap break-words font-mono text-xs",children:d.prompt})]}):null]})}function Ze({ctx:e}){let t=bt(vt.state.activeSessionId),[s,m]=b([]),[u,d]=b(null),[L,p]=b([]),[F,y]=b(!1),[w,c]=b(!1),[E,N]=b(null),[I,P]=b({}),[q,j]=b([]),[z,h]=b([]),[_,Z]=b(null),[se,Q]=b(null),[l,S]=b(null),[A,D]=b(null),[C,X]=b(0),[ee,k]=b(null),[G,xe]=b(0),[ce,ve]=b(!1),[be,i]=b(!1),[x,$]=b(null);K(()=>{let n=null,v=e.onEvent("*",()=>{n===null&&(n=e.setTimeout(()=>{n=null,xe(O=>O+1)},1500))});return()=>{v(),n!==null&&n()}},[e]),K(()=>{if(l===null||A!==null)return;let n=v=>{v.key==="Escape"&&!je()&&S(null)};return window.addEventListener("keydown",n),()=>{window.removeEventListener("keydown",n)}},[l,A]),K(()=>{let n=!1,v=async()=>{try{let B=await Pe(e);if(n)return;m(B),ve(!0),k(null),d(ae=>ae!==null&&B.some(we=>we.session_id===ae)?ae:t??B[0]?.session_id??null)}catch(B){n||k(T(B))}};v();let O=e.setInterval(()=>{v()},1e4);return()=>{n=!0,O()}},[e,t,C,G]),K(()=>{if(u===null){p([]),i(!1),y(!1),$(null),j([]),h([]);return}let n=!1,v=async()=>{try{let[B,ae,we]=await Promise.all([he(e,u),Ie(e,u),Me(e,u)]);if(n)return;p(tt=>Se(u,B.items,tt)),y(B.has_more),i(!0),j(ae),h(we),$(null),k(null)}catch(B){n||(i(!0),$(T(B)))}};v();let O=e.setInterval(()=>{v()},1e4);return()=>{n=!0,O()}},[e,u,C,G]),K(()=>{if(_===null){Q(null);return}let n=!1;return Ee(e,_).then(v=>{n||Q(v)}).catch(v=>{n||k(T(v))}),()=>{n=!0}},[e,_]);let f=s.find(n=>n.session_id===u)??null,H=f!==null&&f.ended_at===null,ne=H&&f.session_id===t,Y=u===null?[]:L.filter(n=>n.session_id===u),pe=n=>{d(n.session_id),Z(null),S(null),N(null),P({}),p([]),i(!1),y(!1),$(null),j([]),h([])},R=()=>{X(n=>n+1)},te=n=>{if(E===n.id){N(null);return}N(n.id),I[n.id]===void 0&&Te(e,n.session_id,n.seq,n.seq_to).then(v=>{P(O=>({...O,[n.id]:v}))}).catch(v=>{k(T(v))})},et=async()=>{let n=Y[Y.length-1];if(!(u===null||n===void 0)){c(!0);try{let v=await he(e,u,n.seq);p(O=>Se(u,v.items,O)),y(v.has_more)}catch(v){k(T(v))}finally{c(!1)}}};return a("div",{className:"rw-page flex h-full flex-col gap-3 p-3 text-sm",children:[r("style",{children:ht}),a("header",{className:"flex items-center justify-between gap-3 border-b border-(--ui-stroke-tertiary) pb-2",children:[a("div",{children:[r("div",{className:"text-base font-medium",children:"Session Rewind"}),r("div",{className:"text-xs text-(--ui-text-tertiary)",children:"Recorded locally. Fork a user turn, rerun it, and compare outcomes."})]}),a("div",{className:"flex items-center gap-3 text-xs",children:[f!==null?r("span",{className:"text-(--ui-text-tertiary)",children:f.model??"unknown model"}):null,H?a("span",{className:"flex items-center gap-1 text-(--ui-green)",children:[r("span",{className:"h-1.5 w-1.5 rounded-full bg-(--ui-green)"}),ne?"live":"running"]}):null,r("button",{type:"button",className:"rounded border border-(--ui-stroke-secondary) px-2 py-1",onClick:R,children:"Refresh"})]})]}),ee!==null?r("div",{className:"text-xs text-(--ui-red)",children:ee}):null,a("div",{className:"flex min-h-0 flex-1 gap-3",children:[r("aside",{className:"flex w-64 shrink-0 flex-col gap-3 overflow-auto border-r border-(--ui-stroke-tertiary) pr-2",children:a("div",{className:"flex flex-col gap-1",children:[a("div",{className:"text-xs uppercase text-(--ui-text-tertiary)",children:["Sessions",ce?r("span",{className:"ml-1",children:He(s.length,ye)}):null]}),ce?s.length===0?r("div",{className:"text-xs text-(--ui-text-tertiary)",children:"Start a chat and Rewind will record every turn."}):s.map(n=>a("button",{type:"button",className:`flex flex-col gap-0.5 rounded border px-2 py-1.5 text-left text-xs ${u===n.session_id?"border-(--ui-accent)":"border-(--ui-stroke-secondary)"}`,onClick:()=>{pe(n)},children:[a("span",{className:"flex items-center gap-1.5",children:[r("span",{className:`h-1.5 w-1.5 rounded-full ${n.ended_at===null?"bg-(--ui-green)":"bg-(--ui-text-tertiary)"}`}),r("span",{className:"truncate font-medium",children:n.title??J(n.session_id)})]}),a("span",{className:"truncate text-(--ui-text-tertiary)",children:[n.model??"unknown model"," \xB7 ",M(n.event_count,"event")]}),a("span",{className:"truncate text-(--ui-text-tertiary)",children:[fe(n.outcome)," \xB7"," ",ue(n.tokens_in+n.tokens_out)," tokens"]})]},n.session_id)):r("div",{className:"text-xs text-(--ui-text-tertiary)",children:"Loading sessions..."})]})}),a("main",{className:"flex min-w-0 flex-1 flex-col gap-2",children:[f!==null?a("div",{className:"flex items-start justify-between gap-2 border-b border-(--ui-stroke-tertiary) pb-2",children:[a("div",{children:[a("div",{className:"flex items-center gap-2",children:[r("span",{className:"text-base font-medium",children:f.title??J(f.session_id)}),q.length>0?r("span",{className:"text-xs text-(--ui-text-tertiary)",children:M(q.length,"snapshot")}):null]}),a("div",{className:"text-xs text-(--ui-text-tertiary)",children:[f.model??"unknown model"," \xB7"," ",M(f.event_count,"event")," \xB7"," ",ue(f.tokens_in+f.tokens_out)," tokens",f.ended_at===null?` \xB7 ${Oe(f.last_event_at)}`:""]})]}),r("div",{className:"text-right text-xs text-(--ui-text-tertiary)",children:"Select a user turn and choose Rewind."})]}):null,z.length>0?a("div",{className:"flex max-h-24 flex-wrap items-center gap-1 overflow-y-auto",children:[r("span",{className:"text-xs uppercase text-(--ui-text-tertiary)",children:"Branches"}),r("span",{className:"text-xs text-(--ui-text-tertiary)",children:z.length}),z.map(n=>a("button",{type:"button",className:`flex items-center gap-2 rounded border px-2 py-1 text-xs ${l===n.id?"border-(--ui-accent)":"border-(--ui-stroke-secondary)"}`,onClick:()=>{S(n.id)},children:[r("span",{className:"font-mono",children:J(n.id)}),r("span",{className:`uppercase ${Je(n.state)}`,children:n.state}),r("span",{className:"text-(--ui-text-tertiary)",children:n.fork_row_count>0?M(n.fork_row_count,"message"):"context pack"})]},n.id))]}):null,a("div",{className:"flex min-h-0 flex-1 gap-2",children:[r("div",{className:"min-w-0 flex-1 overflow-auto",children:f===null?r("div",{className:"text-xs text-(--ui-text-tertiary)",children:"Select a recorded session."}):be?Y.length===0?r("div",{className:"text-xs text-(--ui-text-tertiary)",children:Ve(f.event_count,x)}):a(Qe,{children:[Y.map(n=>r(Rt,{turn:n,expanded:E===n.id,events:I[n.id]??null,loading:E===n.id&&I[n.id]===void 0,selectedEventId:_,onToggle:()=>{te(n)},onFork:()=>{f!==null&&D({session:f,event:n})},onSelectEvent:v=>{Z(v.id)}},n.id)),F?r("button",{type:"button",className:"mt-2 w-full rounded border border-(--ui-stroke-secondary) py-1 text-xs text-(--ui-text-tertiary)",onClick:()=>{et()},disabled:w,children:w?"Loading...":"Load earlier turns"}):a("div",{className:"mt-2 text-xs text-(--ui-text-tertiary)",children:[M(Y.length,"turn")," \xB7 start of the recording"]})]}):r("div",{className:"text-xs text-(--ui-text-tertiary)",children:"Loading turns..."})}),r("div",{className:"w-80 shrink-0 overflow-auto border-l border-(--ui-stroke-tertiary) pl-2",children:r(Ct,{detail:se})})]})]})]}),l!==null?r("div",{className:"max-h-72 shrink-0 overflow-auto border-t border-(--ui-stroke-tertiary) pt-2",children:r(Pt,{ctx:e,branchId:l,refreshTick:C,onClose:()=>{S(null)},onRefresh:R})}):null,A!==null?r(Ke,{ctx:e,session:A.session,event:A.event,onClose:()=>{D(null)},onCreated:n=>{S(n),R()}}):null]})}import{jsx as Xe}from"react/jsx-runtime";var Dt={id:"session-rewind",name:"Rewind",defaultEnabled:!0,register(e){let t=()=>{Tt.navigate(oe)};e.registerMany([{id:"page",area:Mt,data:{path:oe},render:()=>Xe(Ze,{ctx:e})},{id:"nav",area:$t,data:{path:oe,label:"Rewind",codicon:"history"}},{id:"palette-open",area:It,data:{id:"session-rewind.open",label:"Open Session Rewind",keywords:["rewind","checkpoint","time machine","fork"],run:t}},{id:"keybind-open",area:Et,data:{id:"session-rewind.open",label:"Open Session Rewind",category:"Rewind",defaults:["mod+alt+r"],run:t}},{id:"chip",area:Lt.right,order:130,render:()=>Xe(Ce,{})}])}},dr=Dt;export{dr as default};
+.rp-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+.rp-head-left {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 12px;
+  min-width: 0;
+}
+.rp-mark {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  color: var(--ui-accent);
+  background: var(--ui-bg-card);
+  border: 1px solid var(--ui-stroke-tertiary);
+  border-radius: 10px;
+}
+.rp-title {
+  font-size: 17px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+}
+.rp-sub {
+  margin-top: 2px;
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--ui-text-tertiary);
+}
+.rp-head-right {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: none;
+}
+.rp-pill {
+  max-width: 220px;
+  overflow: hidden;
+  padding: 4px 10px;
+  font-size: 11px;
+  color: var(--ui-text-secondary);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  background: var(--ui-bg-card);
+  border: 1px solid var(--ui-stroke-tertiary);
+  border-radius: 999px;
+}
+.rp-live {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  color: var(--ui-green);
+}
+.rp-dot {
+  width: 6px;
+  height: 6px;
+  flex: none;
+  border-radius: 999px;
+  background: currentColor;
+}
+.rp-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 10px;
+  font: inherit;
+  font-size: 12px;
+  color: var(--ui-text-primary);
+  background: var(--ui-bg-card);
+  border: 1px solid var(--ui-stroke-secondary);
+  border-radius: 8px;
+  transition: color 120ms ease-out, background-color 120ms ease-out, border-color 120ms ease-out;
+}
+.rp-button:hover:not(:disabled) {
+  background: var(--ui-control-hover-background);
+}
+.rp-button-sm {
+  padding: 3px 8px;
+  font-size: 11px;
+}
+.rp-quiet {
+  color: var(--ui-text-tertiary);
+  background: transparent;
+  border-color: transparent;
+}
+.rp-quiet:hover:not(:disabled) {
+  color: var(--ui-text-primary);
+  background: var(--ui-control-hover-background);
+}
+.rp-columns {
+  display: flex;
+  gap: 16px;
+  flex: 1;
+  min-height: 0;
+}
+.rp-side {
+  width: 238px;
+  flex: none;
+  overflow-y: auto;
+  padding-right: 14px;
+  border-right: 1px solid var(--ui-stroke-tertiary);
+}
+.rp-main {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  flex: 1;
+  min-width: 0;
+}
+.rp-eyebrow {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0 0 8px;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--ui-text-tertiary);
+}
+.rp-eyebrow .rp-dot {
+  width: 5px;
+  height: 5px;
+  background: var(--ui-stroke-primary);
+}
+.rp-eyebrow-count {
+  margin-left: 3px;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.06em;
+}
+.rp-cards {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.rp-session {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  width: 100%;
+  padding: 9px 11px;
+  text-align: left;
+  background: var(--ui-bg-card);
+  border: 1px solid var(--ui-stroke-tertiary);
+  border-radius: 10px;
+  transition: color 120ms ease-out, background-color 120ms ease-out, border-color 120ms ease-out;
+}
+.rp-session:hover {
+  border-color: var(--ui-stroke-secondary);
+}
+.rp-session[aria-current="true"] {
+  background: color-mix(in srgb, var(--ui-accent) 9%, var(--ui-bg-card));
+  border-color: var(--ui-stroke-primary);
+}
+.rp-session-title {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 12px;
+  font-weight: 600;
+}
+.rp-session-title > span:nth-child(2) {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.rp-meta {
+  overflow: hidden;
+  font-size: 11px;
+  color: var(--ui-text-tertiary);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.rp-meta-dim {
+  color: var(--ui-text-quaternary);
+}
+.rp-detail-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--ui-stroke-tertiary);
+}
+.rp-detail-title {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+.rp-detail-note {
+  font-size: 11px;
+  font-weight: 400;
+  color: var(--ui-text-tertiary);
+}
+.rp-hint {
+  flex: none;
+  max-width: 190px;
+  font-size: 11px;
+  line-height: 1.45;
+  text-align: right;
+  color: var(--ui-text-tertiary);
+}
+.rp-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  max-height: 92px;
+  overflow-y: auto;
+}
+.rp-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 9px;
+  font-size: 11px;
+  background: var(--ui-bg-card);
+  border: 1px solid var(--ui-stroke-tertiary);
+  border-radius: 8px;
+  transition: color 120ms ease-out, background-color 120ms ease-out, border-color 120ms ease-out;
+}
+.rp-chip:hover {
+  border-color: var(--ui-stroke-secondary);
+}
+.rp-chip[aria-current="true"] {
+  border-color: var(--ui-stroke-primary);
+  background: color-mix(in srgb, var(--ui-accent) 9%, var(--ui-bg-card));
+}
+.rp-chip-note {
+  color: var(--ui-text-tertiary);
+}
+.rp-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 1px 7px;
+  font-size: 10px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ui-text-secondary);
+  border: 1px solid var(--ui-stroke-tertiary);
+  border-radius: 999px;
+}
+.rp-badge[data-tone="ok"] {
+  color: var(--ui-green);
+  background: color-mix(in srgb, var(--ui-green) 10%, transparent);
+  border-color: color-mix(in srgb, var(--ui-green) 32%, transparent);
+}
+.rp-badge[data-tone="err"] {
+  color: var(--ui-red);
+  background: color-mix(in srgb, var(--ui-red) 10%, transparent);
+  border-color: color-mix(in srgb, var(--ui-red) 32%, transparent);
+}
+.rp-badge[data-tone="run"] {
+  color: var(--ui-accent);
+  background: color-mix(in srgb, var(--ui-accent) 12%, transparent);
+  border-color: color-mix(in srgb, var(--ui-accent) 34%, transparent);
+}
+.rp-mono {
+  font-family: var(--dt-font-mono, ui-monospace, SFMono-Regular, Menlo, Consolas, monospace);
+  font-variant-numeric: tabular-nums;
+}
+.rp-turns {
+  display: flex;
+  flex: 1;
+  min-width: 0;
+  overflow-y: auto;
+}
+.rp-turn {
+  border-bottom: 1px solid var(--ui-stroke-tertiary);
+}
+.rp-turn-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.rp-turn-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  min-width: 0;
+  padding: 8px 6px;
+  text-align: left;
+  border-radius: 8px;
+  transition: background-color 120ms ease-out;
+}
+.rp-turn-row:hover {
+  background: var(--ui-control-hover-background);
+}
+.rp-caret {
+  display: inline-grid;
+  place-items: center;
+  width: 12px;
+  flex: none;
+  color: var(--ui-text-tertiary);
+  transition: transform 140ms ease-out;
+}
+.rp-caret[data-open="true"] {
+  transform: rotate(90deg);
+}
+.rp-turn-time {
+  flex: none;
+  font-size: 11px;
+  color: var(--ui-text-tertiary);
+}
+.rp-turn-preview {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  font-size: 12px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.rp-turn-stat {
+  flex: none;
+  font-size: 11px;
+  color: var(--ui-text-tertiary);
+}
+.rp-turn-duration {
+  flex: none;
+  width: 52px;
+  font-size: 11px;
+  color: var(--ui-text-tertiary);
+}
+.rp-events {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  padding: 0 6px 8px 30px;
+}
+.rp-event {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 3px 6px;
+  font-size: 11px;
+  text-align: left;
+  border-radius: 6px;
+  transition: background-color 120ms ease-out;
+}
+.rp-event:hover {
+  background: var(--ui-control-hover-background);
+}
+.rp-event[aria-current="true"] {
+  background: color-mix(in srgb, var(--ui-accent) 12%, transparent);
+}
+.rp-event-kind {
+  width: 62px;
+  flex: none;
+  overflow: hidden;
+  font-size: 10px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.rp-event-text {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  color: var(--ui-text-tertiary);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.rp-event-time {
+  width: 54px;
+  flex: none;
+  font-size: 11px;
+  text-align: right;
+}
+.rp-aside-note {
+  padding-left: 30px;
+  font-size: 11px;
+  color: var(--ui-text-tertiary);
+}
+.rp-load-more {
+  width: 100%;
+  margin-top: 8px;
+  padding: 6px;
+  font-size: 11px;
+  color: var(--ui-text-tertiary);
+  background: var(--ui-bg-card);
+  border: 1px solid var(--ui-stroke-tertiary);
+  border-radius: 8px;
+  transition: color 120ms ease-out, background-color 120ms ease-out;
+}
+.rp-load-more:hover:not(:disabled) {
+  color: var(--ui-text-primary);
+  background: var(--ui-control-hover-background);
+}
+.rp-tail {
+  margin-top: 8px;
+  font-size: 11px;
+  color: var(--ui-text-tertiary);
+}
+.rp-payload {
+  width: 288px;
+  flex: none;
+  overflow-y: auto;
+  padding-left: 14px;
+  border-left: 1px solid var(--ui-stroke-tertiary);
+}
+.rp-panel {
+  padding: 11px 12px;
+  background: var(--ui-bg-card);
+  border: 1px solid var(--ui-stroke-tertiary);
+  border-radius: 10px;
+}
+.rp-panel-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+.rp-card-label {
+  margin-bottom: 8px;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.11em;
+  text-transform: uppercase;
+  color: var(--ui-text-tertiary);
+}
+.rp-card-label-accent {
+  color: var(--ui-accent);
+}
+.rp-metrics {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 4px 16px;
+  align-items: baseline;
+  font-size: 11px;
+}
+.rp-metric-label {
+  color: var(--ui-text-tertiary);
+}
+.rp-metric-value {
+  font-family: var(--dt-font-mono, ui-monospace, SFMono-Regular, Menlo, Consolas, monospace);
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+.rp-compare {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+.rp-verdict {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 9px 11px;
+  font-size: 11px;
+  line-height: 1.5;
+  color: var(--ui-text-secondary);
+  background: var(--ui-bg-card);
+  border: 1px solid var(--ui-stroke-tertiary);
+  border-radius: 8px;
+}
+.rp-verdict .rp-icon {
+  flex: none;
+  margin-top: 1px;
+  color: var(--ui-text-tertiary);
+}
+.rp-verdict strong {
+  font-weight: 600;
+  color: var(--ui-text-primary);
+}
+.rp-pre {
+  max-height: 132px;
+  padding: 10px 12px;
+  overflow: auto;
+  font-family: var(--dt-font-mono, ui-monospace, SFMono-Regular, Menlo, Consolas, monospace);
+  font-size: 11px;
+  line-height: 1.55;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  background: var(--ui-bg-card);
+  border: 1px solid var(--ui-stroke-tertiary);
+  border-radius: 8px;
+}
+.rp-disclosure {
+  font-size: 11px;
+  color: var(--ui-text-tertiary);
+}
+.rp-disclosure summary {
+  cursor: pointer;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.11em;
+  text-transform: uppercase;
+}
+.rp-disclosure .rp-pre {
+  max-height: 128px;
+  margin-top: 8px;
+  border: 0;
+  padding: 0;
+  background: transparent;
+}
+.rp-note {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 9px 11px;
+  font-size: 11px;
+  line-height: 1.5;
+  border: 1px solid transparent;
+  border-radius: 8px;
+}
+.rp-note-warn {
+  color: var(--ui-yellow);
+  background: color-mix(in srgb, var(--ui-yellow) 8%, transparent);
+  border-color: color-mix(in srgb, var(--ui-yellow) 30%, transparent);
+}
+.rp-error {
+  font-size: 11px;
+  color: var(--ui-red);
+}
+.rp-confirm {
+  padding: 10px 12px;
+  background: color-mix(in srgb, var(--ui-red) 7%, transparent);
+  border: 1px solid color-mix(in srgb, var(--ui-red) 32%, transparent);
+  border-radius: 10px;
+}
+.rp-confirm-copy {
+  margin-bottom: 4px;
+  font-size: 12px;
+  line-height: 1.45;
+}
+.rp-confirm-path {
+  margin-bottom: 10px;
+  font-family: var(--dt-font-mono, ui-monospace, SFMono-Regular, Menlo, Consolas, monospace);
+  font-size: 11px;
+  color: var(--ui-text-tertiary);
+  word-break: break-all;
+}
+.rp-confirm-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.rp-delete {
+  color: var(--ui-red);
+  border-color: color-mix(in srgb, var(--ui-red) 45%, transparent);
+}
+.rp-delete:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--ui-red) 14%, transparent);
+}
+.rp-branch-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+.rp-branch-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  font-weight: 600;
+}
+.rp-branch-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.rp-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.rp-icon {
+  flex: none;
+}
+@media (max-width: 900px) {
+  .rp-columns {
+    flex-direction: column;
+  }
+  .rp-side {
+    width: auto;
+    padding-right: 0;
+    border-right: 0;
+  }
+  .rp-payload {
+    width: auto;
+    padding-left: 0;
+    border-left: 0;
+  }
+}
+@media (max-width: 560px) {
+  .rp-compare {
+    grid-template-columns: 1fr;
+  }
+  .rp-head-right .rp-pill {
+    display: none;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .rp-caret {
+    transition: none;
+  }
+}
+`,_r=new Set(["done","failed","cleaned","discarded"]);function Nr(e){return me(Math.max(0,(e.work_ts-e.ts)*1e3))}function Sr({event:e,selected:r,onSelect:a}){return o("button",{type:"button",className:"rp-event","aria-current":r?"true":void 0,onClick:a,children:[t("span",{title:e.kind,className:`rp-event-kind ${Je(e.kind,e.status)}`,children:Ze(e.kind)}),t("span",{className:"rp-event-text",children:e.name??e.preview}),t("span",{className:"rp-event-time rp-mono",children:me(e.duration_ms)})]})}var Rr=new Set(["api_request","llm_call"]);function Cr({turn:e,expanded:r,events:a,loading:m,selectedEventId:u,onToggle:d,onFork:$,onSelectEvent:c}){let F=(a??[]).filter(h=>!Rr.has(h.kind)),w=(a??[]).length-F.length;return o("div",{className:"rp-turn",children:[o("div",{className:"rp-turn-bar",children:[o("button",{type:"button",className:"rp-turn-row",onClick:d,"aria-expanded":r,children:[t("span",{className:"rp-caret","data-open":r?"true":"false",children:t(P,{name:"chevron",size:12})}),t("span",{className:"rp-turn-time rp-mono",children:le(e.ts)}),t("span",{className:"rp-turn-preview",children:e.preview||"User turn"}),t("span",{className:"rp-turn-stat",children:I(e.tool_calls,"tool")}),e.tool_errors>0?o("span",{className:"rp-badge","data-tone":"err",children:[t("span",{className:"rp-dot"}),I(e.tool_errors,"error")]}):null,t("span",{className:"rp-turn-duration rp-mono",children:Nr(e)})]}),o("button",{type:"button",className:"rp-button rp-button-sm",onClick:$,children:[t(P,{name:"rewind",size:12}),"Rewind"]})]}),r?t("div",{className:"rp-events",children:m?t("div",{className:"rp-aside-note",children:"Loading events..."}):o(Re,{children:[F.map(h=>t(Sr,{event:h,selected:u===h.id,onSelect:()=>{c(h)}},h.id)),w>0?o("div",{className:"rp-aside-note",children:[I(e.api_requests,"model request")," \xB7 ",I(e.event_count,"event")," ","in this turn"]}):null]})}):null]})}function Ze(e){switch(e){case"user_turn":return"user";case"assistant_response":return"reply";case"tool_call":return"tool";case"tool_result":return"result";case"api_request":return"request";case"llm_call":return"usage";case"session_start":return"start";case"session_end":return"end";case"compaction":return"compact";case"turn_end":return"turn";case"session_finalize":return"finalize";case"capture_dropped":return"dropped";default:return e}}function Je(e,r){return e==="tool_result"&&r==="error"?"text-(--ui-red)":e==="assistant_response"||e==="tool_result"?"text-(--ui-green)":e==="user_turn"?"text-(--ui-accent)":e==="tool_call"?"text-(--ui-purple)":e==="api_request"||e==="llm_call"?"text-(--ui-orange)":e==="compaction"?"text-(--ui-text-secondary)":"text-(--ui-text-tertiary)"}function Qe(e){return e==="done"?"ok":e==="failed"?"err":e==="running"?"run":"idle"}function te({label:e,value:r}){return o(Re,{children:[t("span",{className:"rp-metric-label",children:e}),t("span",{className:"rp-metric-value",children:r})]})}function Pr({detail:e}){return e===null?t("div",{className:"rp-meta",children:"Select an event to inspect its payload."}):o("div",{className:"flex flex-col gap-2",children:[o("div",{className:"flex items-center justify-between gap-2 text-xs",children:[t("span",{className:`font-medium ${Je(e.kind,e.status)}`,children:Ze(e.kind)}),o("span",{className:"font-mono text-(--ui-text-tertiary)",children:["#",e.id," \xB7 seq ",e.seq]})]}),o("div",{className:"text-xs text-(--ui-text-tertiary)",children:[e.name??"event",e.status!==null?` \xB7 ${e.status}`:"",e.duration_ms!==null?` \xB7 ${me(e.duration_ms)}`:""]}),t("pre",{className:"max-h-96 overflow-auto whitespace-pre-wrap break-words rounded border border-(--ui-stroke-tertiary) p-2 font-mono text-xs",children:JSON.stringify(e.payload,null,2)})]})}function Er({ctx:e,branchId:r,refreshTick:a,onClose:m,onRefresh:u}){let[d,$]=x(null),[c,F]=x(null),[w,h]=x(!1),[p,z]=x(null),[N,M]=x(null),E=wr(null);K(()=>{let l=!1,S=null,q=async()=>{try{let C=await Le(e,r);if(l)return!0;$(C),z(null);let X=C.branch.child_session_id;if(X!==null){let ee=await $e(e,C.branch.parent_session_id,X,C.branch.fork_before_ts);l||F(ee)}else F(null);return _r.has(C.branch.state)}catch(C){return l||z(T(C)),!1}},D=async()=>{let C=await q();!l&&!C&&(S=e.setTimeout(()=>{D()},2500))};return D(),()=>{l=!0,S!==null&&S()}},[e,r,a]);let H=async()=>{h(!0),z(null);try{await Ae(e,r),u()}catch(l){z(T(l))}finally{h(!1)}},j=async l=>{h(!0),z(null),M(null);try{await ke(e,r),u()}catch(S){z(T(S)),M(l)}finally{h(!1)}},A=async()=>{h(!0),z(null);try{let l=await Be(e,r);l.uncommitted===0?(await ke(e,r),u()):M(l)}catch(l){z(T(l))}finally{h(!1)}};if(K(()=>{M(null)},[r]),K(()=>{if(N===null)return;let l=S=>{S.key==="Escape"&&Ye()&&M(null)};return window.addEventListener("keydown",l),()=>{window.removeEventListener("keydown",l)}},[N]),K(()=>{if(N===null)return;let l=document.activeElement;return E.current?.focus(),()=>{l instanceof HTMLElement&&l.focus()}},[N]),d===null)return t("div",{className:"rp-meta",children:"Loading branch..."});let y=d.branch,k=d.run,J=k?.verify_exit??c?.right?.verify_exit??null,ae=y.verify_cmd?y.worktree_path?void 0:"The workspace of this branch was cleaned.":"No verify command was recorded for this branch.",Q=y.worktree_path?void 0:"This branch has no workspace left to remove.";return o("div",{className:"rp-stack",children:[o("div",{className:"rp-branch-head",children:[o("div",{className:"rp-branch-title",children:[o("span",{children:["Branch ",Z(y.id)]}),o("span",{className:"rp-badge","data-tone":Qe(y.state),children:[t("span",{className:"rp-dot"}),y.state]}),k!==null&&k.verify_exit!==null?o("span",{className:"rp-badge","data-tone":k.verify_exit===0?"ok":"err",children:["verify ",_e(k.verify_exit)]}):null]}),o("div",{className:"rp-branch-actions",children:[t("button",{type:"button",className:"rp-button rp-button-sm",title:ae,onClick:()=>{H()},disabled:w||!y.verify_cmd||!y.worktree_path,children:"Verify"}),t("button",{type:"button",className:"rp-button rp-button-sm",title:Q,onClick:()=>{A()},disabled:w||!y.worktree_path,children:"Cleanup"}),t("button",{type:"button",className:"rp-button rp-button-sm rp-quiet",onClick:m,children:"Hide"})]})]}),d.shared_child?t("div",{className:"rp-note rp-note-warn",children:"Another branch claims this same rerun session, so the numbers below may describe a different fork. It was recorded before the session-id fix."}):null,p!==null?t("div",{className:"rp-error",children:p}):null,N!==null?o("div",{className:"rp-confirm",ref:E,role:"alertdialog","aria-label":"Confirm workspace cleanup","data-rw-confirm":"true",tabIndex:-1,children:[t("div",{className:"rp-confirm-copy",children:We(N.uncommitted)}),t("div",{className:"rp-confirm-path",children:N.worktree_path}),o("div",{className:"rp-confirm-actions",children:[t("button",{type:"button",className:"rp-button rp-button-sm rp-delete",onClick:()=>{j(N)},disabled:w,children:"Delete workspace"}),t("button",{type:"button",className:"rp-button rp-button-sm",onClick:()=>{M(null)},children:"Cancel"})]})]}):null,c!==null?o("div",{className:"rp-stack",children:[o("div",{className:"rp-compare",children:[o("div",{className:"rp-panel",children:[o("div",{className:"rp-card-label",children:["Original",c.left?.frozen_at?` \xB7 frozen ${le(c.left.frozen_at)}`:""]}),o("div",{className:"rp-metrics",children:[t(te,{label:"outcome",value:c.left===null?"not recorded":He(c.left.outcome)}),t(te,{label:"tokens",value:c.left===null?"n/a":ue(c.left.tokens_in+c.left.tokens_out)}),t(te,{label:"tool errors",value:c.left===null?"n/a":String(c.left.tool_errors)})]})]}),o("div",{className:"rp-panel",children:[t("div",{className:"rp-card-label rp-card-label-accent",children:"Rerun"}),o("div",{className:"rp-metrics",children:[t(te,{label:"outcome",value:c.right===null?"not recorded":fe(c.right.outcome)}),t(te,{label:"verify",value:J===null?"not run":_e(J)}),t(te,{label:"tokens",value:c.right===null?"n/a":ue(c.right.tokens_in+c.right.tokens_out)}),t(te,{label:"tool errors",value:c.right===null?"n/a":String(c.right.tool_errors)})]})]})]}),o("div",{className:"rp-verdict",children:[t(P,{name:"info",size:13}),o("span",{children:[t("strong",{children:"Verdict"})," ",c.verdict]})]})]}):t("div",{className:"rp-meta",children:y.state==="cleaned"||y.state==="discarded"?"The rerun never started, and its workspace is gone.":"Waiting for the rerun to start."}),k!==null&&k.verify_out?t("pre",{className:"rp-pre",children:k.verify_out}):null,d.prompt!==null?o("details",{className:"rp-panel rp-disclosure",children:[t("summary",{children:"Prompt"}),t("pre",{className:"rp-pre",children:d.prompt})]}):null]})}function Xe({ctx:e}){let r=hr(xr.state.activeSessionId),[a,m]=x([]),[u,d]=x(null),[$,c]=x([]),[F,w]=x(!1),[h,p]=x(!1),[z,N]=x(null),[M,E]=x({}),[H,j]=x([]),[A,y]=x([]),[k,J]=x(null),[ae,Q]=x(null),[l,S]=x(null),[q,D]=x(null),[C,X]=x(0),[ee,_]=x(null),[G,ve]=x(0),[pe,be]=x(!1),[xe,s]=x(!1),[v,L]=x(null);K(()=>{let n=null,b=e.onEvent("*",()=>{n===null&&(n=e.setTimeout(()=>{n=null,ve(V=>V+1)},1500))});return()=>{b(),n!==null&&n()}},[e]),K(()=>{if(l===null||q!==null)return;let n=b=>{b.key==="Escape"&&!Ye()&&S(null)};return window.addEventListener("keydown",n),()=>{window.removeEventListener("keydown",n)}},[l,q]),K(()=>{let n=!1,b=async()=>{try{let B=await Ee(e);if(n)return;m(B),be(!0),_(null),d(ie=>ie!==null&&B.some(he=>he.session_id===ie)?ie:r??B[0]?.session_id??null)}catch(B){n||_(T(B))}};b();let V=e.setInterval(()=>{b()},1e4);return()=>{n=!0,V()}},[e,r,C,G]),K(()=>{if(u===null){c([]),s(!1),w(!1),L(null),j([]),y([]);return}let n=!1,b=async()=>{try{let[B,ie,he]=await Promise.all([ye(e,u),Me(e,u),Ie(e,u)]);if(n)return;c(tr=>Se(u,B.items,tr)),w(B.has_more),s(!0),j(ie),y(he),L(null),_(null)}catch(B){n||(s(!0),L(T(B)))}};b();let V=e.setInterval(()=>{b()},1e4);return()=>{n=!0,V()}},[e,u,C,G]),K(()=>{if(k===null){Q(null);return}let n=!1;return ze(e,k).then(b=>{n||Q(b)}).catch(b=>{n||_(T(b))}),()=>{n=!0}},[e,k]);let f=a.find(n=>n.session_id===u)??null,O=f!==null&&f.ended_at===null,ne=O&&f.session_id===r,Y=u===null?[]:$.filter(n=>n.session_id===u),ce=n=>{d(n.session_id),J(null),S(null),N(null),E({}),c([]),s(!1),w(!1),L(null),j([]),y([])},R=()=>{X(n=>n+1)},re=n=>{if(z===n.id){N(null);return}N(n.id),M[n.id]===void 0&&Te(e,n.session_id,n.seq,n.seq_to).then(b=>{E(V=>({...V,[n.id]:b}))}).catch(b=>{_(T(b))})},rr=async()=>{let n=Y[Y.length-1];if(!(u===null||n===void 0)){p(!0);try{let b=await ye(e,u,n.seq);c(V=>Se(u,b.items,V)),w(b.has_more)}catch(b){_(T(b))}finally{p(!1)}}};return o("div",{className:"rw-page rp-shell",children:[t("style",{children:kr}),o("header",{className:"rp-head",children:[o("div",{className:"rp-head-left",children:[t("span",{className:"rp-mark",children:t(P,{name:"rewind",size:16})}),o("div",{children:[t("div",{className:"rp-title",children:"Session Rewind"}),t("div",{className:"rp-sub",children:"Recorded locally. Fork a user turn, rerun it, and compare outcomes."})]})]}),o("div",{className:"rp-head-right",children:[f!==null?t("span",{className:"rp-pill rp-mono",children:f.model??"unknown model"}):null,O?o("span",{className:"rp-live",children:[t("span",{className:"rp-dot"}),ne?"live":"running"]}):null,o("button",{type:"button",className:"rp-button",onClick:R,children:[t(P,{name:"refresh",size:13}),"Refresh"]})]})]}),ee!==null?t("div",{className:"rp-error",children:ee}):null,o("div",{className:"rp-columns",children:[o("aside",{className:"rp-side",children:[o("div",{className:"rp-eyebrow",children:[t("span",{className:"rp-dot"}),"Sessions",pe?t("span",{className:"rp-eyebrow-count",children:Oe(a.length,we)}):null]}),pe?a.length===0?t("div",{className:"rp-meta",children:"Start a chat and Rewind will record every turn."}):t("div",{className:"rp-cards",children:a.map(n=>o("button",{type:"button",className:"rp-session","aria-current":u===n.session_id?"true":void 0,onClick:()=>{ce(n)},children:[o("span",{className:"rp-session-title",children:[t("span",{className:"rp-dot",style:{background:n.ended_at===null?"var(--ui-green)":"var(--ui-text-quaternary)"}}),t("span",{children:n.title??Z(n.session_id)})]}),o("span",{className:"rp-meta",children:[n.model??"unknown model"," \xB7 ",I(n.event_count,"event")]}),o("span",{className:"rp-meta rp-meta-dim",children:[fe(n.outcome)," \xB7"," ",ue(n.tokens_in+n.tokens_out)," tokens"]})]},n.session_id))}):t("div",{className:"rp-meta",children:"Loading sessions..."})]}),o("main",{className:"rp-main",children:[f!==null?o("div",{className:"rp-detail-head",children:[o("div",{className:"rp-stack",style:{gap:3},children:[o("div",{className:"rp-detail-title",children:[f.title??Z(f.session_id),H.length>0?t("span",{className:"rp-detail-note",children:I(H.length,"snapshot")}):null]}),o("div",{className:"rp-meta",children:[f.model??"unknown model"," \xB7"," ",I(f.event_count,"event")," \xB7"," ",ue(f.tokens_in+f.tokens_out)," tokens",f.ended_at===null?` \xB7 ${Ve(f.last_event_at)}`:""]})]}),t("div",{className:"rp-hint",children:"Select a user turn and choose Rewind."})]}):null,A.length>0?o("div",{children:[o("div",{className:"rp-eyebrow",children:[t("span",{className:"rp-dot"}),"Branches",t("span",{className:"rp-eyebrow-count",children:A.length})]}),t("div",{className:"rp-chips",children:A.map(n=>o("button",{type:"button",className:"rp-chip","aria-current":l===n.id?"true":void 0,onClick:()=>{S(n.id)},children:[t("span",{className:"rp-mono",children:Z(n.id)}),o("span",{className:"rp-badge","data-tone":Qe(n.state),children:[t("span",{className:"rp-dot"}),n.state]}),t("span",{className:"rp-chip-note",children:n.fork_row_count>0?I(n.fork_row_count,"message"):"context pack"})]},n.id))})]}):null,o("div",{className:"rp-columns",style:{gap:0},children:[t("div",{className:"rp-turns",children:o("div",{className:"rp-stack",style:{width:"100%"},children:[o("div",{className:"rp-eyebrow",children:[t("span",{className:"rp-dot"}),"Turns"]}),f===null?t("div",{className:"rp-meta",children:"Select a recorded session."}):xe?Y.length===0?t("div",{className:"rp-meta",children:Ue(f.event_count,v)}):o(Re,{children:[Y.map(n=>t(Cr,{turn:n,expanded:z===n.id,events:M[n.id]??null,loading:z===n.id&&M[n.id]===void 0,selectedEventId:k,onToggle:()=>{re(n)},onFork:()=>{f!==null&&D({session:f,event:n})},onSelectEvent:b=>{J(b.id)}},n.id)),F?t("button",{type:"button",className:"rp-load-more",onClick:()=>{rr()},disabled:h,children:h?"Loading...":"Load earlier turns"}):o("div",{className:"rp-tail",children:[I(Y.length,"turn")," \xB7 start of the recording"]})]}):t("div",{className:"rp-meta",children:"Loading turns..."})]})}),o("div",{className:"rp-payload",children:[o("div",{className:"rp-eyebrow",children:[t("span",{className:"rp-dot"}),"Event payload"]}),t(Pr,{detail:ae})]})]})]})]}),l!==null?t("div",{className:"max-h-72 shrink-0 overflow-auto border-t border-(--ui-stroke-tertiary) pt-2",children:t(Er,{ctx:e,branchId:l,refreshTick:C,onClose:()=>{S(null)},onRefresh:R})}):null,q!==null?t(Ge,{ctx:e,session:q.session,event:q.event,onClose:()=>{D(null)},onCreated:n=>{S(n),R()}}):null]})}import{jsx as er}from"react/jsx-runtime";var Dr={id:"session-rewind",name:"Rewind",defaultEnabled:!0,register(e){let r=()=>{Tr.navigate(oe)};e.registerMany([{id:"page",area:Ir,data:{path:oe},render:()=>er(Xe,{ctx:e})},{id:"nav",area:Lr,data:{path:oe,label:"Rewind",codicon:"history"}},{id:"palette-open",area:Mr,data:{id:"session-rewind.open",label:"Open Session Rewind",keywords:["rewind","checkpoint","time machine","fork"],run:r}},{id:"keybind-open",area:zr,data:{id:"session-rewind.open",label:"Open Session Rewind",category:"Rewind",defaults:["mod+alt+r"],run:r}},{id:"chip",area:$r.right,order:130,render:()=>er(Pe,{})}])}},gt=Dr;export{gt as default};

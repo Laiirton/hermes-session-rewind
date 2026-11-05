@@ -44,6 +44,7 @@ import {
   verifyOutcome
 } from '../format';
 import { ForkDialog } from './ForkDialog';
+import { Icon } from './icons';
 import { mergeTurnPages } from '../mergeTurnPages';
 
 interface ForkTarget {
@@ -59,27 +60,634 @@ function confirmOwnsEscape(): boolean {
 }
 
 const PAGE_CSS = `
-.rw-page :is(button, input, textarea, summary, [tabindex]):focus-visible {
-  outline: 2px solid var(--ui-accent, #4f8cff);
+.rw-page :is(button, summary, [tabindex]):focus-visible {
+  outline: 2px solid var(--ui-stroke-primary);
   outline-offset: 1px;
 }
-.rw-page button:not(:disabled) {
+.rw-page :is(input, textarea):focus-visible {
+  outline: none;
+}
+.rw-page button {
+  font: inherit;
+  color: inherit;
   cursor: pointer;
-}
-.rw-note-warn {
-  background: color-mix(in srgb, var(--ui-yellow) 8%, transparent);
-  border-color: color-mix(in srgb, var(--ui-yellow) 30%, transparent);
-}
-.rw-confirm {
-  background: color-mix(in srgb, var(--ui-red) 8%, transparent);
-  border-color: color-mix(in srgb, var(--ui-red) 32%, transparent);
-}
-.rw-confirm-delete {
-  color: var(--ui-red);
-  border-color: color-mix(in srgb, var(--ui-red) 45%, transparent);
+  background: transparent;
+  border: 0;
 }
 .rw-page button:disabled {
   cursor: not-allowed;
+  opacity: 0.5;
+}
+.rp-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+.rp-head-left {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 12px;
+  min-width: 0;
+}
+.rp-mark {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  color: var(--ui-accent);
+  background: var(--ui-bg-card);
+  border: 1px solid var(--ui-stroke-tertiary);
+  border-radius: 10px;
+}
+.rp-title {
+  font-size: 17px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+}
+.rp-sub {
+  margin-top: 2px;
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--ui-text-tertiary);
+}
+.rp-head-right {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: none;
+}
+.rp-pill {
+  max-width: 220px;
+  overflow: hidden;
+  padding: 4px 10px;
+  font-size: 11px;
+  color: var(--ui-text-secondary);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  background: var(--ui-bg-card);
+  border: 1px solid var(--ui-stroke-tertiary);
+  border-radius: 999px;
+}
+.rp-live {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  color: var(--ui-green);
+}
+.rp-dot {
+  width: 6px;
+  height: 6px;
+  flex: none;
+  border-radius: 999px;
+  background: currentColor;
+}
+.rp-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 10px;
+  font: inherit;
+  font-size: 12px;
+  color: var(--ui-text-primary);
+  background: var(--ui-bg-card);
+  border: 1px solid var(--ui-stroke-secondary);
+  border-radius: 8px;
+  transition: color 120ms ease-out, background-color 120ms ease-out, border-color 120ms ease-out;
+}
+.rp-button:hover:not(:disabled) {
+  background: var(--ui-control-hover-background);
+}
+.rp-button-sm {
+  padding: 3px 8px;
+  font-size: 11px;
+}
+.rp-quiet {
+  color: var(--ui-text-tertiary);
+  background: transparent;
+  border-color: transparent;
+}
+.rp-quiet:hover:not(:disabled) {
+  color: var(--ui-text-primary);
+  background: var(--ui-control-hover-background);
+}
+.rp-columns {
+  display: flex;
+  gap: 16px;
+  flex: 1;
+  min-height: 0;
+}
+.rp-side {
+  width: 238px;
+  flex: none;
+  overflow-y: auto;
+  padding-right: 14px;
+  border-right: 1px solid var(--ui-stroke-tertiary);
+}
+.rp-main {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  flex: 1;
+  min-width: 0;
+}
+.rp-eyebrow {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0 0 8px;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--ui-text-tertiary);
+}
+.rp-eyebrow .rp-dot {
+  width: 5px;
+  height: 5px;
+  background: var(--ui-stroke-primary);
+}
+.rp-eyebrow-count {
+  margin-left: 3px;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.06em;
+}
+.rp-cards {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.rp-session {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  width: 100%;
+  padding: 9px 11px;
+  text-align: left;
+  background: var(--ui-bg-card);
+  border: 1px solid var(--ui-stroke-tertiary);
+  border-radius: 10px;
+  transition: color 120ms ease-out, background-color 120ms ease-out, border-color 120ms ease-out;
+}
+.rp-session:hover {
+  border-color: var(--ui-stroke-secondary);
+}
+.rp-session[aria-current="true"] {
+  background: color-mix(in srgb, var(--ui-accent) 9%, var(--ui-bg-card));
+  border-color: var(--ui-stroke-primary);
+}
+.rp-session-title {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 12px;
+  font-weight: 600;
+}
+.rp-session-title > span:nth-child(2) {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.rp-meta {
+  overflow: hidden;
+  font-size: 11px;
+  color: var(--ui-text-tertiary);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.rp-meta-dim {
+  color: var(--ui-text-quaternary);
+}
+.rp-detail-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--ui-stroke-tertiary);
+}
+.rp-detail-title {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+.rp-detail-note {
+  font-size: 11px;
+  font-weight: 400;
+  color: var(--ui-text-tertiary);
+}
+.rp-hint {
+  flex: none;
+  max-width: 190px;
+  font-size: 11px;
+  line-height: 1.45;
+  text-align: right;
+  color: var(--ui-text-tertiary);
+}
+.rp-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  max-height: 92px;
+  overflow-y: auto;
+}
+.rp-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 9px;
+  font-size: 11px;
+  background: var(--ui-bg-card);
+  border: 1px solid var(--ui-stroke-tertiary);
+  border-radius: 8px;
+  transition: color 120ms ease-out, background-color 120ms ease-out, border-color 120ms ease-out;
+}
+.rp-chip:hover {
+  border-color: var(--ui-stroke-secondary);
+}
+.rp-chip[aria-current="true"] {
+  border-color: var(--ui-stroke-primary);
+  background: color-mix(in srgb, var(--ui-accent) 9%, var(--ui-bg-card));
+}
+.rp-chip-note {
+  color: var(--ui-text-tertiary);
+}
+.rp-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 1px 7px;
+  font-size: 10px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ui-text-secondary);
+  border: 1px solid var(--ui-stroke-tertiary);
+  border-radius: 999px;
+}
+.rp-badge[data-tone="ok"] {
+  color: var(--ui-green);
+  background: color-mix(in srgb, var(--ui-green) 10%, transparent);
+  border-color: color-mix(in srgb, var(--ui-green) 32%, transparent);
+}
+.rp-badge[data-tone="err"] {
+  color: var(--ui-red);
+  background: color-mix(in srgb, var(--ui-red) 10%, transparent);
+  border-color: color-mix(in srgb, var(--ui-red) 32%, transparent);
+}
+.rp-badge[data-tone="run"] {
+  color: var(--ui-accent);
+  background: color-mix(in srgb, var(--ui-accent) 12%, transparent);
+  border-color: color-mix(in srgb, var(--ui-accent) 34%, transparent);
+}
+.rp-mono {
+  font-family: var(--dt-font-mono, ui-monospace, SFMono-Regular, Menlo, Consolas, monospace);
+  font-variant-numeric: tabular-nums;
+}
+.rp-turns {
+  display: flex;
+  flex: 1;
+  min-width: 0;
+  overflow-y: auto;
+}
+.rp-turn {
+  border-bottom: 1px solid var(--ui-stroke-tertiary);
+}
+.rp-turn-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.rp-turn-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  min-width: 0;
+  padding: 8px 6px;
+  text-align: left;
+  border-radius: 8px;
+  transition: background-color 120ms ease-out;
+}
+.rp-turn-row:hover {
+  background: var(--ui-control-hover-background);
+}
+.rp-caret {
+  display: inline-grid;
+  place-items: center;
+  width: 12px;
+  flex: none;
+  color: var(--ui-text-tertiary);
+  transition: transform 140ms ease-out;
+}
+.rp-caret[data-open="true"] {
+  transform: rotate(90deg);
+}
+.rp-turn-time {
+  flex: none;
+  font-size: 11px;
+  color: var(--ui-text-tertiary);
+}
+.rp-turn-preview {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  font-size: 12px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.rp-turn-stat {
+  flex: none;
+  font-size: 11px;
+  color: var(--ui-text-tertiary);
+}
+.rp-turn-duration {
+  flex: none;
+  width: 52px;
+  font-size: 11px;
+  color: var(--ui-text-tertiary);
+}
+.rp-events {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  padding: 0 6px 8px 30px;
+}
+.rp-event {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 3px 6px;
+  font-size: 11px;
+  text-align: left;
+  border-radius: 6px;
+  transition: background-color 120ms ease-out;
+}
+.rp-event:hover {
+  background: var(--ui-control-hover-background);
+}
+.rp-event[aria-current="true"] {
+  background: color-mix(in srgb, var(--ui-accent) 12%, transparent);
+}
+.rp-event-kind {
+  width: 62px;
+  flex: none;
+  overflow: hidden;
+  font-size: 10px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.rp-event-text {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  color: var(--ui-text-tertiary);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.rp-event-time {
+  width: 54px;
+  flex: none;
+  font-size: 11px;
+  text-align: right;
+}
+.rp-aside-note {
+  padding-left: 30px;
+  font-size: 11px;
+  color: var(--ui-text-tertiary);
+}
+.rp-load-more {
+  width: 100%;
+  margin-top: 8px;
+  padding: 6px;
+  font-size: 11px;
+  color: var(--ui-text-tertiary);
+  background: var(--ui-bg-card);
+  border: 1px solid var(--ui-stroke-tertiary);
+  border-radius: 8px;
+  transition: color 120ms ease-out, background-color 120ms ease-out;
+}
+.rp-load-more:hover:not(:disabled) {
+  color: var(--ui-text-primary);
+  background: var(--ui-control-hover-background);
+}
+.rp-tail {
+  margin-top: 8px;
+  font-size: 11px;
+  color: var(--ui-text-tertiary);
+}
+.rp-payload {
+  width: 288px;
+  flex: none;
+  overflow-y: auto;
+  padding-left: 14px;
+  border-left: 1px solid var(--ui-stroke-tertiary);
+}
+.rp-panel {
+  padding: 11px 12px;
+  background: var(--ui-bg-card);
+  border: 1px solid var(--ui-stroke-tertiary);
+  border-radius: 10px;
+}
+.rp-panel-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+.rp-card-label {
+  margin-bottom: 8px;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.11em;
+  text-transform: uppercase;
+  color: var(--ui-text-tertiary);
+}
+.rp-card-label-accent {
+  color: var(--ui-accent);
+}
+.rp-metrics {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 4px 16px;
+  align-items: baseline;
+  font-size: 11px;
+}
+.rp-metric-label {
+  color: var(--ui-text-tertiary);
+}
+.rp-metric-value {
+  font-family: var(--dt-font-mono, ui-monospace, SFMono-Regular, Menlo, Consolas, monospace);
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+.rp-compare {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+.rp-verdict {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 9px 11px;
+  font-size: 11px;
+  line-height: 1.5;
+  color: var(--ui-text-secondary);
+  background: var(--ui-bg-card);
+  border: 1px solid var(--ui-stroke-tertiary);
+  border-radius: 8px;
+}
+.rp-verdict .rp-icon {
+  flex: none;
+  margin-top: 1px;
+  color: var(--ui-text-tertiary);
+}
+.rp-verdict strong {
+  font-weight: 600;
+  color: var(--ui-text-primary);
+}
+.rp-pre {
+  max-height: 132px;
+  padding: 10px 12px;
+  overflow: auto;
+  font-family: var(--dt-font-mono, ui-monospace, SFMono-Regular, Menlo, Consolas, monospace);
+  font-size: 11px;
+  line-height: 1.55;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  background: var(--ui-bg-card);
+  border: 1px solid var(--ui-stroke-tertiary);
+  border-radius: 8px;
+}
+.rp-disclosure {
+  font-size: 11px;
+  color: var(--ui-text-tertiary);
+}
+.rp-disclosure summary {
+  cursor: pointer;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.11em;
+  text-transform: uppercase;
+}
+.rp-disclosure .rp-pre {
+  max-height: 128px;
+  margin-top: 8px;
+  border: 0;
+  padding: 0;
+  background: transparent;
+}
+.rp-note {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 9px 11px;
+  font-size: 11px;
+  line-height: 1.5;
+  border: 1px solid transparent;
+  border-radius: 8px;
+}
+.rp-note-warn {
+  color: var(--ui-yellow);
+  background: color-mix(in srgb, var(--ui-yellow) 8%, transparent);
+  border-color: color-mix(in srgb, var(--ui-yellow) 30%, transparent);
+}
+.rp-error {
+  font-size: 11px;
+  color: var(--ui-red);
+}
+.rp-confirm {
+  padding: 10px 12px;
+  background: color-mix(in srgb, var(--ui-red) 7%, transparent);
+  border: 1px solid color-mix(in srgb, var(--ui-red) 32%, transparent);
+  border-radius: 10px;
+}
+.rp-confirm-copy {
+  margin-bottom: 4px;
+  font-size: 12px;
+  line-height: 1.45;
+}
+.rp-confirm-path {
+  margin-bottom: 10px;
+  font-family: var(--dt-font-mono, ui-monospace, SFMono-Regular, Menlo, Consolas, monospace);
+  font-size: 11px;
+  color: var(--ui-text-tertiary);
+  word-break: break-all;
+}
+.rp-confirm-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.rp-delete {
+  color: var(--ui-red);
+  border-color: color-mix(in srgb, var(--ui-red) 45%, transparent);
+}
+.rp-delete:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--ui-red) 14%, transparent);
+}
+.rp-branch-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+.rp-branch-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  font-weight: 600;
+}
+.rp-branch-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.rp-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.rp-icon {
+  flex: none;
+}
+@media (max-width: 900px) {
+  .rp-columns {
+    flex-direction: column;
+  }
+  .rp-side {
+    width: auto;
+    padding-right: 0;
+    border-right: 0;
+  }
+  .rp-payload {
+    width: auto;
+    padding-left: 0;
+    border-left: 0;
+  }
+}
+@media (max-width: 560px) {
+  .rp-compare {
+    grid-template-columns: 1fr;
+  }
+  .rp-head-right .rp-pill {
+    display: none;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .rp-caret {
+    transition: none;
+  }
 }
 `;
 
@@ -101,23 +709,15 @@ function EventRow({
   return (
     <button
       type="button"
-      className={`flex w-full items-center gap-2 py-0.5 pl-19 text-left text-xs ${
-        selected ? 'bg-white/5' : ''
-      }`}
+      className="rp-event"
+      aria-current={selected ? 'true' : undefined}
       onClick={onSelect}
     >
-      <span
-        title={event.kind}
-        className={`w-20 shrink-0 truncate uppercase ${kindTone(event.kind, event.status)}`}
-      >
+      <span title={event.kind} className={`rp-event-kind ${kindTone(event.kind, event.status)}`}>
         {kindLabel(event.kind)}
       </span>
-      <span className="min-w-0 flex-1 truncate text-(--ui-text-tertiary)">
-        {event.name ?? event.preview}
-      </span>
-      <span className="w-14 shrink-0 text-right font-mono">
-        {formatDuration(event.duration_ms)}
-      </span>
+      <span className="rp-event-text">{event.name ?? event.preview}</span>
+      <span className="rp-event-time rp-mono">{formatDuration(event.duration_ms)}</span>
     </button>
   );
 }
@@ -146,45 +746,32 @@ function TimelineRow({
   const visible = (events ?? []).filter((event) => !COLLAPSED_KINDS.has(event.kind));
   const hidden = (events ?? []).length - visible.length;
   return (
-    <div className="border-b border-(--ui-stroke-tertiary) pb-1">
-      <div className="flex items-center gap-2">
-        <button
-          type="button"
-          className="flex min-w-0 flex-1 items-center gap-2 py-1 text-left"
-          onClick={onToggle}
-          aria-expanded={expanded}
-        >
-          <span className="w-3 shrink-0 text-xs text-(--ui-text-tertiary)" aria-hidden="true">
-            {expanded ? '▾' : '▸'}
+    <div className="rp-turn">
+      <div className="rp-turn-bar">
+        <button type="button" className="rp-turn-row" onClick={onToggle} aria-expanded={expanded}>
+          <span className="rp-caret" data-open={expanded ? 'true' : 'false'}>
+            <Icon name="chevron" size={12} />
           </span>
-          <span className="w-16 shrink-0 font-mono text-xs text-(--ui-text-tertiary)">
-            {formatTime(turn.ts)}
-          </span>
-          <span className="min-w-0 flex-1 truncate">{turn.preview || 'User turn'}</span>
-          <span className="shrink-0 text-xs text-(--ui-text-tertiary)">
-            {plural(turn.tool_calls, 'tool')}
-          </span>
+          <span className="rp-turn-time rp-mono">{formatTime(turn.ts)}</span>
+          <span className="rp-turn-preview">{turn.preview || 'User turn'}</span>
+          <span className="rp-turn-stat">{plural(turn.tool_calls, 'tool')}</span>
           {turn.tool_errors > 0 ? (
-            <span className="shrink-0 text-xs text-(--ui-red)">
+            <span className="rp-badge" data-tone="err">
+              <span className="rp-dot" />
               {plural(turn.tool_errors, 'error')}
             </span>
           ) : null}
-          <span className="w-14 shrink-0 text-right font-mono text-xs text-(--ui-text-tertiary)">
-            {turnDuration(turn)}
-          </span>
+          <span className="rp-turn-duration rp-mono">{turnDuration(turn)}</span>
         </button>
-        <button
-          type="button"
-          className="shrink-0 rounded border border-(--ui-stroke-secondary) px-2 py-0.5 text-xs"
-          onClick={onFork}
-        >
+        <button type="button" className="rp-button rp-button-sm" onClick={onFork}>
+          <Icon name="rewind" size={12} />
           Rewind
         </button>
       </div>
       {expanded ? (
-        <div className="flex flex-col gap-0.5 pb-1">
+        <div className="rp-events">
           {loading ? (
-            <div className="pl-19 text-xs text-(--ui-text-tertiary)">Loading events...</div>
+            <div className="rp-aside-note">Loading events...</div>
           ) : (
             <>
               {visible.map((event) => (
@@ -198,8 +785,8 @@ function TimelineRow({
                 />
               ))}
               {hidden > 0 ? (
-                <div className="pl-19 text-xs text-(--ui-text-tertiary)">
-                  {plural(turn.api_requests, 'model request')} ·{plural(turn.event_count, 'event')}{' '}
+                <div className="rp-aside-note">
+                  {plural(turn.api_requests, 'model request')} · {plural(turn.event_count, 'event')}{' '}
                   in this turn
                 </div>
               ) : null}
@@ -264,35 +851,31 @@ function kindTone(kind: string, status: string | null): string {
   return 'text-(--ui-text-tertiary)';
 }
 
-function stateTone(state: string): string {
+function stateBadge(state: string): string {
   if (state === 'done') {
-    return 'text-(--ui-green)';
+    return 'ok';
   }
   if (state === 'failed') {
-    return 'text-(--ui-red)';
+    return 'err';
   }
   if (state === 'running') {
-    return 'text-(--ui-accent)';
+    return 'run';
   }
-  return 'text-(--ui-text-tertiary)';
+  return 'idle';
 }
 
 function Metric({ label, value }: { label: string; value: string }): ReactNode {
   return (
-    <div className="flex items-center justify-between gap-2">
-      <span className="text-(--ui-text-tertiary)">{label}</span>
-      <span className="font-mono tabular-nums">{value}</span>
-    </div>
+    <>
+      <span className="rp-metric-label">{label}</span>
+      <span className="rp-metric-value">{value}</span>
+    </>
   );
 }
 
 function Inspector({ detail }: { detail: EventDetail | null }): ReactNode {
   if (detail === null) {
-    return (
-      <div className="text-xs text-(--ui-text-tertiary)">
-        Select an event to inspect its payload.
-      </div>
-    );
+    return <div className="rp-meta">Select an event to inspect its payload.</div>;
   }
   return (
     <div className="flex flex-col gap-2">
@@ -468,7 +1051,7 @@ function ComparePanel({
   }, [pendingCleanup]);
 
   if (detail === null) {
-    return <div className="text-xs text-(--ui-text-tertiary)">Loading branch...</div>;
+    return <div className="rp-meta">Loading branch...</div>;
   }
 
   const branch = detail.branch;
@@ -483,21 +1066,24 @@ function ComparePanel({
     ? undefined
     : 'This branch has no workspace left to remove.';
   return (
-    <div className="flex flex-col gap-2">
-      <div className="flex items-center justify-between gap-2">
-        <div className="flex items-center gap-2 text-xs">
-          <span className="font-medium">Branch {shortId(branch.id)}</span>
-          <span className={`uppercase ${stateTone(branch.state)}`}>{branch.state}</span>
+    <div className="rp-stack">
+      <div className="rp-branch-head">
+        <div className="rp-branch-title">
+          <span>Branch {shortId(branch.id)}</span>
+          <span className="rp-badge" data-tone={stateBadge(branch.state)}>
+            <span className="rp-dot" />
+            {branch.state}
+          </span>
           {run !== null && run.verify_exit !== null ? (
-            <span className={run.verify_exit === 0 ? 'text-(--ui-green)' : 'text-(--ui-red)'}>
+            <span className="rp-badge" data-tone={run.verify_exit === 0 ? 'ok' : 'err'}>
               verify {verifyOutcome(run.verify_exit)}
             </span>
           ) : null}
         </div>
-        <div className="flex items-center gap-2 text-xs">
+        <div className="rp-branch-actions">
           <button
             type="button"
-            className="rounded border border-(--ui-stroke-secondary) px-2 py-1 disabled:opacity-50"
+            className="rp-button rp-button-sm"
             title={verifyBlock}
             onClick={() => {
               void verify();
@@ -508,7 +1094,7 @@ function ComparePanel({
           </button>
           <button
             type="button"
-            className="rounded border border-(--ui-stroke-secondary) px-2 py-1 disabled:opacity-50"
+            className="rp-button rp-button-sm"
             title={cleanupBlock}
             onClick={() => {
               void askCleanup();
@@ -517,44 +1103,36 @@ function ComparePanel({
           >
             Cleanup
           </button>
-          <button
-            type="button"
-            className="rounded border border-(--ui-stroke-secondary) px-2 py-1"
-            onClick={onClose}
-          >
+          <button type="button" className="rp-button rp-button-sm rp-quiet" onClick={onClose}>
             Hide
           </button>
         </div>
       </div>
 
       {detail.shared_child ? (
-        <div className="rw-note-warn rounded border p-2 text-xs text-(--ui-text-primary)">
+        <div className="rp-note rp-note-warn">
           Another branch claims this same rerun session, so the numbers below may describe a
           different fork. It was recorded before the session-id fix.
         </div>
       ) : null}
 
-      {error !== null ? <div className="text-xs text-(--ui-red)">{error}</div> : null}
+      {error !== null ? <div className="rp-error">{error}</div> : null}
 
       {pendingCleanup !== null ? (
         <div
-          className="rw-confirm rounded border p-2 text-xs"
+          className="rp-confirm"
           ref={confirmRef}
           role="alertdialog"
           aria-label="Confirm workspace cleanup"
           data-rw-confirm="true"
           tabIndex={-1}
         >
-          <div className="mb-1 text-(--ui-text-primary)">
-            {cleanupWarning(pendingCleanup.uncommitted)}
-          </div>
-          <div className="mb-2 break-all text-(--ui-text-tertiary)">
-            {pendingCleanup.worktree_path}
-          </div>
-          <div className="flex items-center gap-2">
+          <div className="rp-confirm-copy">{cleanupWarning(pendingCleanup.uncommitted)}</div>
+          <div className="rp-confirm-path">{pendingCleanup.worktree_path}</div>
+          <div className="rp-confirm-actions">
             <button
               type="button"
-              className="rw-confirm-delete rounded border px-2 py-1 disabled:opacity-50"
+              className="rp-button rp-button-sm rp-delete"
               onClick={() => {
                 void cleanup(pendingCleanup);
               }}
@@ -564,7 +1142,7 @@ function ComparePanel({
             </button>
             <button
               type="button"
-              className="rounded border border-(--ui-stroke-secondary) px-2 py-1"
+              className="rp-button rp-button-sm"
               onClick={() => {
                 setPendingCleanup(null);
               }}
@@ -576,74 +1154,83 @@ function ComparePanel({
       ) : null}
 
       {compare !== null ? (
-        <div className="grid grid-cols-2 gap-2 text-xs">
-          <div className="rounded border border-(--ui-stroke-tertiary) p-2">
-            <div className="mb-1 text-(--ui-text-tertiary)">
-              Original
-              {compare.left?.frozen_at ? ` · frozen ${formatTime(compare.left.frozen_at)}` : ''}
+        <div className="rp-stack">
+          <div className="rp-compare">
+            <div className="rp-panel">
+              <div className="rp-card-label">
+                Original
+                {compare.left?.frozen_at ? ` · frozen ${formatTime(compare.left.frozen_at)}` : ''}
+              </div>
+              <div className="rp-metrics">
+                <Metric
+                  label="outcome"
+                  value={
+                    compare.left === null ? 'not recorded' : frozenOutcome(compare.left.outcome)
+                  }
+                />
+                <Metric
+                  label="tokens"
+                  value={
+                    compare.left === null
+                      ? 'n/a'
+                      : formatNumber(compare.left.tokens_in + compare.left.tokens_out)
+                  }
+                />
+                <Metric
+                  label="tool errors"
+                  value={compare.left === null ? 'n/a' : String(compare.left.tool_errors)}
+                />
+              </div>
             </div>
-            <Metric
-              label="outcome"
-              value={compare.left === null ? 'not recorded' : frozenOutcome(compare.left.outcome)}
-            />
-            <Metric
-              label="tokens"
-              value={
-                compare.left === null
-                  ? 'n/a'
-                  : formatNumber(compare.left.tokens_in + compare.left.tokens_out)
-              }
-            />
-            <Metric
-              label="tool errors"
-              value={compare.left === null ? 'n/a' : String(compare.left.tool_errors)}
-            />
+            <div className="rp-panel">
+              <div className="rp-card-label rp-card-label-accent">Rerun</div>
+              <div className="rp-metrics">
+                <Metric
+                  label="outcome"
+                  value={
+                    compare.right === null ? 'not recorded' : outcomeLabel(compare.right.outcome)
+                  }
+                />
+                <Metric
+                  label="verify"
+                  value={rerunVerifyExit === null ? 'not run' : verifyOutcome(rerunVerifyExit)}
+                />
+                <Metric
+                  label="tokens"
+                  value={
+                    compare.right === null
+                      ? 'n/a'
+                      : formatNumber(compare.right.tokens_in + compare.right.tokens_out)
+                  }
+                />
+                <Metric
+                  label="tool errors"
+                  value={compare.right === null ? 'n/a' : String(compare.right.tool_errors)}
+                />
+              </div>
+            </div>
           </div>
-          <div className="rounded border border-(--ui-stroke-tertiary) p-2">
-            <div className="mb-1 text-(--ui-text-tertiary)">Rerun</div>
-            <Metric
-              label="outcome"
-              value={compare.right === null ? 'not recorded' : outcomeLabel(compare.right.outcome)}
-            />
-            <Metric
-              label="verify"
-              value={rerunVerifyExit === null ? 'not run' : verifyOutcome(rerunVerifyExit)}
-            />
-            <Metric
-              label="tokens"
-              value={
-                compare.right === null
-                  ? 'n/a'
-                  : formatNumber(compare.right.tokens_in + compare.right.tokens_out)
-              }
-            />
-            <Metric
-              label="tool errors"
-              value={compare.right === null ? 'n/a' : String(compare.right.tool_errors)}
-            />
+          <div className="rp-verdict">
+            <Icon name="info" size={13} />
+            <span>
+              <strong>Verdict</strong> {compare.verdict}
+            </span>
           </div>
-          <div className="col-span-2 text-(--ui-text-tertiary)">Verdict: {compare.verdict}</div>
         </div>
       ) : (
-        <div className="text-xs text-(--ui-text-tertiary)">
+        <div className="rp-meta">
           {branch.state === 'cleaned' || branch.state === 'discarded'
             ? 'The rerun never started, and its workspace is gone.'
             : 'Waiting for the rerun to start.'}
         </div>
       )}
 
-      {run !== null && run.verify_out ? (
-        <pre className="max-h-32 overflow-auto whitespace-pre-wrap break-words rounded border border-(--ui-stroke-tertiary) p-2 font-mono text-xs">
-          {run.verify_out}
-        </pre>
-      ) : null}
+      {run !== null && run.verify_out ? <pre className="rp-pre">{run.verify_out}</pre> : null}
 
       {detail.prompt !== null ? (
-        <details className="text-xs text-(--ui-text-tertiary)">
+        <details className="rp-panel rp-disclosure">
           <summary>Prompt</summary>
-          <pre className="mt-1 max-h-32 overflow-auto whitespace-pre-wrap break-words font-mono text-xs">
-            {detail.prompt}
-          </pre>
+          <pre className="rp-pre">{detail.prompt}</pre>
         </details>
       ) : null}
     </div>
@@ -866,108 +1453,102 @@ export function RewindPage({ ctx }: { ctx: PluginContext }): ReactNode {
   };
 
   return (
-    <div className="rw-page flex h-full flex-col gap-3 p-3 text-sm">
+    <div className="rw-page rp-shell">
       <style>{PAGE_CSS}</style>
-      <header className="flex items-center justify-between gap-3 border-b border-(--ui-stroke-tertiary) pb-2">
-        <div>
-          <div className="text-base font-medium">Session Rewind</div>
-          <div className="text-xs text-(--ui-text-tertiary)">
-            Recorded locally. Fork a user turn, rerun it, and compare outcomes.
+      <header className="rp-head">
+        <div className="rp-head-left">
+          <span className="rp-mark">
+            <Icon name="rewind" size={16} />
+          </span>
+          <div>
+            <div className="rp-title">Session Rewind</div>
+            <div className="rp-sub">
+              Recorded locally. Fork a user turn, rerun it, and compare outcomes.
+            </div>
           </div>
         </div>
-        <div className="flex items-center gap-3 text-xs">
+        <div className="rp-head-right">
           {selectedSession !== null ? (
-            <span className="text-(--ui-text-tertiary)">
-              {selectedSession.model ?? 'unknown model'}
-            </span>
+            <span className="rp-pill rp-mono">{selectedSession.model ?? 'unknown model'}</span>
           ) : null}
           {running ? (
-            <span className="flex items-center gap-1 text-(--ui-green)">
-              <span className="h-1.5 w-1.5 rounded-full bg-(--ui-green)" />
+            <span className="rp-live">
+              <span className="rp-dot" />
               {live ? 'live' : 'running'}
             </span>
           ) : null}
-          <button
-            type="button"
-            className="rounded border border-(--ui-stroke-secondary) px-2 py-1"
-            onClick={refresh}
-          >
+          <button type="button" className="rp-button" onClick={refresh}>
+            <Icon name="refresh" size={13} />
             Refresh
           </button>
         </div>
       </header>
 
-      {error !== null ? <div className="text-xs text-(--ui-red)">{error}</div> : null}
+      {error !== null ? <div className="rp-error">{error}</div> : null}
 
-      <div className="flex min-h-0 flex-1 gap-3">
-        <aside className="flex w-64 shrink-0 flex-col gap-3 overflow-auto border-r border-(--ui-stroke-tertiary) pr-2">
-          <div className="flex flex-col gap-1">
-            <div className="text-xs uppercase text-(--ui-text-tertiary)">
-              Sessions
-              {sessionsLoaded ? (
-                <span className="ml-1">
-                  {sessionsCountLabel(sessions.length, SESSIONS_PAGE_LIMIT)}
-                </span>
-              ) : null}
-            </div>
-            {!sessionsLoaded ? (
-              <div className="text-xs text-(--ui-text-tertiary)">Loading sessions...</div>
-            ) : sessions.length === 0 ? (
-              <div className="text-xs text-(--ui-text-tertiary)">
-                Start a chat and Rewind will record every turn.
-              </div>
-            ) : (
-              sessions.map((session) => (
+      <div className="rp-columns">
+        <aside className="rp-side">
+          <div className="rp-eyebrow">
+            <span className="rp-dot" />
+            Sessions
+            {sessionsLoaded ? (
+              <span className="rp-eyebrow-count">
+                {sessionsCountLabel(sessions.length, SESSIONS_PAGE_LIMIT)}
+              </span>
+            ) : null}
+          </div>
+          {!sessionsLoaded ? (
+            <div className="rp-meta">Loading sessions...</div>
+          ) : sessions.length === 0 ? (
+            <div className="rp-meta">Start a chat and Rewind will record every turn.</div>
+          ) : (
+            <div className="rp-cards">
+              {sessions.map((session) => (
                 <button
                   type="button"
                   key={session.session_id}
-                  className={`flex flex-col gap-0.5 rounded border px-2 py-1.5 text-left text-xs ${
-                    selectedSessionId === session.session_id
-                      ? 'border-(--ui-accent)'
-                      : 'border-(--ui-stroke-secondary)'
-                  }`}
+                  className="rp-session"
+                  aria-current={selectedSessionId === session.session_id ? 'true' : undefined}
                   onClick={() => {
                     selectSession(session);
                   }}
                 >
-                  <span className="flex items-center gap-1.5">
+                  <span className="rp-session-title">
                     <span
-                      className={`h-1.5 w-1.5 rounded-full ${
-                        session.ended_at === null ? 'bg-(--ui-green)' : 'bg-(--ui-text-tertiary)'
-                      }`}
+                      className="rp-dot"
+                      style={{
+                        background:
+                          session.ended_at === null
+                            ? 'var(--ui-green)'
+                            : 'var(--ui-text-quaternary)'
+                      }}
                     />
-                    <span className="truncate font-medium">
-                      {session.title ?? shortId(session.session_id)}
-                    </span>
+                    <span>{session.title ?? shortId(session.session_id)}</span>
                   </span>
-                  <span className="truncate text-(--ui-text-tertiary)">
+                  <span className="rp-meta">
                     {session.model ?? 'unknown model'} · {plural(session.event_count, 'event')}
                   </span>
-                  <span className="truncate text-(--ui-text-tertiary)">
+                  <span className="rp-meta rp-meta-dim">
                     {outcomeLabel(session.outcome)} ·{' '}
                     {formatNumber(session.tokens_in + session.tokens_out)} tokens
                   </span>
                 </button>
-              ))
-            )}
-          </div>
+              ))}
+            </div>
+          )}
         </aside>
 
-        <main className="flex min-w-0 flex-1 flex-col gap-2">
+        <main className="rp-main">
           {selectedSession !== null ? (
-            <div className="flex items-start justify-between gap-2 border-b border-(--ui-stroke-tertiary) pb-2">
-              <div>
-                <div className="flex items-center gap-2">
-                  <span className="text-base font-medium">
-                    {selectedSession.title ?? shortId(selectedSession.session_id)}
-                  </span>
+            <div className="rp-detail-head">
+              <div className="rp-stack" style={{ gap: 3 }}>
+                <div className="rp-detail-title">
+                  {selectedSession.title ?? shortId(selectedSession.session_id)}
                   {snapshots.length > 0 ? (
-                    <span className="text-xs text-(--ui-text-tertiary)">
-                      {plural(snapshots.length, 'snapshot')}
-                    </span>
+                    <span className="rp-detail-note">{plural(snapshots.length, 'snapshot')}</span>
                   ) : null}
                 </div>
-                <div className="text-xs text-(--ui-text-tertiary)">
+                <div className="rp-meta">
                   {selectedSession.model ?? 'unknown model'} ·{' '}
                   {plural(selectedSession.event_count, 'event')} ·{' '}
                   {formatNumber(selectedSession.tokens_in + selectedSession.tokens_out)} tokens
@@ -976,94 +1557,107 @@ export function RewindPage({ ctx }: { ctx: PluginContext }): ReactNode {
                     : ''}
                 </div>
               </div>
-              <div className="text-right text-xs text-(--ui-text-tertiary)">
-                Select a user turn and choose Rewind.
-              </div>
+              <div className="rp-hint">Select a user turn and choose Rewind.</div>
             </div>
           ) : null}
 
           {branches.length > 0 ? (
-            <div className="flex max-h-24 flex-wrap items-center gap-1 overflow-y-auto">
-              <span className="text-xs uppercase text-(--ui-text-tertiary)">Branches</span>
-              <span className="text-xs text-(--ui-text-tertiary)">{branches.length}</span>
-              {branches.map((branch) => (
-                <button
-                  type="button"
-                  key={branch.id}
-                  className={`flex items-center gap-2 rounded border px-2 py-1 text-xs ${
-                    selectedBranchId === branch.id
-                      ? 'border-(--ui-accent)'
-                      : 'border-(--ui-stroke-secondary)'
-                  }`}
-                  onClick={() => {
-                    setSelectedBranchId(branch.id);
-                  }}
-                >
-                  <span className="font-mono">{shortId(branch.id)}</span>
-                  <span className={`uppercase ${stateTone(branch.state)}`}>{branch.state}</span>
-                  <span className="text-(--ui-text-tertiary)">
-                    {branch.fork_row_count > 0
-                      ? plural(branch.fork_row_count, 'message')
-                      : 'context pack'}
-                  </span>
-                </button>
-              ))}
+            <div>
+              <div className="rp-eyebrow">
+                <span className="rp-dot" />
+                Branches
+                <span className="rp-eyebrow-count">{branches.length}</span>
+              </div>
+              <div className="rp-chips">
+                {branches.map((branch) => (
+                  <button
+                    type="button"
+                    key={branch.id}
+                    className="rp-chip"
+                    aria-current={selectedBranchId === branch.id ? 'true' : undefined}
+                    onClick={() => {
+                      setSelectedBranchId(branch.id);
+                    }}
+                  >
+                    <span className="rp-mono">{shortId(branch.id)}</span>
+                    <span className="rp-badge" data-tone={stateBadge(branch.state)}>
+                      <span className="rp-dot" />
+                      {branch.state}
+                    </span>
+                    <span className="rp-chip-note">
+                      {branch.fork_row_count > 0
+                        ? plural(branch.fork_row_count, 'message')
+                        : 'context pack'}
+                    </span>
+                  </button>
+                ))}
+              </div>
             </div>
           ) : null}
 
-          <div className="flex min-h-0 flex-1 gap-2">
-            <div className="min-w-0 flex-1 overflow-auto">
-              {selectedSession === null ? (
-                <div className="text-xs text-(--ui-text-tertiary)">Select a recorded session.</div>
-              ) : !turnsLoaded ? (
-                <div className="text-xs text-(--ui-text-tertiary)">Loading turns...</div>
-              ) : visibleTurns.length === 0 ? (
-                <div className="text-xs text-(--ui-text-tertiary)">
-                  {turnsEmptyMessage(selectedSession.event_count, turnsError)}
+          <div className="rp-columns" style={{ gap: 0 }}>
+            <div className="rp-turns">
+              <div className="rp-stack" style={{ width: '100%' }}>
+                <div className="rp-eyebrow">
+                  <span className="rp-dot" />
+                  Turns
                 </div>
-              ) : (
-                <>
-                  {visibleTurns.map((turn) => (
-                    <TimelineRow
-                      key={turn.id}
-                      turn={turn}
-                      expanded={expandedTurnId === turn.id}
-                      events={turnEvents[turn.id] ?? null}
-                      loading={expandedTurnId === turn.id && turnEvents[turn.id] === undefined}
-                      selectedEventId={selectedEventId}
-                      onToggle={() => {
-                        toggleTurn(turn);
-                      }}
-                      onFork={() => {
-                        if (selectedSession !== null) {
-                          setForkTarget({ session: selectedSession, event: turn });
-                        }
-                      }}
-                      onSelectEvent={(event) => {
-                        setSelectedEventId(event.id);
-                      }}
-                    />
-                  ))}
-                  {turnsHasMore ? (
-                    <button
-                      type="button"
-                      className="mt-2 w-full rounded border border-(--ui-stroke-secondary) py-1 text-xs text-(--ui-text-tertiary)"
-                      onClick={() => {
-                        void loadEarlier();
-                      }}
-                      disabled={turnsLoading}
-                    >
-                      {turnsLoading ? 'Loading...' : 'Load earlier turns'}
-                    </button>
-                  ) : (
-                    <div className="mt-2 text-xs text-(--ui-text-tertiary)">
-                      {plural(visibleTurns.length, 'turn')} · start of the recording
-                    </div>
-                  )}
-                </>
-              )}
+                {selectedSession === null ? (
+                  <div className="rp-meta">Select a recorded session.</div>
+                ) : !turnsLoaded ? (
+                  <div className="rp-meta">Loading turns...</div>
+                ) : visibleTurns.length === 0 ? (
+                  <div className="rp-meta">
+                    {turnsEmptyMessage(selectedSession.event_count, turnsError)}
+                  </div>
+                ) : (
+                  <>
+                    {visibleTurns.map((turn) => (
+                      <TimelineRow
+                        key={turn.id}
+                        turn={turn}
+                        expanded={expandedTurnId === turn.id}
+                        events={turnEvents[turn.id] ?? null}
+                        loading={expandedTurnId === turn.id && turnEvents[turn.id] === undefined}
+                        selectedEventId={selectedEventId}
+                        onToggle={() => {
+                          toggleTurn(turn);
+                        }}
+                        onFork={() => {
+                          if (selectedSession !== null) {
+                            setForkTarget({ session: selectedSession, event: turn });
+                          }
+                        }}
+                        onSelectEvent={(event) => {
+                          setSelectedEventId(event.id);
+                        }}
+                      />
+                    ))}
+                    {turnsHasMore ? (
+                      <button
+                        type="button"
+                        className="rp-load-more"
+                        onClick={() => {
+                          void loadEarlier();
+                        }}
+                        disabled={turnsLoading}
+                      >
+                        {turnsLoading ? 'Loading...' : 'Load earlier turns'}
+                      </button>
+                    ) : (
+                      <div className="rp-tail">
+                        {plural(visibleTurns.length, 'turn')} · start of the recording
+                      </div>
+                    )}
+                  </>
+                )}
+              </div>
             </div>
-            <div className="w-80 shrink-0 overflow-auto border-l border-(--ui-stroke-tertiary) pl-2">
+            <div className="rp-payload">
+              <div className="rp-eyebrow">
+                <span className="rp-dot" />
+                Event payload
+              </div>
               <Inspector detail={detail} />
             </div>
           </div>
