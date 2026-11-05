@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- Add a reviewer quickstart. The README explained the settings and the flow but gave no short path from an installed
+  plugin to a finished fork, so `Try it in two minutes` walks one turn from a session that already exists, with the
+  timings this run measured, and says which part of it is verified and which is only the intended way to isolate a
+  demo store.
+
 - Prove the timeline at ten thousand events. The claim that a long session does not freeze had no test behind it: `test_ten_thousand_events_answer_fast_and_reach_every_turn` writes 10,002 events, checks the newest 50 turns come back in well under the bound and in descending order, and walks the cursor to the beginning to show all 3,334 turns are reachable rather than the first few hundred.
 
 - Give the page a render test. Selecting a session, the empty-recording sentence, the event coalescing and the one-second paint target could only be checked by hand, because `ui/` had no component-rendering harness. jsdom, React and Testing Library are now development dependencies and the shipped bundle is byte-identical - react and `@hermes/plugin-sdk` stay external - with four tests, three of which were confirmed to fail when the fix they cover is reverted: the loading panel, the empty-recording sentence, and a burst of forty host events that costs four requests without coalescing and none with it. The documented check chain also gained `npm run lint`, `npm run format` and `npm test`, the three CI already ran and this repository did not list, which is why two pushes went out red.

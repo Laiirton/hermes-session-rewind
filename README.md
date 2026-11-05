@@ -85,6 +85,19 @@ The command runs without a shell, except a Windows `.cmd` or `.bat` shim, which 
 
 A session that is not open in the app cannot be branched from its transcript, so the fork falls back to a new chat carrying the context pack. The dialog says which of the two it is about to do before the rerun starts.
 
+## Try it in two minutes
+
+You do not need a prepared repository: any session the plugin has already recorded works.
+
+1. Open the Rewind page and pick a session with at least one user turn in the timeline.
+2. Choose Rewind on a turn and Prepare branch. The checkpoint card shows the snapshot, the verify timeout and what the rerun carries; preparing measured about 0.6 s end to end on a live gateway.
+3. Choose Fork & run, or press Ctrl+Enter. A new tab opens for the rerun session, named after the branch, in the restored workspace.
+4. Open the branch chip to compare the frozen original with the rerun, and run Verify in the isolated worktree when you want the command re-checked.
+
+Nothing outside the branch changes: the original session, its tab and your working directory are untouched, and Cleanup removes only the workspace the fork created.
+
+For a recording or a screenshot session, an empty store is cleaner than your own: the plugin keeps its data under `<hermes home>/plugin-data/session-rewind/`, and the host's own `plugin_data_dir` says it "resolves `get_hermes_home()` on every call so it follows the active profile", so a separate profile gets a separate store. This path has not been exercised end to end, so treat it as the intended way to isolate a demo rather than a verified one.
+
 ## How it works
 
 ```text
