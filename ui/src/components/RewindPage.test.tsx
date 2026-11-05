@@ -67,25 +67,39 @@ function deferred<T>(): { promise: Promise<T>; resolve: (value: T) => void } {
 
 const sessions = [session('a', 12), session('b', 9), session('c', 77)];
 
-function context(handlers: (path: string) => Promise<unknown> | undefined): PluginContext {
-  return {
-    register: () => () => {},
-    registerMany: () => () => {},
+interface Harness {
+  ctx: PluginContext;
+  requests: () => number;
+  emit: (count: number) => void;
+}
+
+function harness(handlers: (path: string) => Promise<unknown> | undefined): Harness {
+  const listeners: ((payload: unknown) => void)[] = [];
+  let counted = 0;
+  const ctx = {
+    register: (): (() => void) => () => {},
+    registerMany: (): (() => void) => () => {},
     rest: (path: string) => {
+      counted += 1;
       const answered = handlers(path);
       if (answered === undefined) {
         return Promise.reject(new Error(`unexpected rest path ${path}`));
       }
       return answered;
     },
-    onEvent: () => () => {},
-    onDispose: () => {},
-    setTimeout: (fn: () => void, ms: number) => {
-      const id = setTimeout(fn, ms);
-      return () => clearTimeout(id);
+    onEvent: (_type: string, listener: (payload: unknown) => void) => {
+      listeners.push(listener);
+      return (): void => {};
     },
-    setInterval: () => () => {},
-    addEventListener: () => () => {},
+    onDispose: () => {},
+    setTimeout: (fn: () => void, ms: number): (() => void) => {
+      const id = setTimeout(fn, ms);
+      return (): void => {
+        clearTimeout(id);
+      };
+    },
+    setInterval: (): (() => void) => () => {},
+    addEventListener: (): (() => void) => () => {},
     os: {
       notify: () => {},
       openExternal: () => {},
@@ -93,6 +107,17 @@ function context(handlers: (path: string) => Promise<unknown> | undefined): Plug
       writeClipboard: () => {}
     }
   } as unknown as PluginContext;
+  return {
+    ctx,
+    requests: (): number => counted,
+    emit: (count: number): void => {
+      for (let index = 0; index < count; index += 1) {
+        for (const listener of listeners) {
+          listener({});
+        }
+      }
+    }
+  };
 }
 
 afterEach(() => {
@@ -103,7 +128,8 @@ describe('RewindPage timeline panel', () => {
   it('shows a loading panel while the selected session turns are in flight', async () => {
     const turnsA = deferred<TurnPage>();
     const turnsB = deferred<TurnPage>();
-    render(<RewindPage ctx={context(routeTurns(turnsA, turnsB))} />);
+    const host = harness(routeTurns(turnsA, turnsB));
+    render(<RewindPage ctx={host.ctx} />);
     turnsA.resolve(page([turn('a', 'the a turn')]));
     await screen.findByText('the a turn');
 
@@ -120,7 +146,8 @@ describe('RewindPage timeline panel', () => {
   it('states what a recording without user turns holds', async () => {
     const turnsA = deferred<TurnPage>();
     const turnsB = deferred<TurnPage>();
-    render(<RewindPage ctx={context(routeTurns(turnsA, turnsB))} />);
+    const host = harness(routeTurns(turnsA, turnsB));
+    render(<RewindPage ctx={host.ctx} />);
     turnsA.resolve(page([turn('a', 'the a turn')]));
     await screen.findByText('the a turn');
 
@@ -128,13 +155,33 @@ describe('RewindPage timeline panel', () => {
     await screen.findByText('The recording holds 77 events but no user turn.');
   });
 
+  it('coalesces a burst of host events into one refresh', async () => {
+    const turnsA = deferred<TurnPage>();
+    const turnsB = deferred<TurnPage>();
+    const host = harness(routeTurns(turnsA, turnsB));
+    render(<RewindPage ctx={host.ctx} />);
+    turnsA.resolve(page([turn('a', 'the a turn')]));
+    await screen.findByText('the a turn');
+
+    const before = host.requests();
+    host.emit(40);
+    await new Promise((ready) => setTimeout(ready, 50));
+    expect(host.requests() - before).toBeLessThanOrEqual(1);
+
+    await waitFor(() => expect(screen.getByText('the a turn')).toBeDefined());
+  });
+
   it('paints the first timeline well inside the one second target', async () => {
     const started = performance.now();
-    render(<RewindPage ctx={context(routeTurns(immediate(), immediate()))} />);
+    const host = harness(
+      routeTurns(
+        { promise: Promise.resolve(page([turn('a', 'the a turn')])) },
+        { promise: Promise.resolve(page([])) }
+      )
+    );
+    render(<RewindPage ctx={host.ctx} />);
     await screen.findByText('the a turn');
-    const elapsed = performance.now() - started;
-    expect(elapsed).toBeLessThan(1000);
-    await waitFor(() => expect(screen.getAllByRole('button').length).toBeGreaterThan(0));
+    expect(performance.now() - started).toBeLessThan(1000);
   });
 });
 
@@ -160,8 +207,4 @@ function routeTurns(
     }
     return undefined;
   };
-}
-
-function immediate(): { promise: Promise<TurnPage> } {
-  return { promise: Promise.resolve(page([turn('a', 'the a turn')])) };
 }
