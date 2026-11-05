@@ -134,20 +134,17 @@ class ForkService:
             return
         read = ReadStore(self._database)
         metrics = read.session_metrics(child)
-        if metrics is None:
-            store = WriteStore(self._database.connect())
-            try:
-                store.set_branch_state(branch_id, "failed", time.time())
-            finally:
-                store.close()
-            return
-        if metrics.get("ended_at") is None:
+        if metrics is None or metrics.get("ended_at") is None:
             stalled = float(branch.get("updated_at") or 0.0)
             if time.time() - stalled < RUN_STALE_SECONDS:
                 return
             store = WriteStore(self._database.connect())
             try:
-                store.upsert_run(branch_id, time.time(), outcome_summary="stale")
+                store.upsert_run(
+                    branch_id,
+                    time.time(),
+                    outcome_summary="stale" if metrics is not None else "not recorded",
+                )
                 store.set_branch_state(branch_id, "failed", time.time())
             finally:
                 store.close()

@@ -49,14 +49,31 @@ def _branch(database: Database, branch_id: str, child: str, updated_at: float) -
         store.close()
 
 
-def test_reconcile_fails_a_branch_whose_child_is_unknown(database: Database) -> None:
+def test_reconcile_waits_for_a_child_the_store_has_not_recorded_yet(
+    database: Database,
+) -> None:
     _branch(database, "branch-ghost", "s_missing", time.time())
 
     _service(database).reconcile("branch-ghost")
 
     branch = ReadStore(database).get_branch("branch-ghost")
     assert branch is not None
+    assert branch["state"] == "running"
+
+
+def test_reconcile_fails_a_child_that_was_never_recorded_after_the_grace(
+    database: Database,
+) -> None:
+    _branch(database, "branch-ghost-old", "s_missing", time.time() - 4000.0)
+
+    _service(database).reconcile("branch-ghost-old")
+
+    branch = ReadStore(database).get_branch("branch-ghost-old")
+    assert branch is not None
     assert branch["state"] == "failed"
+    run = ReadStore(database).get_run("branch-ghost-old")
+    assert run is not None
+    assert run["outcome_summary"] == "not recorded"
 
 
 def test_reconcile_fails_a_run_that_never_finished(database: Database) -> None:
