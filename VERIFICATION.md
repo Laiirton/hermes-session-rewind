@@ -136,6 +136,10 @@ Observed in the real Hermes Desktop app through Computer Use; screenshots are ke
 | Frozen baseline in the app | comparison panel shows "Original · frozen 03:13:34" with 422.368 tokens instead of the session total 447.220 |
 | Redaction | probed live: `sk-proj-…`, bare JWTs, numeric `token` values and 7-character `password=` values were all stored unredacted before the fix; each now has a regression test and ordinary text is still untouched |
 | Context pack of a rewind child | one preamble only, with `Original user task:` quoting "Diga apenas: pronto"; the earlier nesting duplicated the preamble and replayed stale claims |
+| Console messages | DevTools attached from an app reload, then the page was driven through the keybinding, a session switch (73 events), turn expand and collapse, an event-detail fetch, the dialog, Prepare and Escape: the console reported `0 messages in console` and `No issues` |
+| Verify resolution after the fix | with the detected preset applied by Prepare the line reads `Resolves to …python-3.14.9…\python.EXE -m pytest -q`; after editing the field to `definitely-not-a-real-tool check` it reads `Not found in the gateway environment`, so the line follows the command in the field |
+
+The console check is a renderer measurement, not a claim about the gateway process log. Driving the UI by screenshot pixels needs care: the main window screenshot is 1350 × 711 while the window is wider, so a click aimed at the visible centre of the row's `Rewind` button landed on the row toggle; the button itself works, and the dialog opened on the corrected coordinate.
 
 ## Shadow refs in the real repository
 
