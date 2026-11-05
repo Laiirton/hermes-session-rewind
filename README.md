@@ -68,13 +68,13 @@ The command runs without a shell. Use a script if you need pipes or redirection.
 
 1. Open the Rewind page from the sidebar or the status bar chip.
 2. Select a recorded session and a user turn in the timeline.
-3. Choose Rewind and prepare the branch. Review the restored workspace, the context rows and the prompt.
-4. Adjust the model or prompt, enter the verify command and choose Fork & run.
+3. Choose Rewind and prepare the branch. Review the restored workspace, the history rows before the turn and the prompt.
+4. Adjust the model or prompt, enter the verify command and choose Fork & run. The verify command runs in the gateway environment; use an absolute interpreter path when the tool is not globally on `PATH`.
 5. The child session opens in a new tab. The comparison panel follows the branch.
 6. Run Verify in the isolated worktree, inspect the output and compare both runs.
 7. Cleanup removes the isolated worktree when you are done.
 
-A native fork requires a live session. Ended sessions can be inspected, but the branch action is disabled.
+A native fork requires a live session. Ended sessions can still be inspected, but the fork action refuses until the session is reopened.
 
 ## How it works
 
@@ -89,11 +89,11 @@ Desktop timeline -> FastAPI plugin API (/api/plugins/session-rewind)
                                       -> config.set -> prompt.submit
 ```
 
-- The Python half registers nine public hooks: `on_session_start`, `on_session_end`, `pre_llm_call`, `post_llm_call`, `pre_api_request`, `post_api_request`, `pre_tool_call`, `post_tool_call` and `post_compaction`.
+- The Python half registers ten public hooks: `on_session_start`, `on_session_end`, `on_session_finalize`, `pre_llm_call`, `post_llm_call`, `pre_api_request`, `post_api_request`, `pre_tool_call`, `post_tool_call` and `post_compaction`. `on_session_end` closes a turn; `on_session_finalize` closes the session.
 - The capture service batches events through a bounded queue and a single writer thread. Hooks never block the agent.
 - Payloads are redacted and truncated before they are written.
 - Snapshots use a private `GIT_INDEX_FILE`, `git add -A`, `write-tree` and `commit-tree`, and are pinned with `refs/hermes-rewind/<session>/<sequence>`. HEAD, the real index and the working tree are never modified.
-- A fork resolves the transcript prefix through the documented `SessionDB(read_only=True)` facade, creates a detached worktree from the snapshot and calls the public gateway RPCs to branch, set the working directory, switch the model and submit the prompt.
+- A fork resolves the transcript prefix through the documented `SessionDB(read_only=True)` facade, creates a detached worktree from the snapshot and calls the public gateway RPCs to branch through the last stored row, set the working directory, switch the model and submit the prompt. A first-turn fork starts a fresh session in the same worktree instead of branching an empty prefix.
 - The Desktop half uses only the Hermes plugin SDK and React. The compiled `plugin/desktop/plugin.js` is committed so no build runs at install time.
 
 ## Data and privacy

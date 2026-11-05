@@ -37,7 +37,7 @@ mypy
 pytest --cov=session_rewind --cov-report=term-missing
 ```
 
-Result: green. 55 tests passed, 89.27% coverage.
+Result: green. 57 tests passed, 88.19% coverage.
 
 ## Desktop checks
 
@@ -69,11 +69,11 @@ FastAPI tests cover health, sessions, event pages, event detail, search, snapsho
 
 The plugin was installed into the Hermes profile and enabled. A real CLI session ran with `workspace_root` pointing at a demo repository with a failing test.
 
-- The session recorded six events: `session_start`, `user_turn`, `api_request`, `llm_call`, `assistant_response`, `session_end`.
+- The session recorded six events: `session_start`, `user_turn`, `api_request`, `llm_call`, `assistant_response`, `turn_end`.
 - The session completed with the configured model.
 - A snapshot was created with `fidelity: full`, three tracked files, a shadow ref in `refs/hermes-rewind/<session>/8` and the expected commit.
 - The fork API was exercised against the live database and snapshot: `prepare` restored a detached worktree from the snapshot, `verify` ran `pytest -q` in the worktree and returned the expected failing exit code, and `cleanup` removed the worktree. The original repository was not modified.
-- The dev-side API harness does not include `hermes_state`, so the transcript row count was reported as zero there. Inside Hermes the read-only `SessionDB` reader supplies the transcript prefix; the UI shows the fidelity badge when the count is unavailable.
+- The dev-side API harness does not include `hermes_state`, so the transcript row count is reported as unavailable there. Inside Hermes the read-only `SessionDB` reader resolves the display-row prefix; the UI reports the history-row count or falls back to the context pack.
 
 ## Desktop UI and API
 
@@ -81,7 +81,22 @@ The Desktop half appeared in Capabilities → Plugins with the Agent + Desktop t
 
 The page initially returned `404 {"detail":"Not Found"}` because the web server only mounts `/api/plugins/<id>/` for plugins with a `dashboard/manifest.json` declaring an `api` file. Adding `plugin/dashboard/manifest.json` with `"api": "plugin_api.py"`, reinstalling the plugin and restarting the gateway mounted the API. The page then listed the recorded sessions, the event timeline and the snapshots.
 
-After the gateway restart the Desktop app showed `Gateway ticket bootstrap failed` and `Backend: offline`; the app needs a restart to refresh its backend ticket. The native fork test requires a live session, and the recorded sessions used for the API check were completed.
+A live Desktop session in `demo-repo` was recorded end to end:
+
+- Capture recorded 73 events, including `session_start`, two user turns, tool calls and results, usage, replies and `turn_end`, plus two workspace snapshots.
+- Forking the first user turn prepared `fidelity: full` with 0 history rows and created a new session through `session.create`; the agent worked in the restored worktree, fixed `app.py`, ran pytest and reported the passing test.
+- Forking the second user turn prepared 2 history rows, branched through the stored row id with `session.branch`, copied the first turn's display transcript, set the child cwd to the new worktree and submitted the context prompt.
+- The prepare dialog showed the restored workspace path, the history-row count and the verify timeout; the verify command is persisted on commit.
+- `verify` ran the full virtualenv command in the worktree and returned exit 0 with `1 passed`. The branch panel compared original and rerun tokens/tool errors.
+- `cleanup` removed the worktree and marked the branch `cleaned`; the other two abandoned prepared worktrees remained until cleanup, which exposed the stale-prepare cleanup gap below.
+- The app needed a restart after each gateway restart to refresh its backend ticket; until then it showed `Gateway ticket bootstrap failed` and `Backend: offline`.
+
+Known issues found during the live run:
+
+- This gateway build rejects `idempotency_key` on `session.create` and rejects `count` on the Desktop `session.branch` wrapper; the UI now sends only fields the live gateway accepts.
+- `verify_cmd` is free text and runs in the gateway environment, so a bare `pytest` is not on PATH on Windows; the recorded run used the virtualenv python path.
+- A branch card can stay `running` until the turn-end reconciliation lands; the child turn outcome is now derived from the latest `turn_end` event.
+- The injected prompt originally told the model not to redo work already present; the live rerun answered without inspecting the restored files. The prompt now states that the restored files are authoritative and that transcript claims are history.
 
 ## Demo
 

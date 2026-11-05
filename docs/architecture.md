@@ -46,7 +46,8 @@ The hook handlers enqueue normalized capture items and never block. The writer t
 Captured event kinds:
 
 - `session_start`
-- `session_end`
+- `turn_end`
+- `session_finalize`
 - `user_turn`
 - `assistant_response`
 - `api_request`
@@ -91,23 +92,27 @@ The Desktop half runs:
 
 ```text
 POST /forks/prepare
-session.branch {session_id, count, name, idempotency_key}
+session.active_list
+session.title {session_id} (read the stored key)
+session.history {session_id} (resolve the stored row before the fork turn)
+session.branch {session_id, through_message_id}
+  or session.create {source, title, cwd}
 session.cwd.set {session_id: child, cwd: worktree}
 config.set {key: "model", value, session_id: child, confirm_expensive_model: false}
 prompt.submit {session_id: child, text}
-POST /forks/{id}/commit {child_session_id, child_stored_session_id, model, provider, prompt}
+POST /forks/{id}/commit {child_session_id, child_stored_session_id, model, provider, prompt, verify_cmd}
 host.openSession(child_stored_session_id, {intent: "tab"})
 ```
 
-`session.branch` keeps the first `count` rows of the source history. The planner reads the read-only transcript through `SessionDB` and counts rows before the selected user message. When the count is unavailable, the branch starts with a context pack instead of a transcript prefix.
+The live Desktop branch wrapper accepts a stored row id (`through_message_id`), not a row count. The Desktop half reads `session.history`, matches the selected user turn by timestamp, and branches through the previous display row. When the turn is the first user message there is no prefix to copy, so the child is created with `session.create` in the restored worktree. The planner's `SessionDB` reader computes the same prefix count for the dialog and for non-Desktop fallbacks; when it is unavailable, the branch starts with a context pack instead of a transcript prefix.
 
 The prepared context prompt contains the original task, the last recorded assistant summary, the last recorded error, the files touched before the fork and the verify command. The user edits the prompt in the dialog.
 
 ## Verify and compare
 
-`POST /forks/{id}/verify` runs the stored verify command in the isolated worktree through `VerifyRunner`, without a shell, with a timeout and capped output. The result is stored in `runs`.
+`POST /forks/{id}/verify` runs the stored verify command in the isolated worktree through `VerifyRunner`, without a shell, with a timeout and capped output. The result is stored in `runs`. The command inherits the gateway environment, not an activated project virtualenv, so use an absolute interpreter path when the tool is not globally on `PATH`.
 
-`GET /branches/{id}` reconciles a running branch when the child session has ended and computes tokens, tool errors, duration and outcome. `GET /compare?left=<parent>&right=<child>` returns both session metrics and a verdict.
+`GET /branches/{id}` computes tokens, tool errors, duration and outcome. A child branch is marked `done` or `failed` when its latest `turn_end` event arrives; the compare endpoint derives the child outcome from that event when the child session has no finalize row. `GET /compare?left=<parent>&right=<child>` returns both session metrics and a verdict.
 
 ## Desktop
 
