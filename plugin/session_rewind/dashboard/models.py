@@ -4,6 +4,8 @@ from typing import Any
 
 from pydantic import BaseModel, Field
 
+from ..store.db import SQLITE_MAX_INT
+
 
 class HealthResponse(BaseModel):
     status: str
@@ -160,7 +162,7 @@ class CompareResponse(BaseModel):
 
 class BookmarkRequest(BaseModel):
     session_id: str
-    event_id: int | None = None
+    event_id: int | None = default=None
     label: str
     note: str | None = None
 

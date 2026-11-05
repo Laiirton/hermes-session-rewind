@@ -22,6 +22,9 @@ class EventRecord:
     duration_ms: float | None = None
 
 
+SQLITE_MAX_INT = 9_223_372_036_854_775_807
+
+
 class Database:
     def __init__(self, path: Path) -> None:
         self._path = path

@@ -4,7 +4,7 @@ import sqlite3
 import time
 from typing import Any
 
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, HTTPException, Path, Query
 
 from ..fork.planner import ForkError, ForkPlanner, ForkRequest
 from ..fork.service import ForkService
@@ -15,7 +15,7 @@ from ..metrics import compare_verdict
 from ..serialization import event_detail, event_summary
 from ..sessiondb.transcript import SessionDBTranscriptReader
 from ..settings import Settings
-from ..store.db import Database
+from ..store.db import SQLITE_MAX_INT, Database
 from ..store.repositories import ReadStore, WriteStore
 from ..version import VERSION
 from .models import (
@@ -104,8 +104,8 @@ def create_router(database: Database, settings: Settings | None = None) -> APIRo
     @router.get("/sessions/{session_id}/events", response_model=EventPage)
     def list_events(
         session_id: str,
-        after_seq: int | None = Query(None, ge=0),
-        before_seq: int | None = Query(None, ge=0),
+        after_seq: int | None = Query(None, ge=0, le=SQLITE_MAX_INT),
+        before_seq: int | None = Query(None, ge=0, le=SQLITE_MAX_INT),
         limit: int = Query(200, ge=1, le=500),
         kind: str | None = Query(None, min_length=1, max_length=64),
     ) -> EventPage:
@@ -125,7 +125,7 @@ def create_router(database: Database, settings: Settings | None = None) -> APIRo
     @router.get("/sessions/{session_id}/turns", response_model=TurnPage)
     def list_turns(
         session_id: str,
-        before_seq: int | None = Query(None, ge=0),
+        before_seq: int | None = Query(None, ge=0, le=SQLITE_MAX_INT),
         limit: int = Query(40, ge=1, le=200),
     ) -> TurnPage:
         rows = read_store().list_turns(session_id, before_seq=before_seq, limit=limit + 1)
@@ -136,7 +136,7 @@ def create_router(database: Database, settings: Settings | None = None) -> APIRo
         return TurnPage(items=items, before_seq=cursor, has_more=has_more)
 
     @router.get("/events/{event_id}", response_model=EventDetail)
-    def get_event(event_id: int) -> EventDetail:
+    def get_event(event_id: int = Path(..., ge=0, le=SQLITE_MAX_INT)) -> EventDetail:
         row = read_store().get_event(event_id)
         if row is None:
             raise HTTPException(status_code=404, detail="event not found")

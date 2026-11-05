@@ -16,6 +16,39 @@ def _client(database: Database) -> TestClient:
     return TestClient(app)
 
 
+def test_integer_parameters_stay_inside_the_sqlite_range(seeded_database: Database) -> None:
+    client = _client(seeded_database)
+    huge = 10**20
+
+    assert client.get(f"{PREFIX}/events/{huge}").status_code == 422
+    assert (
+        client.get(
+            f"{PREFIX}/sessions/sess_baseline/events", params={"after_seq": huge}
+        ).status_code
+        == 422
+    )
+    assert (
+        client.get(
+            f"{PREFIX}/sessions/sess_baseline/turns", params={"before_seq": huge}
+        ).status_code
+        == 422
+    )
+    assert (
+        client.post(
+            f"{PREFIX}/bookmarks",
+            json={"session_id": "sess_baseline", "event_id": huge, "label": "checkpoint"},
+        ).status_code
+        == 422
+    )
+    assert (
+        client.post(
+            f"{PREFIX}/forks/prepare",
+            json={"session_id": "sess_baseline", "event_id": huge},
+        ).status_code
+        == 422
+    )
+
+
 def test_health_and_sessions(seeded_database: Database) -> None:
     client = _client(seeded_database)
     health = client.get(f"{PREFIX}/health")

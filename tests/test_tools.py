@@ -74,6 +74,15 @@ def test_bookmark_refuses_an_event_from_another_session(seeded_database: Databas
         connection.close()
 
 
+def test_tools_reject_an_integer_out_of_sqlite_range(seeded_database: Database) -> None:
+    tools = RewindTools(seeded_database)
+
+    assert json.loads(tools.inspect({"event_id": 10**20})) == {"error": "event_id is out of range"}
+    assert json.loads(
+        tools.bookmark({"session_id": "sess_baseline", "label": "x", "event_id": -1})
+    ) == {"error": "event_id is out of range"}
+
+
 def test_tool_errors_never_leak_store_internals(seeded_database: Database, tmp_path: Path) -> None:
     tools = RewindTools(seeded_database)
     missing = json.loads(tools.bookmark({"session_id": "missing", "label": "checkpoint"}))

@@ -9,7 +9,7 @@ from typing import Any
 from .logging import get_logger
 from .metrics import compare_verdict
 from .serialization import event_detail, event_summary
-from .store.db import Database
+from .store.db import SQLITE_MAX_INT, Database
 from .store.repositories import ReadStore, WriteStore
 
 LOGGER = get_logger("tools")
@@ -269,6 +269,8 @@ def _optional_int(args: dict[str, Any], key: str) -> int | None:
         return None
     if isinstance(value, bool) or not isinstance(value, int):
         raise ValueError(f"{key} must be an integer")
+    if not 0 <= value <= SQLITE_MAX_INT:
+        raise ValueError(f"{key} is out of range")
     return int(value)
 
 
