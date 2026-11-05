@@ -53,7 +53,10 @@ def _locate(
             candidate = cwd / program
             if candidate.exists():
                 return str(candidate)
-    return shutil.which(program)
+    found = shutil.which(program)
+    if found is None and cwd is not None and _PYTHON_NAME.match(Path(program).name):
+        return sys.executable
+    return found
 
 
 def resolve_argv(

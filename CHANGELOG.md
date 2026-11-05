@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- Detect the workspace's own verify command from its project markers and prefill it, replacing four static guesses once a branch is prepared.
+- Fall back to the interpreter running the plugin when `python` is not on the gateway PATH, so verification still has a real interpreter instead of failing to resolve.
+
 - Tool errors no longer echo raw database messages; a missing session reads "session or event not found" and an unreachable store reads "the rewind store is unavailable".
 - Prove the `capture_dropped` overflow signal reaches the store through a test.
 

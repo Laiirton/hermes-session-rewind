@@ -37,7 +37,7 @@ mypy
 pytest --cov=session_rewind --cov-report=term-missing
 ```
 
-Result: green. 112 tests passed, 90% branch coverage, with `--cov-fail-under=85` enforced in CI.
+Result: green. 117 tests passed, 90% branch coverage, with `--cov-fail-under=85` enforced in CI.
 
 ## Desktop checks
 
@@ -191,6 +191,8 @@ from 53.6 ms to 30.8 ms over 100,000 rows in isolation, so the `GROUP BY` scan
 dominates and the JSON extraction is not the bottleneck. That did not justify a
 versioned schema change plus write-path coupling, so it was not done.
 
+| Verify presets | after this change the dialog offered only the detected `python -m pytest -q` chip instead of four generic ones, and prefilled the field |
+| Interpreter fallback | the same run exposed that `python` was not resolvable in that gateway process; verification now falls back to the running interpreter, proven by a test that blanks PATH |
 | Loading states | sessions and turns now show an explicit loading line instead of the empty-state copy while the first fetch is in flight. The transient frame could not be captured: the local round trip resolves faster than the screenshot pipeline, so the post-reload capture already showed data. No regression was observed |
 | Display limit | this machine is 1366x768, so a true 1920x1080 window cannot be captured here; 1366x720 is the largest available and the smallest realistic laptop height |
 | Window size 1366x720 | page and dialog both fit: no overflow, no clipped row, footer and primary action visible, dialog body scrolls internally |

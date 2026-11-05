@@ -111,3 +111,15 @@ def test_prepare_rejects_multiline_and_oversized_verify_commands(database: Datab
 
     payload["verify_cmd"] = "a" * 501
     assert client.post(f"{PREFIX}/forks/prepare", json=payload).status_code == 422
+
+
+def test_python_falls_back_to_the_running_interpreter(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setattr(shutil, "which", lambda _: None)
+
+    assert resolve_argv("python -m pytest -q", tmp_path)[0] == sys.executable
+    assert resolved_command("python3 -m pytest -q", tmp_path) == sys.executable + " -m pytest -q"
+
+    with pytest.raises(LookupError, match="not on the gateway PATH"):
+        resolve_argv("npm test", tmp_path)

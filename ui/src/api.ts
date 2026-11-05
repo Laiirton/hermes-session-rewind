@@ -155,6 +155,7 @@ export interface ForkPlan {
   verify_timeout_seconds: number;
   fidelity: string;
   context_rows: number | null;
+  verify_presets: string[];
 }
 
 export interface ForkCommitInput {

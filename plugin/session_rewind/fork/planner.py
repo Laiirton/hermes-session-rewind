@@ -13,6 +13,7 @@ from ..serialization import parse_payload
 from ..settings import Settings
 from ..store.db import Database
 from ..store.repositories import ReadStore, WriteStore
+from .presets import detect_verify_commands
 
 EVENT_LIMIT = 5000
 MAX_FILES = 20
@@ -56,6 +57,7 @@ class ForkPlan:
     verify_timeout_seconds: int
     fidelity: str
     context_rows: int | None
+    verify_presets: tuple[str, ...]
 
 
 PREAMBLE_HEAD = "You are continuing a Hermes session from a rewound checkpoint."
@@ -179,6 +181,9 @@ class ForkPlanner:
             verify_timeout_seconds=self._settings.verify_timeout_seconds,
             fidelity=fidelity,
             context_rows=context_rows,
+            verify_presets=(
+                tuple(detect_verify_commands(repo_root)) if repo_root is not None else ()
+            ),
         )
 
     def _select_snapshot(

@@ -506,6 +506,9 @@ export function ForkDialog({
       });
       setPlan(prepared);
       setPrompt(prepared.prompt);
+      if (prepared.verify_presets.length > 0 && verifyCmd.trim() === '') {
+        setVerifyCmd(prepared.verify_presets[0] ?? '');
+      }
       if (prepared.model !== null) {
         setModel(prepared.model);
       }
@@ -760,19 +763,21 @@ export function ForkDialog({
                 placeholder="python -m pytest -q"
               />
               <div className="rw-chips">
-                {VERIFY_PRESETS.map((preset) => (
-                  <button
-                    type="button"
-                    key={preset}
-                    className="rw-preset"
-                    onClick={() => {
-                      setVerifyCmd(preset);
-                    }}
-                    disabled={busy}
-                  >
-                    {preset}
-                  </button>
-                ))}
+                {(plan?.verify_presets.length ? plan.verify_presets : VERIFY_PRESETS).map(
+                  (preset) => (
+                    <button
+                      type="button"
+                      key={preset}
+                      className="rw-preset"
+                      onClick={() => {
+                        setVerifyCmd(preset);
+                      }}
+                      disabled={busy}
+                    >
+                      {preset}
+                    </button>
+                  )
+                )}
               </div>
               <span className="rw-help">
                 Runs in the restored workspace with the gateway environment.

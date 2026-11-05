@@ -222,6 +222,7 @@ class ForkPlanResponse(BaseModel):
     verify_timeout_seconds: int
     fidelity: str
     context_rows: int | None = None
+    verify_presets: list[str] = []
 
 
 class VerifyResponse(BaseModel):

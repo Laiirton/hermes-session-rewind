@@ -208,6 +208,7 @@ def create_router(database: Database, settings: Settings | None = None) -> APIRo
             verify_timeout_seconds=plan.verify_timeout_seconds,
             fidelity=plan.fidelity,
             context_rows=plan.context_rows,
+            verify_presets=list(plan.verify_presets),
         )
 
     @router.post("/forks/{branch_id}/commit", response_model=BranchDetail)
