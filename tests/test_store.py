@@ -174,16 +174,18 @@ def test_duplicate_snapshot_returns_existing_id(database: Database) -> None:
     assert first == second
 
 
-def test_delete_older_than(database: Database) -> None:
+def test_delete_sessions_removes_only_the_listed_rows(database: Database) -> None:
     store = WriteStore(database.connect())
     try:
         store.upsert_session("old", 10.0)
         store.upsert_session("new", 1000.0)
+        store.end_session("old", 20.0, "completed")
     finally:
         store.close()
     store = WriteStore(database.connect())
     try:
-        assert store.delete_older_than(100.0) == 1
+        assert store.delete_sessions(["old"]) == 1
+        assert store.delete_sessions([]) == 0
     finally:
         store.close()
     sessions = ReadStore(database).list_sessions(limit=10, offset=0)

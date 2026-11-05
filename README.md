@@ -17,6 +17,7 @@ Session Rewind is a Hermes Agent plugin with a Python half (hooks, local event s
 - Runs the user-provided verify command and compares outcome, tokens, tool errors and duration.
 - Completes the branch lifecycle: prepared, running, done, failed, cleaned and discarded, with abandoned prepared branches swept and their worktrees removed.
 - Opens from the sidebar, the status bar, the command palette or `Ctrl+Alt+R`, and behaves like a host surface: scoped timers, event-driven refresh and a focus-trapped dialog.
+- Applies `retention_days` on load: finished recordings older than the window, and the shadow refs that pinned them, are removed. Live sessions and sessions with a branch still running are never touched.
 - Keeps everything local: no network calls, no telemetry, no credential reads and no self-updater.
 
 ## Known limitations

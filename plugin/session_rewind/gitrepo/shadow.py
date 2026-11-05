@@ -119,6 +119,11 @@ class GitShadow:
         finally:
             shutil.rmtree(temp_dir, ignore_errors=True)
 
+    def drop_ref(self, repo_root: Path, ref_name: str) -> None:
+        result = self.run(repo_root, ["update-ref", "-d", ref_name], timeout=5.0)
+        if result.returncode != 0:
+            raise GitError(result.stderr.strip() or "git update-ref -d failed")
+
     def run(
         self,
         cwd: Path,

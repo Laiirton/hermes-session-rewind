@@ -37,7 +37,7 @@ mypy
 pytest --cov=session_rewind --cov-report=term-missing
 ```
 
-Result: green. 92 tests passed, 90% branch coverage, with `--cov-fail-under=85` enforced in CI.
+Result: green. 99 tests passed, 90% branch coverage, with `--cov-fail-under=85` enforced in CI.
 
 ## Desktop checks
 
@@ -122,5 +122,7 @@ Observed in the real Hermes Desktop app through Computer Use; screenshots are ke
 | Abandoned worktree | four `prepared` branches left by dialog tests were reclaimed through the new cleanup path and no longer appear in `git worktree list` |
 | Fork of an already-forked session | fails with the gateway error `Session revision unavailable; reopen the session before editing metadata`; the dialog keeps the branch and reports the error, so this path is not yet a clean success |
 | Scale | 10k-event session: newest turn page 7.7 ms, second page 7.6 ms, one turn expansion 1.0 ms |
+| Shadow snapshots and secrets | probed: `git add -A` respects `.gitignore`, so an ignored `.env` is not in the snapshot tree; only already-tracked content is |
+| Retention | wired to plugin load and covered by a test that fails when the call is removed |
 
 Not yet verified live: light theme, 1920x1080 and 1280x720 layouts, ten consecutive forks, and a fork of a session that is itself a rewind child (observed to fail above).

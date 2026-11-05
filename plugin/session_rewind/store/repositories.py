@@ -3,7 +3,7 @@ from __future__ import annotations
 import json
 import re
 import sqlite3
-from collections.abc import Iterable
+from collections.abc import Iterable, Sequence
 from typing import Any
 
 from .db import Database, EventRecord
@@ -347,11 +347,14 @@ class WriteStore:
             )
         return int(cursor.lastrowid or 0)
 
-    def delete_older_than(self, cutoff: float) -> int:
+    def delete_sessions(self, session_ids: Sequence[str]) -> int:
+        if not session_ids:
+            return 0
+        placeholders = ",".join("?" for _ in session_ids)
         with self._connection:
             cursor = self._connection.execute(
-                "DELETE FROM sessions WHERE started_at < ?",
-                (cutoff,),
+                f"DELETE FROM sessions WHERE session_id IN ({placeholders})",
+                list(session_ids),
             )
         return int(cursor.rowcount or 0)
 
@@ -577,6 +580,42 @@ class ReadStore:
         connection = self._connect()
         try:
             return self._session_metrics(connection, session_id)
+        finally:
+            connection.close()
+
+    def list_prunable_sessions(self, cutoff: float) -> list[str]:
+        connection = self._connect()
+        try:
+            rows = connection.execute(
+                """
+                SELECT session_id FROM sessions
+                WHERE ended_at IS NOT NULL AND ended_at < ?
+                  AND session_id NOT IN (
+                      SELECT parent_session_id FROM branches WHERE state IN ('prepared', 'running')
+                  )
+                  AND session_id NOT IN (
+                      SELECT COALESCE(child_session_id, '') FROM branches
+                      WHERE state IN ('prepared', 'running')
+                  )
+                ORDER BY ended_at ASC
+                """,
+                (cutoff,),
+            ).fetchall()
+            return [str(row["session_id"]) for row in rows]
+        finally:
+            connection.close()
+
+    def list_snapshot_refs(self, session_ids: Sequence[str]) -> list[dict[str, Any]]:
+        if not session_ids:
+            return []
+        connection = self._connect()
+        try:
+            placeholders = ",".join("?" for _ in session_ids)
+            rows = connection.execute(
+                f"SELECT repo_root, ref_name FROM snapshots WHERE session_id IN ({placeholders})",
+                list(session_ids),
+            ).fetchall()
+            return [dict(row) for row in rows]
         finally:
             connection.close()
 
