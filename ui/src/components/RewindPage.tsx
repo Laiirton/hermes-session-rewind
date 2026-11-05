@@ -5,7 +5,6 @@ import type { ReactNode } from 'react';
 
 import {
   cleanupFork,
-  getBranch,
   getBranches,
   getCompare,
   getEvent,
@@ -13,6 +12,7 @@ import {
   getSnapshots,
   getTurnEvents,
   getTurns,
+  reconcileBranch,
   verifyFork
 } from '../api';
 import type {
@@ -282,7 +282,7 @@ function ComparePanel({
 
     const load = async (): Promise<boolean> => {
       try {
-        const branch = await getBranch(ctx, branchId);
+        const branch = await reconcileBranch(ctx, branchId);
         if (cancelled) {
           return true;
         }

@@ -216,8 +216,8 @@ export function getBranches(ctx: PluginContext, sessionId: string): Promise<Bran
   return ctx.rest<BranchSummary[]>(`/sessions/${encodeURIComponent(sessionId)}/branches`);
 }
 
-export function getBranch(ctx: PluginContext, branchId: string): Promise<BranchDetail> {
-  return ctx.rest<BranchDetail>(`/branches/${encodeURIComponent(branchId)}`);
+export function reconcileBranch(ctx: PluginContext, branchId: string): Promise<BranchDetail> {
+  return post<BranchDetail>(ctx, `/branches/${encodeURIComponent(branchId)}/reconcile`, {});
 }
 
 export function getCompare(

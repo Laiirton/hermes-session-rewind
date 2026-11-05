@@ -162,6 +162,13 @@ def create_router(database: Database, settings: Settings | None = None) -> APIRo
 
     @router.get("/branches/{branch_id}", response_model=BranchDetail)
     def get_branch(branch_id: str) -> BranchDetail:
+        detail = forks.detail(branch_id)
+        if detail is None:
+            raise HTTPException(status_code=404, detail="branch not found")
+        return _branch_detail(detail[0], detail[1])
+
+    @router.post("/branches/{branch_id}/reconcile", response_model=BranchDetail)
+    def reconcile_branch(branch_id: str) -> BranchDetail:
         forks.reconcile(branch_id)
         detail = forks.detail(branch_id)
         if detail is None:

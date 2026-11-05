@@ -86,3 +86,28 @@ def test_compare_and_bookmarks(seeded_database: Database) -> None:
 
     branch = client.get(f"{PREFIX}/branches/missing")
     assert branch.status_code == 404
+
+
+def test_get_branch_does_not_mutate_state(seeded_database: Database) -> None:
+    from session_rewind.store.repositories import WriteStore
+
+    store = WriteStore(seeded_database.connect())
+    try:
+        store.create_branch(
+            "branch-read", "sess_child", 20.0, 1, None, None, None, None, "rerun", None,
+            "running", 30.0,
+        )
+        store.set_branch_child("branch-read", "sess_child", "sess_child", None, 30.0)
+    finally:
+        store.close()
+    client = _client(seeded_database)
+
+    read = client.get(f"{PREFIX}/branches/branch-read")
+    assert read.status_code == 200
+    assert read.json()["branch"]["state"] == "running"
+
+    reconciled = client.post(f"{PREFIX}/branches/branch-read/reconcile")
+    assert reconciled.status_code == 200
+    assert reconciled.json()["branch"]["state"] in ("done", "failed")
+
+    assert client.post(f"{PREFIX}/branches/missing/reconcile").status_code == 404
