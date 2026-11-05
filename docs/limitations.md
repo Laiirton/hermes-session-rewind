@@ -5,8 +5,8 @@
 `plugin/desktop/plugin.js` ships the dialog with its own scoped CSS because the
 plugin iframe does not inherit the host utility classes. Its colours come from
 `var(--ui-*)` with dark fallbacks, and inside the iframe `--ui-bg` does not
-resolve, so the panel keeps its dark surface when the app is in light mode and
-secondary text loses contrast. `prefers-color-scheme` was tested in the running
+resolve, so a token chain can lighten the panel while the text keeps its
+light-on-dark fallback, or the other way round. `prefers-color-scheme` was tested in the running
 app and does not change the iframe, so it is not a fix.
 
 The dialog reads the mode from the SDK (`useTheme().resolvedMode`) and switches

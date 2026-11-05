@@ -206,4 +206,4 @@ versioned schema change plus write-path coupling, so it was not done.
 | Window size 1366x720 | page and dialog both fit: no overflow, no clipped row, footer and primary action visible, dialog body scrolls internally |
 | Live session badge | widened to accept the focused stored session id as well as the runtime id, because the two differ in this build. **Not visually confirmed**: no recorded session in the app was simultaneously unfinished and focused during two attempts, so the condition could not be exercised |
 
-Not yet verified live: light theme, 1920x1080 and 1280x720 layouts, ten consecutive forks, and a fork of a session that is itself a rewind child (observed to fail above).
+Not yet verified live: the 1920x1080 and 1280x720 layouts (the display is 1366x768), ten consecutive forks through the dialog, and a fork of a session that is itself a rewind child (observed to fail above). Light theme was verified live at 11:29 in both the idle and prepared dialog.

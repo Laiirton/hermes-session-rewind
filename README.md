@@ -22,7 +22,7 @@ Session Rewind is a Hermes Agent plugin with a Python half (hooks, local event s
 
 ## Known limitations
 
-See [docs/limitations.md](docs/limitations.md). The headline one: the fork dialog keeps its dark surface when the app is in light theme, because the plugin iframe does not expose the host background token or a colour-scheme signal.
+See [docs/limitations.md](docs/limitations.md). The headline one: the fork dialog follows light and dark but not a custom palette, because the plugin iframe does not expose the host colour tokens.
 
 ## Requirements
 
