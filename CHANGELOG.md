@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Stop the preamble disclaimer from surviving inside the quoted task when a rewound turn is rewound again: the instruction sentence was replayed as part of the user's own words, so it appeared twice in the pack and once of those inside the data delimiters.
+
 - Refuse a fork whose turn belongs to another session, and keep the timeline to the selected session: switching sessions left the previous session's turn rows on screen, and preparing one of them silently forked the other session from its own anchor.
 
 - Claim only the files a write tool touched in the context pack: a `read_file` or `search_files` call is no longer reported to the rerun as something the earlier turn changed.
