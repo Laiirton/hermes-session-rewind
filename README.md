@@ -19,6 +19,10 @@ Session Rewind is a Hermes Agent plugin with a Python half (hooks, local event s
 - Opens from the sidebar, the status bar, the command palette or `Ctrl+Alt+R`, and behaves like a host surface: scoped timers, event-driven refresh and a focus-trapped dialog.
 - Keeps everything local: no network calls, no telemetry, no credential reads and no self-updater.
 
+## Known limitations
+
+See [docs/limitations.md](docs/limitations.md). The headline one: the fork dialog keeps its dark surface when the app is in light theme, because the plugin iframe does not expose the host background token or a colour-scheme signal.
+
 ## Requirements
 
 - Hermes Agent `>= 0.22.7`.
