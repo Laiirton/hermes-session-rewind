@@ -22,7 +22,7 @@ Session Rewind is a Hermes Agent plugin with a Python half (hooks, local event s
 
 ## Known limitations
 
-See [docs/limitations.md](docs/limitations.md). The headline one: the fork dialog carries its own light and dark value sets, because the plugin iframe does not inherit the host utility classes. Its surface and text follow the active palette through host tokens; its status badges keep fixed hues, because each is paired with a tint of the same hue.
+See [docs/limitations.md](docs/limitations.md). The headline one used to be a wrong diagnosis: the fork dialog carries its own scoped CSS and asked for token names the host never declares, so those colours fell through to hardcoded fallbacks and looked palette-blind. It now asks for the same tokens as the host's own dialog, so its surface, borders, text, status hues and primary button follow the active palette and light or dark mode with no theme logic in the plugin.
 
 ## Requirements
 

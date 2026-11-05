@@ -1,4 +1,4 @@
-import { host, useTheme } from '@hermes/plugin-sdk';
+import { host } from '@hermes/plugin-sdk';
 import type { PluginContext } from '@hermes/plugin-sdk';
 import { useEffect, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
@@ -96,35 +96,36 @@ const DIALOG_CSS = `
 .rw-overlay {
   position: fixed;
   inset: 0;
-  z-index: 1000;
+  z-index: var(--z-modal-backdrop, 120);
   display: flex;
   align-items: flex-start;
   justify-content: center;
   padding: 28px 20px;
   overflow-y: auto;
-  background: rgba(4, 6, 9, 0.72);
-  backdrop-filter: blur(3px);
+  background: rgba(0, 0, 0, 0.22);
+  backdrop-filter: blur(0.125rem);
 }
 .rw-panel {
+  position: relative;
   display: flex;
   flex-direction: column;
   width: min(760px, 100%);
   max-height: calc(100vh - 56px);
   margin: auto 0;
   overflow: hidden;
-  color: var(--ui-text-primary, #ececf1);
-  background: var(--ui-panel-background, var(--ui-bg-elevated, #15161a));
-  border: 1px solid var(--ui-border, rgba(255, 255, 255, 0.14));
-  border-radius: 14px;
-  box-shadow: 0 24px 70px rgba(0, 0, 0, 0.62);
+  color: var(--ui-text-primary);
+  background: var(--ui-bg-elevated);
+  border: 1px solid var(--ui-stroke-secondary);
+  border-radius: 12px;
+  box-shadow: var(--shadow-md);
 }
 .rw-header {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
   gap: 16px;
-  padding: 18px 20px 16px;
-  border-bottom: 1px solid var(--ui-border, rgba(255, 255, 255, 0.1));
+  padding: 18px 48px 16px 20px;
+  border-bottom: 1px solid var(--ui-stroke-tertiary);
 }
 .rw-heading {
   min-width: 0;
@@ -140,30 +141,33 @@ const DIALOG_CSS = `
   overflow: hidden;
   font-size: 12px;
   line-height: 1.45;
-  color: var(--ui-text-tertiary, rgba(236, 236, 241, 0.56));
+  color: var(--ui-text-tertiary);
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 .rw-close {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 30px;
-  height: 30px;
-  flex: none;
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  z-index: 1;
+  display: inline-grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
   padding: 0;
   font: inherit;
-  font-size: 18px;
+  font-size: 16px;
   line-height: 1;
-  color: var(--ui-text-tertiary, rgba(236, 236, 241, 0.56));
+  color: var(--ui-text-tertiary);
   cursor: pointer;
   background: transparent;
-  border: 1px solid var(--ui-border, rgba(255, 255, 255, 0.14));
+  border: 0;
   border-radius: 8px;
+  transition: color 120ms ease-out, background-color 120ms ease-out;
 }
 .rw-close:hover:not(:disabled) {
-  color: var(--ui-text-primary, #ececf1);
-  background: rgba(255, 255, 255, 0.06);
+  color: var(--ui-text-primary);
+  background: var(--ui-control-hover-background);
 }
 .rw-panel:focus-visible {
   outline: none;
@@ -171,7 +175,7 @@ const DIALOG_CSS = `
 .rw-button:focus-visible,
 .rw-close:focus-visible,
 .rw-preset:focus-visible {
-  outline: 2px solid var(--ui-accent, #6ea8fe);
+  outline: 2px solid var(--ui-stroke-primary);
   outline-offset: 2px;
 }
 .rw-input:focus-visible,
@@ -191,8 +195,8 @@ const DIALOG_CSS = `
 }
 .rw-card {
   padding: 14px;
-  background: rgba(255, 255, 255, 0.035);
-  border: 1px solid var(--ui-border, rgba(255, 255, 255, 0.12));
+  background: var(--ui-bg-card);
+  border: 1px solid var(--ui-stroke-tertiary);
   border-radius: 10px;
 }
 .rw-card-head {
@@ -207,27 +211,28 @@ const DIALOG_CSS = `
   font-weight: 600;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: var(--ui-text-tertiary, rgba(236, 236, 241, 0.56));
+  color: var(--ui-text-tertiary);
 }
 .rw-badge {
   padding: 2px 8px;
   font-size: 11px;
   line-height: 1.6;
-  border: 1px solid var(--ui-border, rgba(255, 255, 255, 0.14));
+  color: var(--ui-text-secondary);
+  border: 1px solid var(--ui-stroke-tertiary);
   border-radius: 999px;
 }
 .rw-badge-idle {
-  color: var(--ui-text-tertiary, rgba(236, 236, 241, 0.56));
+  color: var(--ui-text-tertiary);
 }
 .rw-badge-ok {
-  color: #3fb950;
-  background: rgba(63, 185, 80, 0.08);
-  border-color: rgba(63, 185, 80, 0.35);
+  color: var(--ui-green);
+  background: color-mix(in srgb, var(--ui-green) 10%, transparent);
+  border-color: color-mix(in srgb, var(--ui-green) 32%, transparent);
 }
 .rw-badge-warn {
-  color: #e3b341;
-  background: rgba(227, 179, 65, 0.08);
-  border-color: rgba(227, 179, 65, 0.35);
+  color: var(--ui-yellow);
+  background: color-mix(in srgb, var(--ui-yellow) 10%, transparent);
+  border-color: color-mix(in srgb, var(--ui-yellow) 32%, transparent);
 }
 .rw-chips {
   display: flex;
@@ -238,49 +243,51 @@ const DIALOG_CSS = `
   padding: 3px 8px;
   font-size: 11px;
   font-variant-numeric: tabular-nums;
-  color: var(--ui-text-tertiary, rgba(236, 236, 241, 0.56));
-  border: 1px solid var(--ui-border, rgba(255, 255, 255, 0.12));
+  color: var(--ui-text-secondary);
+  border: 1px solid var(--ui-stroke-tertiary);
   border-radius: 6px;
 }
 .rw-preset {
   padding: 3px 8px;
   font: inherit;
-  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-family: var(--dt-font-mono, ui-monospace, SFMono-Regular, Menlo, Consolas, monospace);
   font-size: 11px;
-  color: var(--ui-text-tertiary, rgba(236, 236, 241, 0.56));
+  color: var(--ui-text-secondary);
   cursor: pointer;
   background: transparent;
-  border: 1px solid var(--ui-border, rgba(255, 255, 255, 0.12));
+  border: 1px solid var(--ui-stroke-tertiary);
   border-radius: 6px;
+  transition: color 120ms ease-out, background-color 120ms ease-out, border-color 120ms ease-out;
 }
 .rw-preset:hover {
-  color: var(--ui-text-primary, #ececf1);
-  border-color: var(--ui-accent, #6ea8fe);
+  color: var(--ui-text-primary);
+  background: var(--ui-control-hover-background);
+  border-color: var(--ui-stroke-secondary);
 }
 .rw-resolved {
   margin-top: 6px;
-  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-family: var(--dt-font-mono, ui-monospace, SFMono-Regular, Menlo, Consolas, monospace);
   font-size: 11px;
   line-height: 1.5;
   overflow-wrap: anywhere;
-  color: var(--ui-text-tertiary, rgba(236, 236, 241, 0.56));
+  color: var(--ui-text-tertiary);
 }
 .rw-path {
   margin-top: 10px;
-  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-family: var(--dt-font-mono, ui-monospace, SFMono-Regular, Menlo, Consolas, monospace);
   font-size: 11px;
   line-height: 1.5;
-  color: var(--ui-text-tertiary, rgba(236, 236, 241, 0.56));
+  color: var(--ui-text-tertiary);
   word-break: break-all;
 }
 .rw-note {
   margin-top: 10px;
   font-size: 12px;
   line-height: 1.5;
-  color: #e3b341;
+  color: var(--ui-yellow);
 }
 .rw-note-muted {
-  color: var(--ui-text-tertiary, rgba(236, 236, 241, 0.56));
+  color: var(--ui-text-tertiary);
 }
 .rw-grid {
   display: grid;
@@ -298,7 +305,7 @@ const DIALOG_CSS = `
   font-weight: 600;
   letter-spacing: 0.07em;
   text-transform: uppercase;
-  color: var(--ui-text-tertiary, rgba(236, 236, 241, 0.56));
+  color: var(--ui-text-tertiary);
 }
 .rw-input,
 .rw-textarea {
@@ -307,30 +314,31 @@ const DIALOG_CSS = `
   padding: 9px 10px;
   font: inherit;
   font-size: 12px;
-  color: var(--ui-text-primary, #ececf1);
+  color: var(--ui-text-primary);
   outline: none;
-  background: rgba(0, 0, 0, 0.24);
-  border: 1px solid var(--ui-border, rgba(255, 255, 255, 0.14));
+  background: var(--ui-bg-card);
+  border: 1px solid var(--ui-stroke-secondary);
   border-radius: 8px;
+  transition: border-color 120ms ease-out, box-shadow 120ms ease-out;
 }
 .rw-input {
-  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-family: var(--dt-font-mono, ui-monospace, SFMono-Regular, Menlo, Consolas, monospace);
 }
 .rw-input:focus,
 .rw-textarea:focus {
-  border-color: var(--ui-accent, #6ea8fe);
-  box-shadow: 0 0 0 3px rgba(110, 168, 254, 0.16);
+  border-color: var(--ui-stroke-primary);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--ui-stroke-primary) 20%, transparent);
 }
 .rw-textarea {
   min-height: 170px;
-  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-family: var(--dt-font-mono, ui-monospace, SFMono-Regular, Menlo, Consolas, monospace);
   line-height: 1.55;
   resize: vertical;
 }
 .rw-help {
   font-size: 11px;
   line-height: 1.45;
-  color: var(--ui-text-tertiary, rgba(236, 236, 241, 0.56));
+  color: var(--ui-text-tertiary);
 }
 .rw-banner {
   padding: 9px 11px;
@@ -340,14 +348,14 @@ const DIALOG_CSS = `
   border-radius: 8px;
 }
 .rw-banner-warn {
-  color: #e3b341;
-  background: rgba(227, 179, 65, 0.08);
-  border-color: rgba(227, 179, 65, 0.35);
+  color: var(--ui-yellow);
+  background: color-mix(in srgb, var(--ui-yellow) 10%, transparent);
+  border-color: color-mix(in srgb, var(--ui-yellow) 30%, transparent);
 }
 .rw-banner-error {
-  color: #ff7b72;
-  background: rgba(255, 123, 114, 0.08);
-  border-color: rgba(255, 123, 114, 0.35);
+  color: var(--ui-red);
+  background: color-mix(in srgb, var(--ui-red) 10%, transparent);
+  border-color: color-mix(in srgb, var(--ui-red) 30%, transparent);
 }
 .rw-footer {
   display: flex;
@@ -355,13 +363,13 @@ const DIALOG_CSS = `
   justify-content: space-between;
   gap: 16px;
   padding: 14px 20px;
-  background: rgba(0, 0, 0, 0.16);
-  border-top: 1px solid var(--ui-border, rgba(255, 255, 255, 0.1));
+  background: var(--ui-bg-card);
+  border-top: 1px solid var(--ui-stroke-tertiary);
 }
 .rw-hint {
   font-size: 11px;
   line-height: 1.45;
-  color: var(--ui-text-tertiary, rgba(236, 236, 241, 0.56));
+  color: var(--ui-text-tertiary);
 }
 .rw-actions {
   display: flex;
@@ -372,14 +380,15 @@ const DIALOG_CSS = `
   padding: 8px 14px;
   font: inherit;
   font-size: 12px;
-  color: var(--ui-text-primary, #ececf1);
+  color: var(--ui-text-primary);
   cursor: pointer;
   background: transparent;
-  border: 1px solid var(--ui-border, rgba(255, 255, 255, 0.14));
+  border: 1px solid var(--ui-stroke-secondary);
   border-radius: 8px;
+  transition: color 120ms ease-out, background-color 120ms ease-out, border-color 120ms ease-out;
 }
 .rw-button:hover:not(:disabled) {
-  background: rgba(255, 255, 255, 0.06);
+  background: var(--ui-control-hover-background);
 }
 .rw-button:disabled {
   cursor: default;
@@ -387,115 +396,12 @@ const DIALOG_CSS = `
 }
 .rw-primary {
   font-weight: 600;
-  color: #08111f;
-  background: var(--ui-accent, #6ea8fe);
+  color: var(--dt-primary-foreground, #fcfcfc);
+  background: var(--dt-primary, var(--ui-accent));
   border-color: transparent;
 }
 .rw-primary:hover:not(:disabled) {
-  background: var(--ui-accent, #6ea8fe);
-  filter: brightness(1.08);
-}
-.rw-light {
-  background: rgba(24, 26, 30, 0.32);
-}
-.rw-light .rw-panel {
-  color: #1c1f24;
-  background: #f6f7f9;
-  border-color: rgba(0, 0, 0, 0.14);
-  box-shadow: 0 24px 70px rgba(15, 18, 22, 0.24);
-}
-.rw-light .rw-header {
-  border-bottom-color: rgba(0, 0, 0, 0.1);
-}
-.rw-light .rw-subtitle,
-.rw-light .rw-card-title,
-.rw-light .rw-chip,
-.rw-light .rw-path,
-.rw-light .rw-label,
-.rw-light .rw-help,
-.rw-light .rw-hint,
-.rw-light .rw-badge-idle,
-.rw-light .rw-resolved {
-  color: rgba(28, 31, 36, 0.62);
-}
-.rw-light .rw-note.rw-note-muted {
-  color: rgba(28, 31, 36, 0.62);
-}
-.rw-light .rw-close {
-  color: rgba(28, 31, 36, 0.62);
-  border-color: rgba(0, 0, 0, 0.14);
-}
-.rw-light .rw-close:hover:not(:disabled) {
-  color: #1c1f24;
-  background: rgba(0, 0, 0, 0.06);
-}
-.rw-light .rw-card {
-  background: rgba(0, 0, 0, 0.035);
-  border-color: rgba(0, 0, 0, 0.1);
-}
-.rw-light .rw-badge {
-  border-color: rgba(0, 0, 0, 0.14);
-}
-.rw-light .rw-badge-ok {
-  color: #1a7f37;
-  background: rgba(26, 127, 55, 0.08);
-  border-color: rgba(26, 127, 55, 0.32);
-}
-.rw-light .rw-badge-warn,
-.rw-light .rw-note,
-.rw-light .rw-banner-warn {
-  color: #9a6700;
-}
-.rw-light .rw-banner-warn {
-  background: rgba(154, 103, 0, 0.08);
-  border-color: rgba(154, 103, 0, 0.3);
-}
-.rw-light .rw-banner-error {
-  color: #cf222e;
-  background: rgba(207, 34, 46, 0.07);
-  border-color: rgba(207, 34, 46, 0.3);
-}
-.rw-light .rw-chip {
-  border-color: rgba(0, 0, 0, 0.12);
-}
-.rw-light .rw-preset {
-  color: rgba(28, 31, 36, 0.72);
-  background: #ffffff;
-  border-color: rgba(0, 0, 0, 0.14);
-}
-.rw-light .rw-preset:hover {
-  color: #1c1f24;
-  background: rgba(0, 0, 0, 0.05);
-  border-color: #1f6feb;
-}
-.rw-light .rw-input,
-.rw-light .rw-textarea {
-  color: #1c1f24;
-  background: #ffffff;
-  border-color: rgba(0, 0, 0, 0.16);
-}
-.rw-light .rw-input:focus,
-.rw-light .rw-textarea:focus {
-  border-color: #1f6feb;
-  box-shadow: 0 0 0 3px rgba(31, 111, 235, 0.22);
-}
-.rw-light .rw-footer {
-  background: rgba(0, 0, 0, 0.03);
-  border-top-color: rgba(0, 0, 0, 0.1);
-}
-.rw-light .rw-button {
-  color: #1c1f24;
-  border-color: rgba(0, 0, 0, 0.16);
-}
-.rw-light .rw-button:hover:not(:disabled) {
-  background: rgba(0, 0, 0, 0.05);
-}
-.rw-light .rw-primary {
-  color: #ffffff;
-  background: #1f6feb;
-}
-.rw-light .rw-primary:hover:not(:disabled) {
-  background: #1a63d8;
+  background: color-mix(in srgb, var(--dt-primary, var(--ui-accent)) 88%, var(--ui-base));
 }
 @media (max-width: 620px) {
   .rw-overlay {
@@ -527,7 +433,6 @@ export function ForkDialog({
   onClose,
   onCreated
 }: ForkDialogProps): ReactNode {
-  const light = useTheme().resolvedMode === 'light';
   const [model, setModel] = useState(session.model ?? '');
   const [prompt, setPrompt] = useState('');
   const [verifyCmd, setVerifyCmd] = useState('');
@@ -777,7 +682,7 @@ export function ForkDialog({
 
   return (
     <div
-      className={light ? 'rw-overlay rw-light' : 'rw-overlay'}
+      className="rw-overlay"
       onMouseDown={(mouseEvent) => {
         if (mouseEvent.target === mouseEvent.currentTarget && !busy) {
           onClose();

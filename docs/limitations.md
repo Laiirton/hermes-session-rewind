@@ -1,29 +1,54 @@
 # Limitations
 
-## The fork dialog follows the palette for its surface, not for its status colours
+## The fork dialog is styled with host tokens, and the names that were invented
 
-`plugin/desktop/plugin.js` ships the dialog with its own scoped CSS because the
-plugin iframe does not inherit the host utility classes, so its colours are
-written out rather than composed from utility classes.
+`plugin/desktop/plugin.js` ships the fork dialog with its own scoped CSS. Two
+explanations for that have been written on this page and both were wrong, so the
+current one carries the measurements behind it.
 
-An earlier version of this page said the dialog "cannot follow a custom palette".
-That was a wrong diagnosis. The host defines 63 `--ui-*` tokens, and the dialog
-was asking for two of them by names that do not exist - `--ui-bg` and `--ui-text` -
-so those two always fell through to their hardcoded fallbacks and the panel looked
-palette-blind. `--ui-accent`, `--ui-border` and `--ui-text-tertiary` were already
-correct, which is why the accent and the borders did follow the palette all along.
+The first said the plugin runs in an iframe that does not inherit the host utility
+classes. The installed stylesheet
+(`app/resources/app.asar.unpacked/dist/assets/main-Dr3mZqrt.css`) says otherwise: the
+exact escaped selectors the page uses are in it - `.border-\(--ui-border\)`,
+`.text-\(--ui-text-tertiary\)`, `.bg-\(--ui-panel-background\)`, `.disabled\:opacity-50` -
+alongside the ordinary utilities. The plugin's React tree is mounted in the host
+document, so host classes apply to it.
 
-The dark half now asks for `--ui-panel-background` (with `--ui-bg-elevated` and a
-hex last), and for `--ui-text-primary` instead of the invented `--ui-text`. Verified
-in the running app at 14:41 by switching to the Midnight palette: the panel takes the
-palette's blue-violet surface and the page and the dialog read as one surface again;
-the app was switched back to Nous afterwards.
+The second said the dialog cannot follow a custom palette. The real defect was
+invented token names. The host's `:root` declares 55 `--ui-*` tokens, and five names
+the dialog asked for are not among them: `--ui-bg`, `--ui-text`, `--ui-border`,
+`--ui-panel-background`, `--ui-danger` and `--ui-warning`. Four of those are never set
+at runtime either - only `--ui-success` is, by the theme engine - so every
+`var(--ui-border, rgba(255,255,255,.14))` silently rendered its fallback. A fallback
+that always wins is what looked like a palette-blind iframe.
 
-What is still fixed, and why:
+The dialog now asks for names the host declares, and for the same ones the host's own
+dialog uses: `--ui-bg-elevated` and `--ui-stroke-secondary` are exactly what
+`[data-slot=dialog-content]` sets, `--shadow-md` is its shadow, `--ui-bg-card` and
+`--ui-stroke-tertiary` are the card and separator, `--ui-control-hover-background` is
+every hover, `--ui-stroke-primary` is the focus ring, `--dt-primary` with
+`--dt-primary-foreground` is the primary button, and the status hues are the host's own
+`--ui-green`, `--ui-yellow` and `--ui-red`, which the host redeclares under `:root.dark`.
+Because all of them resolve through `--theme-*`, which the theme engine writes onto the
+document element, the dialog follows palette and mode with no JavaScript: the
+`useTheme().resolvedMode` branch and the 100-line fixed light value set are gone.
 
-1. The light half of the dialog is an explicit value set. `prefers-color-scheme` was tested in the running app and does not change the iframe, so the mode is read from the SDK (`useTheme().resolvedMode`) and both halves switch together.
-2. The status colours - success green, warning amber, error red - are fixed per half, because each is paired with an `rgba()` tint of the same hue for its background and border. Pointing only the text at `--ui-success` would leave the tint behind and produce a half-following badge.
-3. A strongly tinted palette therefore still reads slightly differently in the dialog's status badges than in the host's own surfaces.
+Measured in the running app at 17:11-17:14, three captures of the same dialog at the
+same window size, sampling the median pixel of each surface:
+
+| Switch | Panel | Input | Footer | Primary button |
+| --- | --- | --- | --- | --- |
+| Catppuccin dark to Catppuccin light | 23,23,30 to 246,247,248 | 37,36,47 to 234,233,241 | 80,82,97 to 213,213,223 | 231,214,251 to 189,160,226 |
+| Catppuccin light to Midnight light | 246,247,248 to 253,253,253 | 234,233,241 to 239,239,243 | 213,213,223 to 211,211,214 | 189,160,226 to 101,93,164 |
+
+The first row is the mode following; the second is the palette following, where the
+button moves 217 units of summed absolute RGB while the surfaces move 13 to 48. The
+app was left on the user's own Dark + Catppuccin, confirmed in `ui-preferences.json`.
+
+Two colours are still written out, both because the host writes them out the same way:
+the scrim is `rgba(0, 0, 0, 0.22)`, the value of the host's own `bg-black/22` modal
+backdrop, and `--dt-primary-foreground` keeps `#fcfcfc` as its fallback, which is what
+the host declares for it.
 
 ## Session outcome codes
 
