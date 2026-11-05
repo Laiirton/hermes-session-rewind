@@ -4,7 +4,8 @@ import sys
 import time
 from pathlib import Path
 
-from session_rewind.fork.planner import ForkPlanner
+import pytest
+from session_rewind.fork.planner import ForkError, ForkPlanner
 from session_rewind.fork.service import ForkService
 from session_rewind.fork.verify import VerifyRunner, resolve_argv, resolved_command
 from session_rewind.gitrepo.shadow import GitShadow
@@ -103,6 +104,46 @@ def test_cleanup_removes_a_worktree_even_without_a_snapshot_row(
 
     assert not target.exists()
     branch = ReadStore(database).get_branch("branch-no-snapshot")
+    assert branch is not None
+    assert branch["state"] == "cleaned"
+
+
+def test_cleanup_refuses_while_the_rerun_still_uses_the_workspace(
+    database: Database, git_repo: Path
+) -> None:
+    target = _prepared_branch(database, git_repo, "branch-live-wt", 1.0)
+    store = WriteStore(database.connect())
+    try:
+        store.upsert_session("s_child_live", 2.0, model="model-b")
+        store.set_branch_child("branch-live-wt", "s_child_live", "s_child_live", str(target), 2.0)
+    finally:
+        store.close()
+    service = _service(database, WorktreeManager(GitShadow()))
+
+    with pytest.raises(ForkError, match="still using this workspace"):
+        service.cleanup("branch-live-wt")
+
+    assert target.exists()
+    branch = ReadStore(database).get_branch("branch-live-wt")
+    assert branch is not None
+    assert branch["state"] == "running"
+
+
+def test_cleanup_proceeds_once_the_rerun_has_ended(database: Database, git_repo: Path) -> None:
+    target = _prepared_branch(database, git_repo, "branch-ended-wt", 1.0)
+    store = WriteStore(database.connect())
+    try:
+        store.upsert_session("s_child_done", 2.0, model="model-b")
+        store.end_session("s_child_done", 30.0, "completed")
+        store.set_branch_child("branch-ended-wt", "s_child_done", "s_child_done", str(target), 2.0)
+    finally:
+        store.close()
+    service = _service(database, WorktreeManager(GitShadow()))
+
+    service.cleanup("branch-ended-wt")
+
+    assert not target.exists()
+    branch = ReadStore(database).get_branch("branch-ended-wt")
     assert branch is not None
     assert branch["state"] == "cleaned"
 

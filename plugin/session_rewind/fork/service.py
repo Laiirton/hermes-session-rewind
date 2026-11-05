@@ -167,9 +167,17 @@ class ForkService:
             store.close()
 
     def cleanup(self, branch_id: str) -> None:
-        branch = ReadStore(self._database).get_branch(branch_id)
+        read = ReadStore(self._database)
+        branch = read.get_branch(branch_id)
         if branch is None:
             raise ForkError("branch not found")
+        child = branch.get("child_session_id")
+        if isinstance(child, str) and child:
+            metrics = read.session_metrics(child)
+            if metrics is not None and metrics.get("ended_at") is None:
+                raise ForkError(
+                    "the rerun is still using this workspace; finish the child session first"
+                )
         self._remove_worktree(branch)
         store = WriteStore(self._database.connect())
         try:

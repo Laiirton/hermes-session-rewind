@@ -630,22 +630,22 @@ export function ForkDialog({
         freshSession = true;
       }
       if (!freshSession && plan.worktree_path !== null) {
+        const attach = (): Promise<unknown> =>
+          host.request('session.cwd.set', { session_id: childId, cwd: plan.worktree_path });
         try {
-          await host.request('session.cwd.set', {
-            session_id: childId,
-            cwd: plan.worktree_path
-          });
+          await labelled('could not attach the isolated workspace', attach());
         } catch {
           await delay(400);
           try {
-            await host.request('session.cwd.set', {
-              session_id: childId,
-              cwd: plan.worktree_path
-            });
-          } catch {
-            setNotice(
-              'The branch was created, but the isolated workspace could not be attached. The rerun will use the original workspace.'
-            );
+            await labelled('could not attach the isolated workspace', attach());
+          } catch (retryError) {
+            throw retryError instanceof Error
+              ? new Error(
+                  `The rerun was not started because the isolated workspace could not be attached: ${errorMessage(retryError)}`
+                )
+              : new Error(
+                  'The rerun was not started because the isolated workspace could not be attached.'
+                );
           }
         }
       }
