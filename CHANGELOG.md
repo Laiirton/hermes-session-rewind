@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Prove the timeline at ten thousand events. The claim that a long session does not freeze had no test behind it: `test_ten_thousand_events_answer_fast_and_reach_every_turn` writes 10,002 events, checks the newest 50 turns come back in well under the bound and in descending order, and walks the cursor to the beginning to show all 3,334 turns are reachable rather than the first few hundred.
+
 - Give the page a render test. Selecting a session, the empty-recording sentence, the event coalescing and the one-second paint target could only be checked by hand, because `ui/` had no component-rendering harness. jsdom, React and Testing Library are now development dependencies and the shipped bundle is byte-identical - react and `@hermes/plugin-sdk` stay external - with four tests, three of which were confirmed to fail when the fix they cover is reverted: the loading panel, the empty-recording sentence, and a burst of forty host events that costs four requests without coalescing and none with it. The documented check chain also gained `npm run lint`, `npm run format` and `npm test`, the three CI already ran and this repository did not list, which is why two pushes went out red.
 
 - Put a frozen baseline's outcome in the past. The Original card of a comparison said `recording` for a session that ended hours ago, because the baseline froze while it was still open; that card describes 10:43:12 and not now, so it now says `open at freeze`. A side with no recording at all says `not recorded`, replacing a guess between `unknown` and `running`.

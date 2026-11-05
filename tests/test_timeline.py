@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import time
 from typing import Any
 
 import pytest
@@ -160,3 +161,39 @@ def test_events_endpoint_reports_has_more_without_a_false_negative(timeline: Dat
     assert len(page["items"]) == 9
     assert page["has_more"] is False
     assert page["after_seq"] is None
+
+
+def test_ten_thousand_events_answer_fast_and_reach_every_turn(
+    database: Database,
+) -> None:
+    turns = 3334
+    store = WriteStore(database.connect())
+    try:
+        store.upsert_session(SESSION, 100.0, model="model-a")
+        store.append_events(_records(turns))
+    finally:
+        store.close()
+
+    assert ReadStore(database).counts()["events"] == turns * 3
+
+    read = ReadStore(database)
+    started = time.perf_counter()
+    newest = read.list_turns(SESSION, limit=50)
+    elapsed = time.perf_counter() - started
+
+    assert len(newest) == 50
+    assert [turn["seq"] for turn in newest] == sorted(
+        (turn["seq"] for turn in newest), reverse=True
+    )
+    assert elapsed < 0.25
+
+    walked = len(newest)
+    cursor = newest[-1]["seq"]
+    while True:
+        older = read.list_turns(SESSION, before_seq=cursor, limit=50)
+        if not older:
+            break
+        walked += len(older)
+        cursor = older[-1]["seq"]
+
+    assert walked == turns
