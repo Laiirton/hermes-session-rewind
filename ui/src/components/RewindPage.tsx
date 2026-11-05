@@ -708,6 +708,12 @@ export function RewindPage({ ctx }: { ctx: PluginContext }): ReactNode {
     setSelectedBranchId(null);
     setExpandedTurnId(null);
     setTurnEvents({});
+    setTurns([]);
+    setTurnsLoaded(false);
+    setTurnsHasMore(false);
+    setTurnsError(null);
+    setSnapshots([]);
+    setBranches([]);
   };
 
   const refresh = (): void => {
