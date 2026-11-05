@@ -66,6 +66,18 @@ const PAGE_CSS = `
 .rw-page button:not(:disabled) {
   cursor: pointer;
 }
+.rw-note-warn {
+  background: color-mix(in srgb, var(--ui-yellow) 8%, transparent);
+  border-color: color-mix(in srgb, var(--ui-yellow) 30%, transparent);
+}
+.rw-confirm {
+  background: color-mix(in srgb, var(--ui-red) 8%, transparent);
+  border-color: color-mix(in srgb, var(--ui-red) 32%, transparent);
+}
+.rw-confirm-delete {
+  color: var(--ui-red);
+  border-color: color-mix(in srgb, var(--ui-red) 45%, transparent);
+}
 .rw-page button:disabled {
   cursor: not-allowed;
 }
@@ -134,7 +146,7 @@ function TimelineRow({
   const visible = (events ?? []).filter((event) => !COLLAPSED_KINDS.has(event.kind));
   const hidden = (events ?? []).length - visible.length;
   return (
-    <div className="border-b border-(--ui-border) pb-1">
+    <div className="border-b border-(--ui-stroke-tertiary) pb-1">
       <div className="flex items-center gap-2">
         <button
           type="button"
@@ -153,7 +165,7 @@ function TimelineRow({
             {plural(turn.tool_calls, 'tool')}
           </span>
           {turn.tool_errors > 0 ? (
-            <span className="shrink-0 text-xs text-red-500">
+            <span className="shrink-0 text-xs text-(--ui-red)">
               {plural(turn.tool_errors, 'error')}
             </span>
           ) : null}
@@ -163,7 +175,7 @@ function TimelineRow({
         </button>
         <button
           type="button"
-          className="shrink-0 rounded border border-(--ui-border) px-2 py-0.5 text-xs"
+          className="shrink-0 rounded border border-(--ui-stroke-secondary) px-2 py-0.5 text-xs"
           onClick={onFork}
         >
           Rewind
@@ -232,35 +244,35 @@ function kindLabel(kind: string): string {
 
 function kindTone(kind: string, status: string | null): string {
   if (kind === 'tool_result' && status === 'error') {
-    return 'text-red-500';
+    return 'text-(--ui-red)';
   }
   if (kind === 'assistant_response' || kind === 'tool_result') {
-    return 'text-emerald-500';
+    return 'text-(--ui-green)';
   }
   if (kind === 'user_turn') {
-    return 'text-sky-500';
+    return 'text-(--ui-accent)';
   }
   if (kind === 'tool_call') {
-    return 'text-violet-500';
+    return 'text-(--ui-purple)';
   }
   if (kind === 'api_request' || kind === 'llm_call') {
-    return 'text-amber-500';
+    return 'text-(--ui-orange)';
   }
   if (kind === 'compaction') {
-    return 'text-fuchsia-500';
+    return 'text-(--ui-text-secondary)';
   }
   return 'text-(--ui-text-tertiary)';
 }
 
 function stateTone(state: string): string {
   if (state === 'done') {
-    return 'text-emerald-500';
+    return 'text-(--ui-green)';
   }
   if (state === 'failed') {
-    return 'text-red-500';
+    return 'text-(--ui-red)';
   }
   if (state === 'running') {
-    return 'text-sky-500';
+    return 'text-(--ui-accent)';
   }
   return 'text-(--ui-text-tertiary)';
 }
@@ -297,7 +309,7 @@ function Inspector({ detail }: { detail: EventDetail | null }): ReactNode {
         {detail.status !== null ? ` · ${detail.status}` : ''}
         {detail.duration_ms !== null ? ` · ${formatDuration(detail.duration_ms)}` : ''}
       </div>
-      <pre className="max-h-96 overflow-auto whitespace-pre-wrap break-words rounded border border-(--ui-border) p-2 font-mono text-xs">
+      <pre className="max-h-96 overflow-auto whitespace-pre-wrap break-words rounded border border-(--ui-stroke-tertiary) p-2 font-mono text-xs">
         {JSON.stringify(detail.payload, null, 2)}
       </pre>
     </div>
@@ -477,7 +489,7 @@ function ComparePanel({
           <span className="font-medium">Branch {shortId(branch.id)}</span>
           <span className={`uppercase ${stateTone(branch.state)}`}>{branch.state}</span>
           {run !== null && run.verify_exit !== null ? (
-            <span className={run.verify_exit === 0 ? 'text-emerald-500' : 'text-red-500'}>
+            <span className={run.verify_exit === 0 ? 'text-(--ui-green)' : 'text-(--ui-red)'}>
               verify {verifyOutcome(run.verify_exit)}
             </span>
           ) : null}
@@ -485,7 +497,7 @@ function ComparePanel({
         <div className="flex items-center gap-2 text-xs">
           <button
             type="button"
-            className="rounded border border-(--ui-border) px-2 py-1 disabled:opacity-50"
+            className="rounded border border-(--ui-stroke-secondary) px-2 py-1 disabled:opacity-50"
             title={verifyBlock}
             onClick={() => {
               void verify();
@@ -496,7 +508,7 @@ function ComparePanel({
           </button>
           <button
             type="button"
-            className="rounded border border-(--ui-border) px-2 py-1 disabled:opacity-50"
+            className="rounded border border-(--ui-stroke-secondary) px-2 py-1 disabled:opacity-50"
             title={cleanupBlock}
             onClick={() => {
               void askCleanup();
@@ -507,7 +519,7 @@ function ComparePanel({
           </button>
           <button
             type="button"
-            className="rounded border border-(--ui-border) px-2 py-1"
+            className="rounded border border-(--ui-stroke-secondary) px-2 py-1"
             onClick={onClose}
           >
             Hide
@@ -516,17 +528,17 @@ function ComparePanel({
       </div>
 
       {detail.shared_child ? (
-        <div className="rounded border border-amber-600/40 bg-amber-500/5 p-2 text-xs text-(--ui-text)">
+        <div className="rw-note-warn rounded border p-2 text-xs text-(--ui-text-primary)">
           Another branch claims this same rerun session, so the numbers below may describe a
           different fork. It was recorded before the session-id fix.
         </div>
       ) : null}
 
-      {error !== null ? <div className="text-xs text-red-500">{error}</div> : null}
+      {error !== null ? <div className="text-xs text-(--ui-red)">{error}</div> : null}
 
       {pendingCleanup !== null ? (
         <div
-          className="rounded border border-red-500/50 bg-red-500/5 p-2 text-xs"
+          className="rw-confirm rounded border p-2 text-xs"
           ref={confirmRef}
           role="alertdialog"
           aria-label="Confirm workspace cleanup"
@@ -542,7 +554,7 @@ function ComparePanel({
           <div className="flex items-center gap-2">
             <button
               type="button"
-              className="rounded border border-red-500/60 px-2 py-1 text-red-500 disabled:opacity-50"
+              className="rw-confirm-delete rounded border px-2 py-1 disabled:opacity-50"
               onClick={() => {
                 void cleanup(pendingCleanup);
               }}
@@ -552,7 +564,7 @@ function ComparePanel({
             </button>
             <button
               type="button"
-              className="rounded border border-(--ui-border) px-2 py-1"
+              className="rounded border border-(--ui-stroke-secondary) px-2 py-1"
               onClick={() => {
                 setPendingCleanup(null);
               }}
@@ -565,7 +577,7 @@ function ComparePanel({
 
       {compare !== null ? (
         <div className="grid grid-cols-2 gap-2 text-xs">
-          <div className="rounded border border-(--ui-border) p-2">
+          <div className="rounded border border-(--ui-stroke-tertiary) p-2">
             <div className="mb-1 text-(--ui-text-tertiary)">
               Original
               {compare.left?.frozen_at ? ` · frozen ${formatTime(compare.left.frozen_at)}` : ''}
@@ -587,7 +599,7 @@ function ComparePanel({
               value={compare.left === null ? 'n/a' : String(compare.left.tool_errors)}
             />
           </div>
-          <div className="rounded border border-(--ui-border) p-2">
+          <div className="rounded border border-(--ui-stroke-tertiary) p-2">
             <div className="mb-1 text-(--ui-text-tertiary)">Rerun</div>
             <Metric
               label="outcome"
@@ -621,7 +633,7 @@ function ComparePanel({
       )}
 
       {run !== null && run.verify_out ? (
-        <pre className="max-h-32 overflow-auto whitespace-pre-wrap break-words rounded border border-(--ui-border) p-2 font-mono text-xs">
+        <pre className="max-h-32 overflow-auto whitespace-pre-wrap break-words rounded border border-(--ui-stroke-tertiary) p-2 font-mono text-xs">
           {run.verify_out}
         </pre>
       ) : null}
@@ -856,7 +868,7 @@ export function RewindPage({ ctx }: { ctx: PluginContext }): ReactNode {
   return (
     <div className="rw-page flex h-full flex-col gap-3 p-3 text-sm">
       <style>{PAGE_CSS}</style>
-      <header className="flex items-center justify-between gap-3 border-b border-(--ui-border) pb-2">
+      <header className="flex items-center justify-between gap-3 border-b border-(--ui-stroke-tertiary) pb-2">
         <div>
           <div className="text-base font-medium">Session Rewind</div>
           <div className="text-xs text-(--ui-text-tertiary)">
@@ -870,14 +882,14 @@ export function RewindPage({ ctx }: { ctx: PluginContext }): ReactNode {
             </span>
           ) : null}
           {running ? (
-            <span className="flex items-center gap-1 text-emerald-500">
-              <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+            <span className="flex items-center gap-1 text-(--ui-green)">
+              <span className="h-1.5 w-1.5 rounded-full bg-(--ui-green)" />
               {live ? 'live' : 'running'}
             </span>
           ) : null}
           <button
             type="button"
-            className="rounded border border-(--ui-border) px-2 py-1"
+            className="rounded border border-(--ui-stroke-secondary) px-2 py-1"
             onClick={refresh}
           >
             Refresh
@@ -885,10 +897,10 @@ export function RewindPage({ ctx }: { ctx: PluginContext }): ReactNode {
         </div>
       </header>
 
-      {error !== null ? <div className="text-xs text-red-500">{error}</div> : null}
+      {error !== null ? <div className="text-xs text-(--ui-red)">{error}</div> : null}
 
       <div className="flex min-h-0 flex-1 gap-3">
-        <aside className="flex w-64 shrink-0 flex-col gap-3 overflow-auto border-r border-(--ui-border) pr-2">
+        <aside className="flex w-64 shrink-0 flex-col gap-3 overflow-auto border-r border-(--ui-stroke-tertiary) pr-2">
           <div className="flex flex-col gap-1">
             <div className="text-xs uppercase text-(--ui-text-tertiary)">
               Sessions
@@ -912,7 +924,7 @@ export function RewindPage({ ctx }: { ctx: PluginContext }): ReactNode {
                   className={`flex flex-col gap-0.5 rounded border px-2 py-1.5 text-left text-xs ${
                     selectedSessionId === session.session_id
                       ? 'border-(--ui-accent)'
-                      : 'border-(--ui-border)'
+                      : 'border-(--ui-stroke-secondary)'
                   }`}
                   onClick={() => {
                     selectSession(session);
@@ -921,7 +933,7 @@ export function RewindPage({ ctx }: { ctx: PluginContext }): ReactNode {
                   <span className="flex items-center gap-1.5">
                     <span
                       className={`h-1.5 w-1.5 rounded-full ${
-                        session.ended_at === null ? 'bg-emerald-500' : 'bg-(--ui-text-tertiary)'
+                        session.ended_at === null ? 'bg-(--ui-green)' : 'bg-(--ui-text-tertiary)'
                       }`}
                     />
                     <span className="truncate font-medium">
@@ -943,7 +955,7 @@ export function RewindPage({ ctx }: { ctx: PluginContext }): ReactNode {
 
         <main className="flex min-w-0 flex-1 flex-col gap-2">
           {selectedSession !== null ? (
-            <div className="flex items-start justify-between gap-2 border-b border-(--ui-border) pb-2">
+            <div className="flex items-start justify-between gap-2 border-b border-(--ui-stroke-tertiary) pb-2">
               <div>
                 <div className="flex items-center gap-2">
                   <span className="text-base font-medium">
@@ -979,7 +991,9 @@ export function RewindPage({ ctx }: { ctx: PluginContext }): ReactNode {
                   type="button"
                   key={branch.id}
                   className={`flex items-center gap-2 rounded border px-2 py-1 text-xs ${
-                    selectedBranchId === branch.id ? 'border-(--ui-accent)' : 'border-(--ui-border)'
+                    selectedBranchId === branch.id
+                      ? 'border-(--ui-accent)'
+                      : 'border-(--ui-stroke-secondary)'
                   }`}
                   onClick={() => {
                     setSelectedBranchId(branch.id);
@@ -1033,7 +1047,7 @@ export function RewindPage({ ctx }: { ctx: PluginContext }): ReactNode {
                   {turnsHasMore ? (
                     <button
                       type="button"
-                      className="mt-2 w-full rounded border border-(--ui-border) py-1 text-xs text-(--ui-text-tertiary)"
+                      className="mt-2 w-full rounded border border-(--ui-stroke-secondary) py-1 text-xs text-(--ui-text-tertiary)"
                       onClick={() => {
                         void loadEarlier();
                       }}
@@ -1049,7 +1063,7 @@ export function RewindPage({ ctx }: { ctx: PluginContext }): ReactNode {
                 </>
               )}
             </div>
-            <div className="w-80 shrink-0 overflow-auto border-l border-(--ui-border) pl-2">
+            <div className="w-80 shrink-0 overflow-auto border-l border-(--ui-stroke-tertiary) pl-2">
               <Inspector detail={detail} />
             </div>
           </div>
@@ -1057,7 +1071,7 @@ export function RewindPage({ ctx }: { ctx: PluginContext }): ReactNode {
       </div>
 
       {selectedBranchId !== null ? (
-        <div className="max-h-72 shrink-0 overflow-auto border-t border-(--ui-border) pt-2">
+        <div className="max-h-72 shrink-0 overflow-auto border-t border-(--ui-stroke-tertiary) pt-2">
           <ComparePanel
             ctx={ctx}
             branchId={selectedBranchId}

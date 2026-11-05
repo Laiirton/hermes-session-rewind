@@ -50,6 +50,26 @@ the scrim is `rgba(0, 0, 0, 0.22)`, the value of the host's own `bg-black/22` mo
 backdrop, and `--dt-primary-foreground` keeps `#fcfcfc` as its fallback, which is what
 the host declares for it.
 
+## A utility class the host never compiled is a silent no-op
+
+The plugin's React tree is mounted in the host document, so the host stylesheet styles
+it. That works only for classes the host actually emitted: the bundle is not scanned by
+the host's Tailwind build, so a class nobody in the host wrote does not exist, and the
+element simply keeps its inherited value. Grepping the installed stylesheet for the
+escaped selectors found four the plugin was relying on:
+
+- `text-violet-500` (tool-call rows) and `text-fuchsia-500` (compaction rows) - absent,
+  so those rows never took their hue.
+- `border-amber-600/40` - absent, so the shared-child note had no border colour.
+- `bg-red-500/5` and `border-red-500/50/60` - absent, so the destructive confirmation
+  rendered with a text-coloured edge and no tint.
+
+The same trap runs one layer down: a class can exist and still do nothing if the token it
+names is not declared, which is how `border-(--ui-border)` rendered 19 edges in the text
+colour. Checking a colour therefore takes two greps, not one - the class in the
+stylesheet, and the token in `:root`. Anything that needs a `color-mix` tint has no
+utility class at all and belongs in the plugin's own scoped CSS.
+
 ## Session outcome codes
 
 The session cards and the comparison panel used to print the `outcome` string
