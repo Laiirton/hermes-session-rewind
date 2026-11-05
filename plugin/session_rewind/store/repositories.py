@@ -511,6 +511,10 @@ class ReadStore:
                     SELECT a.id AS anchor_id,
                            COALESCE(MAX(e.seq), a.seq) AS seq_to,
                            COALESCE(MAX(e.ts), a.ts) AS last_ts,
+                           COALESCE(
+                               MAX(CASE WHEN e.kind = 'turn_end' THEN e.ts END),
+                               COALESCE(MAX(e.ts), a.ts)
+                           ) AS work_ts,
                            COUNT(e.id) AS event_count,
                            COALESCE(SUM(e.kind = 'tool_call'), 0) AS tool_calls,
                            COALESCE(SUM(e.kind = 'tool_result' AND e.status = 'error'), 0)
@@ -523,7 +527,7 @@ class ReadStore:
                        AND (a.next_seq IS NULL OR e.seq < a.next_seq)
                     GROUP BY a.id, a.seq, a.ts
                 )
-                SELECT ev.*, st.seq_to, st.last_ts, st.event_count,
+                SELECT ev.*, st.seq_to, st.last_ts, st.work_ts, st.event_count,
                        st.tool_calls, st.tool_errors, st.api_requests
                 FROM stats st
                 JOIN events ev ON ev.id = st.anchor_id

@@ -333,6 +333,7 @@ def _turn_summary(row: dict[str, Any]) -> TurnSummary:
         **event_summary(row),
         seq_to=int(row["seq_to"]),
         last_ts=float(row["last_ts"]),
+        work_ts=float(row["work_ts"]),
         event_count=int(row["event_count"]),
         tool_calls=int(row["tool_calls"]),
         tool_errors=int(row["tool_errors"]),

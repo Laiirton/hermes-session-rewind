@@ -80,6 +80,7 @@ class TurnSummary(BaseModel):
     preview: str = ""
     seq_to: int
     last_ts: float
+    work_ts: float
     event_count: int
     tool_calls: int
     tool_errors: int

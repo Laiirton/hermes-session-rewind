@@ -54,6 +54,7 @@ export interface EventPage {
 export interface TurnSummary extends EventSummary {
   seq_to: number;
   last_ts: number;
+  work_ts: number;
   event_count: number;
   tool_calls: number;
   tool_errors: number;

@@ -45,7 +45,7 @@ interface ForkTarget {
 const TERMINAL_BRANCH_STATES = new Set(['done', 'failed', 'cleaned', 'discarded']);
 
 function turnDuration(turn: TurnSummary): string {
-  return formatDuration(Math.max(0, (turn.last_ts - turn.ts) * 1000));
+  return formatDuration(Math.max(0, (turn.work_ts - turn.ts) * 1000));
 }
 
 function turnsEmptyMessage(session: SessionSummary, error: string | null): string {

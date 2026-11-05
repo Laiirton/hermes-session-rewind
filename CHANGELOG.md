@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- Measure a turn to its own end. The turn window ran to the next user turn, so a session left open afterwards added its idle time to the last turn: "Diga apenas: pronto" reported 21602.8s, six hours, for a turn that took 2.8s. The timeline now uses the turn's `turn_end` when the recording has one and falls back to the old window when it does not.
+
+
 - Count the branches next to the label. The strip is capped at three rows and scrolls, so a session with fifteen branches showed ten chips and gave no sign that five more existed.
 
 

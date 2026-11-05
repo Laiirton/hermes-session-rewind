@@ -88,6 +88,39 @@ def test_turns_group_events_and_order_newest_first(timeline: Database) -> None:
     assert int(previous["seq_to"]) == 6
 
 
+def test_turn_work_span_stops_at_the_turn_end(timeline: Database) -> None:
+    store = WriteStore(timeline.connect())
+    try:
+        store.append_events(
+            [
+                EventRecord(
+                    session_id=SESSION,
+                    ts=200.0,
+                    kind="turn_end",
+                    payload_json="{}",
+                    turn_id="turn-2",
+                ),
+                EventRecord(
+                    session_id=SESSION,
+                    ts=900.0,
+                    kind="session_finalize",
+                    payload_json="{}",
+                ),
+            ]
+        )
+    finally:
+        store.close()
+
+    turns = ReadStore(timeline).list_turns(SESSION, limit=2)
+    newest = turns[0]
+
+    assert float(newest["last_ts"]) == 900.0
+    assert float(newest["work_ts"]) == 200.0
+
+    without_marker = turns[1]
+    assert float(without_marker["work_ts"]) == float(without_marker["last_ts"])
+
+
 def test_turn_cursor_walks_back_to_the_start(timeline: Database) -> None:
     read = ReadStore(timeline)
     first = read.list_turns(SESSION, limit=2)
