@@ -97,11 +97,7 @@ describe('turnsEmptyMessage', () => {
   });
 
   it('states what a recording without user turns holds, without sending the user to Refresh', () => {
-    expect(turnsEmptyMessage(77, null)).toBe(
-      'The recording holds 77 events but no user turn.'
-    );
-    expect(turnsEmptyMessage(1, null)).toBe(
-      'The recording holds 1 event but no user turn.'
-    );
+    expect(turnsEmptyMessage(77, null)).toBe('The recording holds 77 events but no user turn.');
+    expect(turnsEmptyMessage(1, null)).toBe('The recording holds 1 event but no user turn.');
   });
 });
