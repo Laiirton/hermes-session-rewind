@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 import shlex
 import subprocess
 import time
@@ -36,6 +37,7 @@ class VerifyRunner:
                 text=True,
                 timeout=timeout_seconds,
                 check=False,
+                env=_verify_env(),
             )
         except subprocess.TimeoutExpired:
             return VerifyResult(None, "verify command timed out", _elapsed_ms(started), True)
@@ -43,6 +45,10 @@ class VerifyRunner:
             return VerifyResult(None, str(exc), _elapsed_ms(started), False)
         output = (result.stdout + result.stderr)[:MAX_OUTPUT_CHARS]
         return VerifyResult(result.returncode, output, _elapsed_ms(started), False)
+
+
+def _verify_env() -> dict[str, str]:
+    return {key: value for key, value in os.environ.items() if not key.startswith("COVERAGE_")}
 
 
 def _elapsed_ms(started: float) -> float:

@@ -109,3 +109,18 @@ def test_verify_runner(tmp_path: Path) -> None:
     assert unavailable.exit_code is None
     timed = runner.run('python -c "import time; time.sleep(2)"', tmp_path, 0.1)
     assert timed.timed_out is True
+
+
+def test_verify_runner_drops_coverage_environment(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv("COVERAGE_PROCESS_START", "coverage.rc")
+    runner = VerifyRunner()
+    result = runner.run(
+        "python -c \"import os; print(os.environ.get('COVERAGE_PROCESS_START'))\"",
+        tmp_path,
+        10,
+    )
+    assert result.exit_code == 0
+    assert "None" in result.output
