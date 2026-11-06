@@ -11,9 +11,7 @@ describe('parseEmbeddedJson', () => {
     const parsed = parseEmbeddedJson(payload) as Record<string, unknown>;
     const result = parsed.result as Record<string, unknown>;
     expect(result.success).toBe(true);
-    expect((result.data as Record<string, unknown>).web).toEqual([
-      { title: 'Beam Model Card' }
-    ]);
+    expect((result.data as Record<string, unknown>).web).toEqual([{ title: 'Beam Model Card' }]);
   });
 
   it('leaves plain strings and non-JSON text untouched', () => {
@@ -42,7 +40,9 @@ describe('parseEmbeddedJson', () => {
 
 describe('jsonTokens', () => {
   it('classifies keys, strings, numbers, literals and punctuation', () => {
-    const tokens = jsonTokens('{\n  "name": "beam",\n  "ctx": 128000,\n  "ok": true,\n  "x": null\n}');
+    const tokens = jsonTokens(
+      '{\n  "name": "beam",\n  "ctx": 128000,\n  "ok": true,\n  "x": null\n}'
+    );
     const byType = (type: string): string[] =>
       tokens.filter((token) => token.type === type).map((token) => token.text);
     expect(byType('key')).toEqual(['"name"', '"ctx"', '"ok"', '"x"']);
