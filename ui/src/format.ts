@@ -10,6 +10,26 @@ export function formatNumber(value: number): string {
   return value.toLocaleString();
 }
 
+export function formatRelative(ts: number): string {
+  const seconds = Math.max(0, Math.round(Date.now() / 1000 - ts));
+  if (seconds < 60) {
+    return 'just now';
+  }
+  const minutes = Math.round(seconds / 60);
+  if (minutes < 60) {
+    return `${minutes}m`;
+  }
+  const hours = Math.round(minutes / 60);
+  if (hours < 24) {
+    return `${hours}h`;
+  }
+  const days = Math.round(hours / 24);
+  if (days < 30) {
+    return `${days}d`;
+  }
+  return `${Math.round(days / 30)}mo`;
+}
+
 export function formatDuration(ms: number | null): string {
   if (ms === null) {
     return '';

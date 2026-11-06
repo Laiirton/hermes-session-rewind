@@ -4,6 +4,7 @@ import {
   cleanupWarning,
   errorMessage,
   formatClock,
+  formatRelative,
   frozenOutcome,
   outcomeLabel,
   outcomeTone,
@@ -160,5 +161,21 @@ describe('cleanupWarning', () => {
 
   it('says the workspace could not be read rather than calling it clean', () => {
     expect(cleanupWarning(null)).toContain('could not read');
+  });
+});
+
+describe('formatRelative', () => {
+  it('buckets ages from seconds to months', () => {
+    const now = Math.floor(Date.now() / 1000);
+    expect(formatRelative(now - 30)).toBe('just now');
+    expect(formatRelative(now - 5 * 60)).toBe('5m');
+    expect(formatRelative(now - 3 * 3600)).toBe('3h');
+    expect(formatRelative(now - 2 * 86400)).toBe('2d');
+    expect(formatRelative(now - 45 * 86400)).toBe('2mo');
+  });
+
+  it('never goes negative for a future timestamp', () => {
+    const now = Math.floor(Date.now() / 1000);
+    expect(formatRelative(now + 500)).toBe('just now');
   });
 });

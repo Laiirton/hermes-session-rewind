@@ -238,7 +238,7 @@ const DIALOG_CSS = `
 }
 .rw-turn {
   display: flex;
-  align-items: baseline;
+  align-items: center;
   gap: 8px;
   min-width: 0;
   padding: 8px 10px;
@@ -246,6 +246,11 @@ const DIALOG_CSS = `
   background: var(--ui-bg-card);
   border: 1px solid var(--ui-stroke-tertiary);
   border-radius: calc(var(--radius-scalar, 0.2) * .5rem);
+}
+.rw-turn-icon {
+  display: inline-flex;
+  flex: none;
+  color: var(--ui-accent);
 }
 .rw-turn-time {
   flex: none;
@@ -338,7 +343,7 @@ const DIALOG_CSS = `
 .rw-label {
   font-size: 10px;
   font-weight: 600;
-  letter-spacing: 0.1em;
+  letter-spacing: 0.12em;
   text-transform: uppercase;
   color: var(--ui-text-tertiary);
 }
@@ -346,7 +351,7 @@ const DIALOG_CSS = `
   font-family: var(--dt-font-mono, ui-monospace, SFMono-Regular, Menlo, Consolas, monospace);
   font-variant-numeric: tabular-nums;
   font-size: 10px;
-  color: var(--ui-text-tertiary);
+  color: var(--ui-text-quaternary, var(--ui-text-tertiary));
 }
 .rw-input,
 .rw-textarea {
@@ -404,6 +409,8 @@ const DIALOG_CSS = `
   border-color: var(--ui-stroke-primary);
 }
 .rw-help {
+  margin-top: auto;
+  padding-top: 2px;
   font-size: 11px;
   line-height: 1.45;
   color: var(--ui-text-tertiary);
@@ -445,8 +452,12 @@ const DIALOG_CSS = `
 }
 .rw-trigger-provider {
   flex: none;
-  font-size: 11px;
-  color: var(--ui-text-tertiary);
+  padding: 1px 7px;
+  font-size: 10px;
+  color: var(--ui-text-secondary);
+  background: color-mix(in srgb, var(--ui-accent) 9%, transparent);
+  border: 1px solid var(--ui-stroke-tertiary);
+  border-radius: calc(var(--radius-scalar, 0.2) * .5rem);
 }
 .rw-trigger-caret {
   display: inline-grid;
@@ -497,7 +508,7 @@ const DIALOG_CSS = `
   padding: 8px 8px 4px;
   font-size: 10px;
   font-weight: 600;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.12em;
   text-transform: uppercase;
   color: var(--ui-text-tertiary);
   border-bottom: 1px solid var(--ui-stroke-tertiary);
@@ -1118,8 +1129,11 @@ export function ForkDialog({
 
         <div className="rw-body">
           <div className="rw-turn">
+            <span className="rw-turn-icon">
+              <Icon name="message" size={12} />
+            </span>
             <span className="rw-turn-time">{formatTime(event.ts)}</span>
-            <span className="rw-turn-text">{event.preview || 'user turn'}</span>
+            <span className="rw-turn-text" title={event.preview || 'user turn'}>{event.preview || 'user turn'}</span>
           </div>
 
           {error !== null ? (
@@ -1323,9 +1337,11 @@ export function ForkDialog({
           <label className="rw-field">
             <span className="rw-label-row">
               <span className="rw-label">Prompt for the rerun</span>
-              <span className="rw-count" aria-live="polite">
-                {prompt.length} chars
-              </span>
+              {prompt.length > 0 ? (
+                <span className="rw-count" aria-live="polite">
+                  {prompt.length} chars
+                </span>
+              ) : null}
             </span>
             <textarea
               className="rw-textarea"
@@ -1333,7 +1349,7 @@ export function ForkDialog({
               onChange={(changeEvent) => {
                 setPrompt(changeEvent.target.value);
               }}
-              placeholder="Prepare the branch to draft the rerun prompt, or write your own."
+              placeholder="Prepare drafts this from the recorded turn — or write your own now."
             />
           </label>
         </div>

@@ -186,7 +186,7 @@ export interface WorkspaceState {
 }
 
 function post<T>(ctx: PluginContext, path: string, body: unknown): Promise<T> {
-  return ctx.rest<T>(path, { method: 'POST', body } as unknown as RequestInit);
+  return ctx.rest<T>(path, { method: 'POST', body });
 }
 
 export const SESSIONS_PAGE_LIMIT = 100;

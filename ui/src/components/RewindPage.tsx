@@ -33,6 +33,7 @@ import {
   errorMessage,
   formatDuration,
   formatNumber,
+  formatRelative,
   formatTime,
   frozenOutcome,
   outcomeLabel,
@@ -112,21 +113,37 @@ const PAGE_CSS = `
   cursor: not-allowed;
   opacity: 0.5;
 }
+.rw-page ::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+.rw-page ::-webkit-scrollbar-track {
+  background: transparent;
+}
+.rw-page ::-webkit-scrollbar-thumb {
+  background: var(--ui-stroke-secondary);
+  border-radius: 999px;
+}
+.rw-page ::-webkit-scrollbar-thumb:hover {
+  background: color-mix(in srgb, var(--ui-text-tertiary) 55%, transparent);
+}
 .rp-shell {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 18px;
   height: 100%;
   min-height: 0;
-  padding: 22px 24px;
+  padding: 24px 28px;
   font-size: 13px;
   color: var(--ui-text-primary);
 }
 .rp-head {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   justify-content: space-between;
   gap: 16px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--ui-stroke-tertiary);
 }
 .rp-head-left {
   display: grid;
@@ -137,12 +154,13 @@ const PAGE_CSS = `
 .rp-mark {
   display: grid;
   place-items: center;
-  width: 34px;
-  height: 34px;
+  width: 36px;
+  height: 36px;
   color: var(--ui-accent);
-  background: var(--ui-bg-card);
-  border: 1px solid var(--ui-stroke-tertiary);
-  border-radius: calc(var(--radius-scalar, 0.2) * .625rem);
+  background: color-mix(in srgb, var(--ui-accent) 10%, var(--ui-bg-card));
+  border: 1px solid color-mix(in srgb, var(--ui-accent) 30%, var(--ui-stroke-tertiary));
+  border-radius: calc(var(--radius-scalar, 0.2) * .75rem);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
 }
 .rp-title {
   font-size: 17px;
@@ -263,23 +281,36 @@ const PAGE_CSS = `
   gap: 8px;
 }
 .rp-session {
+  position: relative;
   display: flex;
   flex-direction: column;
-  gap: 3px;
+  gap: 4px;
   width: 100%;
-  padding: 9px 11px;
+  padding: 10px 12px;
   text-align: left;
   background: var(--ui-bg-card);
   border: 1px solid var(--ui-stroke-tertiary);
-  border-radius: calc(var(--radius-scalar, 0.2) * .625rem);
-  transition: color 120ms ease-out, background-color 120ms ease-out, border-color 120ms ease-out;
+  border-radius: calc(var(--radius-scalar, 0.2) * .75rem);
+  transition: transform 120ms ease-out, box-shadow 120ms ease-out, border-color 120ms ease-out, background-color 120ms ease-out;
 }
 .rp-session:hover {
   border-color: var(--ui-stroke-secondary);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
 }
 .rp-session[aria-current="true"] {
-  background: color-mix(in srgb, var(--ui-accent) 9%, var(--ui-bg-card));
+  background: color-mix(in srgb, var(--ui-accent) 12%, var(--ui-bg-card));
   border-color: var(--ui-stroke-primary);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+}
+.rp-session[aria-current="true"]::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 10%;
+  bottom: 10%;
+  width: 3px;
+  border-radius: 0 2px 2px 0;
+  background: var(--ui-accent);
 }
 .rp-session-title {
   display: flex;
@@ -289,9 +320,17 @@ const PAGE_CSS = `
   font-weight: 600;
 }
 .rp-session-title > span:nth-child(2) {
+  flex: 1;
+  min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+.rp-session-when {
+  flex: none;
+  font-size: 10px;
+  font-weight: 400;
+  color: var(--ui-text-quaternary, var(--ui-text-tertiary));
 }
 .rp-meta {
   overflow: hidden;
@@ -303,6 +342,15 @@ const PAGE_CSS = `
 .rp-meta-dim {
   color: var(--ui-text-quaternary);
 }
+.rp-empty {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.rp-empty svg {
+  flex: none;
+  color: var(--ui-text-quaternary, var(--ui-text-tertiary));
+}
 .rp-detail-head {
   display: flex;
   align-items: flex-start;
@@ -311,6 +359,49 @@ const PAGE_CSS = `
   padding-bottom: 10px;
   border-bottom: 1px solid var(--ui-stroke-tertiary);
 }
+.rp-search {
+  width: 100%;
+  margin-bottom: 8px;
+  padding: 5px 9px;
+  font: inherit;
+  font-size: 11px;
+  color: var(--ui-text-primary);
+  background: var(--ui-bg-card);
+  border: 1px solid var(--ui-stroke-tertiary);
+  border-radius: calc(var(--radius-scalar, 0.2) * .5rem);
+  transition: border-color 120ms ease-out;
+}
+.rp-search::placeholder {
+  color: var(--ui-text-quaternary, var(--ui-text-tertiary));
+}
+.rp-search:focus {
+  outline: none;
+  border-color: var(--ui-stroke-primary);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--ui-stroke-primary) 20%, transparent);
+}
+.rp-stats {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 16px;
+}
+.rp-stat {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 6px;
+}
+.rp-stat-label {
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--ui-text-tertiary);
+}
+.rp-stat-value {
+  font-size: 11px;
+  color: var(--ui-text-primary);
+  font-variant-numeric: tabular-nums;
+}
 .rp-detail-title {
   display: flex;
   align-items: baseline;
@@ -318,11 +409,6 @@ const PAGE_CSS = `
   font-size: 15px;
   font-weight: 600;
   letter-spacing: -0.01em;
-}
-.rp-detail-note {
-  font-size: 11px;
-  font-weight: 400;
-  color: var(--ui-text-tertiary);
 }
 .rp-hint {
   flex: none;
@@ -419,6 +505,9 @@ const PAGE_CSS = `
 .rp-turn-row:hover {
   background: var(--ui-control-hover-background);
 }
+.rp-turn-row[aria-expanded="true"] {
+  background: var(--ui-control-hover-background);
+}
 .rp-caret {
   display: inline-grid;
   place-items: center;
@@ -459,7 +548,10 @@ const PAGE_CSS = `
   flex-direction: column;
   gap: 1px;
   min-width: 0;
-  padding: 0 6px 8px 30px;
+  margin: 2px 0 8px;
+  padding: 4px 6px 8px 30px;
+  background: color-mix(in srgb, var(--ui-bg-card) 55%, transparent);
+  border-radius: calc(var(--radius-scalar, 0.2) * .5rem);
 }
 .rp-event {
   position: relative;
@@ -526,6 +618,7 @@ const PAGE_CSS = `
   white-space: nowrap;
 }
 .rp-event-name {
+  margin-right: 6px;
   color: var(--ui-text-primary);
 }
 .rp-event-preview {
@@ -562,31 +655,40 @@ const PAGE_CSS = `
   background: var(--ui-control-hover-background);
 }
 .rp-tail {
-  margin-top: 8px;
-  font-size: 11px;
-  color: var(--ui-text-tertiary);
+  margin-top: 6px;
+  padding: 2px 6px 0;
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--ui-text-quaternary, var(--ui-text-tertiary));
 }
 .rp-payload {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
   width: var(--rp-payload-width, 292px);
   flex: none;
   overflow-y: auto;
-  padding-left: 18px;
-  border-left: 1px solid var(--ui-stroke-tertiary);
+  margin-left: 4px;
+  padding: 14px;
+  background: var(--ui-bg-card);
+  border: 1px solid var(--ui-stroke-tertiary);
+  border-radius: calc(var(--radius-scalar, 0.2) * .75rem);
 }
 .rp-divider {
   position: relative;
   z-index: 1;
-  width: 5px;
+  width: 4px;
   flex: none;
-  margin-left: -3px;
   cursor: col-resize;
   touch-action: none;
   border-radius: 999px;
+  background: transparent;
   transition: background-color 120ms ease-out;
 }
 .rp-divider:hover,
 .rp-divider[data-dragging="true"] {
-  background: color-mix(in srgb, var(--ui-accent) 45%, transparent);
+  background: color-mix(in srgb, var(--ui-accent) 60%, transparent);
 }
 .rp-divider:focus-visible {
   outline: none;
@@ -624,7 +726,7 @@ const PAGE_CSS = `
   flex: none;
   font-size: 10px;
   font-weight: 600;
-  letter-spacing: 0.11em;
+  letter-spacing: 0.12em;
   text-transform: uppercase;
 }
 .rp-inspect-kind .rp-dot {
@@ -668,7 +770,7 @@ const PAGE_CSS = `
 .rp-json-lang {
   font-size: 9px;
   font-weight: 600;
-  letter-spacing: 0.14em;
+  letter-spacing: 0.12em;
   text-transform: uppercase;
   color: var(--ui-text-tertiary);
 }
@@ -720,7 +822,7 @@ const PAGE_CSS = `
   margin-bottom: 8px;
   font-size: 10px;
   font-weight: 600;
-  letter-spacing: 0.11em;
+  letter-spacing: 0.12em;
   text-transform: uppercase;
   color: var(--ui-text-tertiary);
 }
@@ -798,7 +900,7 @@ const PAGE_CSS = `
   cursor: pointer;
   font-size: 10px;
   font-weight: 600;
-  letter-spacing: 0.11em;
+  letter-spacing: 0.12em;
   text-transform: uppercase;
 }
 .rp-disclosure .rp-pre {
@@ -822,6 +924,13 @@ const PAGE_CSS = `
   color: var(--ui-yellow);
   background: color-mix(in srgb, var(--ui-yellow) 8%, transparent);
   border-color: color-mix(in srgb, var(--ui-yellow) 30%, transparent);
+}
+.rp-compare-wrap {
+  max-height: 288px;
+  flex: none;
+  overflow-y: auto;
+  padding-top: 8px;
+  border-top: 1px solid var(--ui-stroke-tertiary);
 }
 .rp-error {
   font-size: 11px;
@@ -895,8 +1004,8 @@ const PAGE_CSS = `
   }
   .rp-payload {
     width: auto;
-    padding-left: 0;
-    border-left: 0;
+    margin-left: 0;
+    padding: 12px;
   }
   .rp-divider {
     display: none;
@@ -953,7 +1062,7 @@ function EventRow({
       <span title={event.kind} className="rp-event-kind">
         {kindLabel(event.kind)}
       </span>
-      <span className="rp-event-text">
+      <span className="rp-event-text" title={event.preview !== '' ? event.preview : undefined}>
         {named ? <span className="rp-event-name">{event.name}</span> : null}
         {event.preview !== '' ? (
           <span className="rp-event-preview">{event.preview}</span>
@@ -994,7 +1103,7 @@ function TimelineRow({
             <Icon name="chevron" size={12} />
           </span>
           <span className="rp-turn-time rp-mono">{formatTime(turn.ts)}</span>
-          <span className="rp-turn-preview">{turn.preview || 'User turn'}</span>
+          <span className="rp-turn-preview" title={turn.preview || 'User turn'}>{turn.preview || 'User turn'}</span>
           <span className="rp-turn-stat">{plural(turn.tool_calls, 'tool')}</span>
           {turn.tool_errors > 0 ? (
             <span className="rp-badge" data-tone="err">
@@ -1119,6 +1228,26 @@ function stateBadge(state: string): string {
   return 'idle';
 }
 
+function Stat({
+  label,
+  value,
+  mono = true,
+  tone = 'idle'
+}: {
+  label: string;
+  value: string;
+  mono?: boolean;
+  tone?: string;
+}): ReactNode {
+  const toneClass = tone === 'idle' ? '' : ` rp-tone-${tone}`;
+  return (
+    <span className="rp-stat">
+      <span className="rp-stat-label">{label}</span>
+      <span className={`rp-stat-value${mono ? ' rp-mono' : ''}${toneClass}`}>{value}</span>
+    </span>
+  );
+}
+
 function Metric({
   label,
   value,
@@ -1156,6 +1285,19 @@ function kindColor(kind: string, status: string | null): string {
     return 'var(--ui-text-secondary)';
   }
   return 'var(--ui-text-tertiary)';
+}
+
+function toneColor(tone: string): string {
+  if (tone === 'ok') {
+    return 'var(--ui-green)';
+  }
+  if (tone === 'err') {
+    return 'var(--ui-red)';
+  }
+  if (tone === 'warn') {
+    return 'var(--ui-yellow)';
+  }
+  return 'var(--ui-text-quaternary)';
 }
 
 function statusTone(status: string | null): 'ok' | 'err' | 'run' | null {
@@ -1631,6 +1773,7 @@ export function RewindPage({ ctx }: { ctx: PluginContext }): ReactNode {
   const [sessionsLoaded, setSessionsLoaded] = useState(false);
   const [turnsLoaded, setTurnsLoaded] = useState(false);
   const [turnsError, setTurnsError] = useState<string | null>(null);
+  const [sessionFilter, setSessionFilter] = useState('');
   const [payloadWidth, setPayloadWidth] = useState(readPayloadWidth);
   const [draggingDivider, setDraggingDivider] = useState(false);
   const dividerDrag = useRef<{ startX: number; startWidth: number } | null>(null);
@@ -1775,6 +1918,15 @@ export function RewindPage({ ctx }: { ctx: PluginContext }): ReactNode {
   }, [ctx, selectedEventId]);
 
   const selectedSession = sessions.find((item) => item.session_id === selectedSessionId) ?? null;
+  const filterNeedle = sessionFilter.trim().toLowerCase();
+  const visibleSessions =
+    filterNeedle === ''
+      ? sessions
+      : sessions.filter((session) =>
+          `${session.title ?? ''} ${session.model ?? ''} ${session.session_id}`
+            .toLowerCase()
+            .includes(filterNeedle)
+        );
   const running = selectedSession !== null && selectedSession.ended_at === null;
   const live = running && selectedSession.session_id === activeSessionId;
   const visibleTurns =
@@ -1850,7 +2002,7 @@ export function RewindPage({ ctx }: { ctx: PluginContext }): ReactNode {
         </div>
         <div className="rp-head-right">
           {selectedSession !== null ? (
-            <span className="rp-pill rp-mono">{selectedSession.model ?? 'unknown model'}</span>
+            <span className="rp-pill rp-mono" title={selectedSession.model ?? undefined}>{selectedSession.model ?? 'unknown model'}</span>
           ) : null}
           {running ? (
             <span className="rp-live">
@@ -1874,17 +2026,41 @@ export function RewindPage({ ctx }: { ctx: PluginContext }): ReactNode {
             Sessions
             {sessionsLoaded ? (
               <span className="rp-eyebrow-count">
-                {sessionsCountLabel(sessions.length, SESSIONS_PAGE_LIMIT)}
+                {sessionsCountLabel(visibleSessions.length, SESSIONS_PAGE_LIMIT)}
               </span>
             ) : null}
           </div>
+          {sessionsLoaded && sessions.length > 0 ? (
+            <input
+              type="text"
+              className="rp-search"
+              placeholder="Filter sessions..."
+              aria-label="Filter sessions"
+              value={sessionFilter}
+              onChange={(event) => {
+                setSessionFilter(event.target.value);
+              }}
+              onKeyDown={(event) => {
+                if (event.key === 'Escape' && sessionFilter !== '') {
+                  setSessionFilter('');
+                  event.preventDefault();
+                  event.stopPropagation();
+                }
+              }}
+            />
+          ) : null}
           {!sessionsLoaded ? (
             <div className="rp-meta">Loading sessions...</div>
           ) : sessions.length === 0 ? (
-            <div className="rp-meta">Start a chat and Rewind will record every turn.</div>
+            <div className="rp-meta rp-empty">
+              <Icon name="info" size={13} />
+              Start a chat and Rewind will record every turn.
+            </div>
+          ) : visibleSessions.length === 0 ? (
+            <div className="rp-meta">No session matches the filter.</div>
           ) : (
             <div className="rp-cards">
-              {sessions.map((session) => (
+              {visibleSessions.map((session) => (
                 <button
                   type="button"
                   key={session.session_id}
@@ -1897,14 +2073,14 @@ export function RewindPage({ ctx }: { ctx: PluginContext }): ReactNode {
                   <span className="rp-session-title">
                     <span
                       className="rp-dot"
-                      style={{
-                        background:
-                          session.ended_at === null
-                            ? 'var(--ui-green)'
-                            : 'var(--ui-text-quaternary)'
-                      }}
+                      style={{ color: toneColor(outcomeTone(session.outcome)) }}
                     />
-                    <span>{session.title ?? shortId(session.session_id)}</span>
+                    <span title={session.title ?? shortId(session.session_id)}>{session.title ?? shortId(session.session_id)}</span>
+                    <span className="rp-session-when">
+                      {session.last_event_at !== null
+                        ? formatRelative(session.last_event_at)
+                        : ''}
+                    </span>
                   </span>
                   <span className="rp-meta">
                     {session.model ?? 'unknown model'} · {plural(session.event_count, 'event')}
@@ -1922,17 +2098,34 @@ export function RewindPage({ ctx }: { ctx: PluginContext }): ReactNode {
         <main className="rp-main">
           {selectedSession !== null ? (
             <div className="rp-detail-head">
-              <div className="rp-stack" style={{ gap: 3 }}>
+              <div className="rp-stack" style={{ gap: 5 }}>
                 <div className="rp-detail-title">
                   {selectedSession.title ?? shortId(selectedSession.session_id)}
+                </div>
+                <div className="rp-stats">
                   {snapshots.length > 0 ? (
-                    <span className="rp-detail-note">{plural(snapshots.length, 'snapshot')}</span>
+                    <Stat label="snapshot" value={String(snapshots.length)} />
                   ) : null}
+                  <Stat label="events" value={formatNumber(selectedSession.event_count)} />
+                  <Stat
+                    label="tokens"
+                    value={formatNumber(selectedSession.tokens_in + selectedSession.tokens_out)}
+                  />
+                  {selectedSession.ended_at !== null ? (
+                    <Stat
+                      label="window"
+                      value={`${formatTime(selectedSession.started_at)} → ${formatTime(selectedSession.ended_at)}`}
+                    />
+                  ) : null}
+                  <Stat
+                    label="outcome"
+                    value={outcomeLabel(selectedSession.outcome)}
+                    mono={false}
+                    tone={outcomeTone(selectedSession.outcome)}
+                  />
                 </div>
                 <div className="rp-meta">
-                  {selectedSession.model ?? 'unknown model'} ·{' '}
-                  {plural(selectedSession.event_count, 'event')} ·{' '}
-                  {formatNumber(selectedSession.tokens_in + selectedSession.tokens_out)} tokens
+                  {selectedSession.model ?? 'unknown model'}
                   {selectedSession.ended_at === null
                     ? ` · ${openRecordingNote(selectedSession.last_event_at)}`
                     : ''}
@@ -2112,7 +2305,7 @@ export function RewindPage({ ctx }: { ctx: PluginContext }): ReactNode {
       </div>
 
       {selectedBranchId !== null ? (
-        <div className="max-h-72 shrink-0 overflow-auto border-t border-(--ui-stroke-tertiary) pt-2">
+        <div className="rp-compare-wrap">
           <ComparePanel
             ctx={ctx}
             branchId={selectedBranchId}

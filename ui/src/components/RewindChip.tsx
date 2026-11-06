@@ -16,7 +16,7 @@ export function RewindChip(): ReactNode {
     >
       <span
         className={`h-1.5 w-1.5 rounded-full ${
-          active === null ? 'bg-(--ui-text-tertiary)' : 'bg-emerald-500'
+          active === null ? 'bg-(--ui-text-tertiary)' : 'bg-(--ui-green)'
         }`}
       />
       Rewind

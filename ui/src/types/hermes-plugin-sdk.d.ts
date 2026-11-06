@@ -13,7 +13,12 @@ declare module '@hermes/plugin-sdk' {
   export interface PluginContext {
     register(contribution: Contribution): () => void;
     registerMany(contributions: readonly Contribution[]): () => void;
-    rest<T>(path: string, options?: RequestInit): Promise<T>;
+    rest<T>(
+      path: string,
+      // O transporte do host serializa o corpo para JSON; `body` aceita
+      // qualquer valor serializavel, nao apenas BodyInit do fetch.
+      options?: Omit<RequestInit, 'body'> & { body?: unknown }
+    ): Promise<T>;
     onEvent(type: string, listener: (payload: unknown) => void): () => void;
     onDispose(fn: () => void): void;
     setTimeout(fn: () => void, ms: number): () => void;
