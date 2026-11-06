@@ -1,6 +1,6 @@
 import { host } from '@hermes/plugin-sdk';
 import type { PluginContext } from '@hermes/plugin-sdk';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
 
 import { commitFork, prepareFork, resolveVerify } from '../api';
@@ -471,12 +471,7 @@ const DIALOG_CSS = `
   transform: rotate(90deg);
 }
 .rw-picker {
-  position: absolute;
-  top: calc(100% + 6px);
-  left: 0;
-  right: 0;
-  z-index: 2;
-  max-height: 320px;
+  position: fixed;
   overflow-y: auto;
   display: flex;
   flex-direction: column;
@@ -731,6 +726,49 @@ export function ForkDialog({
   });
   const [catalogFailed, setCatalogFailed] = useState(false);
   const [pickerOpen, setPickerOpen] = useState(false);
+  const [pickerStyle, setPickerStyle] = useState<React.CSSProperties | null>(null);
+  const triggerRef = useRef<HTMLButtonElement | null>(null);
+
+  // O corpo do dialogo tem overflow-y: auto, que clipa um popover absoluto
+  // que passe do painel (finding 133 seguido do report do usuario). Posicao
+  // fixed medida do trigger, clampeada ao viewport, abre para cima quando
+  // nao ha espaco abaixo. useLayoutEffect evita um frame na posicao errada.
+  useLayoutEffect(() => {
+    if (!pickerOpen) {
+      setPickerStyle(null);
+      return;
+    }
+    const place = (): void => {
+      const trigger = triggerRef.current;
+      if (trigger === null) {
+        return;
+      }
+      const rect = trigger.getBoundingClientRect();
+      const spaceBelow = window.innerHeight - rect.bottom;
+      if (spaceBelow < 260) {
+        setPickerStyle({
+          bottom: window.innerHeight - rect.top + 6,
+          left: rect.left,
+          width: rect.width,
+          maxHeight: Math.max(200, Math.round(rect.top - 12))
+        });
+        return;
+      }
+      setPickerStyle({
+        top: rect.bottom + 6,
+        left: rect.left,
+        width: rect.width,
+        maxHeight: Math.min(320, Math.round(spaceBelow - 12))
+      });
+    };
+    place();
+    const stopScroll = ctx.addEventListener(window, 'scroll', place, { capture: true });
+    const stopResize = ctx.addEventListener(window, 'resize', place);
+    return (): void => {
+      stopScroll();
+      stopResize();
+    };
+  }, [ctx, pickerOpen]);
   const [modelQuery, setModelQuery] = useState('');
   const [prompt, setPrompt] = useState('');
   const [verifyCmd, setVerifyCmd] = useState('');
@@ -1194,6 +1232,7 @@ export function ForkDialog({
               </span>
               <button
                 type="button"
+                ref={triggerRef}
                 className={`rw-trigger${pickerOpen ? ' rw-trigger-open' : ''}`}
                 onClick={() => {
                   setPickerOpen(!pickerOpen);
@@ -1214,7 +1253,7 @@ export function ForkDialog({
                 </span>
               </button>
               {pickerOpen ? (
-                <div className="rw-picker">
+                <div className="rw-picker" style={pickerStyle ?? undefined}>
                   <input
                     className="rw-search"
                     value={modelQuery}
