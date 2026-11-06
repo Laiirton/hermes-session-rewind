@@ -354,6 +354,50 @@ describe('RewindPage timeline panel', () => {
     expect(nestedRow?.textContent).toContain('beam takes text as input');
     expect(nestedRow?.textContent).toContain('6.2s');
   });
+
+  it('searches the session events and opens one in the payload', async () => {
+    const hit: EventSummary = {
+      id: 40,
+      session_id: 'session-a',
+      seq: 5,
+      ts: TS,
+      kind: 'tool_call',
+      name: 'web_search',
+      status: 'error',
+      duration_ms: 120,
+      turn_id: 'session-a',
+      tool_call_id: 'c9',
+      api_request_id: null,
+      preview: 'boom in the tool'
+    };
+    const turnsA = deferred<TurnPage>();
+    const host = harness((path) => {
+      if (path.startsWith('/search')) {
+        return Promise.resolve({ query: 'boom', items: [hit] });
+      }
+      if (path.startsWith('/events/')) {
+        return Promise.resolve({ ...hit, task_id: null, payload: { error_message: 'boom' } });
+      }
+      return routeTurns(turnsA, turnsA)(path);
+    });
+    render(<RewindPage ctx={host.ctx} />);
+    turnsA.resolve(page([turn('a', 'the a turn')]));
+    await screen.findByText('the a turn');
+
+    fireEvent.change(screen.getByLabelText('Search events'), {
+      target: { value: 'boom' }
+    });
+
+    await screen.findByText('boom in the tool');
+    expect(screen.queryByText('the a turn')).toBeNull();
+
+    fireEvent.click(screen.getByText('boom in the tool'));
+    await screen.findByText('#40');
+    expect(screen.getByText('Search results')).toBeDefined();
+
+    fireEvent.keyDown(screen.getByLabelText('Search events'), { key: 'Escape' });
+    expect(await screen.findByText('the a turn')).toBeDefined();
+  });
 });
 
 describe('RewindPage fork dialog', () => {

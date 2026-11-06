@@ -45,6 +45,11 @@ export interface EventDetail extends EventSummary {
   payload: Record<string, unknown>;
 }
 
+export interface SearchResponse {
+  query: string;
+  items: EventSummary[];
+}
+
 export interface EventPage {
   items: EventSummary[];
   after_seq: number | null;
@@ -220,6 +225,20 @@ export async function getTurnEvents(
 
 export function getEvent(ctx: PluginContext, eventId: number): Promise<EventDetail> {
   return ctx.rest<EventDetail>(`/events/${eventId}`);
+}
+
+export async function searchEvents(
+  ctx: PluginContext,
+  sessionId: string,
+  query: string,
+  limit = 30
+): Promise<SearchResponse> {
+  const params = new URLSearchParams({
+    q: query,
+    session_id: sessionId,
+    limit: String(limit)
+  });
+  return ctx.rest<SearchResponse>(`/search?${params.toString()}`);
 }
 
 export function getSnapshots(ctx: PluginContext, sessionId: string): Promise<SnapshotSummary[]> {

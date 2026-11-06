@@ -14,6 +14,7 @@ import {
   getTurns,
   getWorkspaceState,
   reconcileBranch,
+  searchEvents,
   SESSIONS_PAGE_LIMIT,
   verifyFork
 } from '../api';
@@ -378,6 +379,11 @@ const PAGE_CSS = `
   outline: none;
   border-color: var(--ui-stroke-primary);
   box-shadow: 0 0 0 3px color-mix(in srgb, var(--ui-stroke-primary) 20%, transparent);
+}
+.rp-search-results {
+  margin-top: 6px;
+  padding-left: 6px;
+  padding-right: 6px;
 }
 .rp-stats {
   display: flex;
@@ -1064,11 +1070,13 @@ function EventRow({
       </span>
       <span className="rp-event-text" title={event.preview !== '' ? event.preview : undefined}>
         {named ? <span className="rp-event-name">{event.name}</span> : null}
-        {event.preview !== '' ? (
-          <span className="rp-event-preview">{event.preview}</span>
-        ) : null}
+        {event.preview !== '' ? <span className="rp-event-preview">{event.preview}</span> : null}
       </span>
-      {event.status === 'error' ? <span className="rp-badge" data-tone="err">error</span> : null}
+      {event.status === 'error' ? (
+        <span className="rp-badge" data-tone="err">
+          error
+        </span>
+      ) : null}
       <span className="rp-event-time rp-mono">{formatDuration(event.duration_ms)}</span>
     </button>
   );
@@ -1103,7 +1111,9 @@ function TimelineRow({
             <Icon name="chevron" size={12} />
           </span>
           <span className="rp-turn-time rp-mono">{formatTime(turn.ts)}</span>
-          <span className="rp-turn-preview" title={turn.preview || 'User turn'}>{turn.preview || 'User turn'}</span>
+          <span className="rp-turn-preview" title={turn.preview || 'User turn'}>
+            {turn.preview || 'User turn'}
+          </span>
           <span className="rp-turn-stat">{plural(turn.tool_calls, 'tool')}</span>
           {turn.tool_errors > 0 ? (
             <span className="rp-badge" data-tone="err">
@@ -1313,7 +1323,13 @@ function statusTone(status: string | null): 'ok' | 'err' | 'run' | null {
   return 'run';
 }
 
-function CopyPayloadButton({ text, onCopy }: { text: string; onCopy: (text: string) => void }): ReactNode {
+function CopyPayloadButton({
+  text,
+  onCopy
+}: {
+  text: string;
+  onCopy: (text: string) => void;
+}): ReactNode {
   const [copied, setCopied] = useState(false);
   useEffect(() => {
     if (!copied) {
@@ -1377,7 +1393,11 @@ function Inspector({
         <span className="rp-inspect-name" title={detail.name ?? detail.kind}>
           {detail.name ?? detail.kind}
         </span>
-        {tone !== null ? <span className="rp-badge" data-tone={tone}>{detail.status}</span> : null}
+        {tone !== null ? (
+          <span className="rp-badge" data-tone={tone}>
+            {detail.status}
+          </span>
+        ) : null}
       </div>
       <div className="rp-inspect-meta">
         <span className="rp-mono">#{detail.id}</span>
@@ -1774,6 +1794,9 @@ export function RewindPage({ ctx }: { ctx: PluginContext }): ReactNode {
   const [turnsLoaded, setTurnsLoaded] = useState(false);
   const [turnsError, setTurnsError] = useState<string | null>(null);
   const [sessionFilter, setSessionFilter] = useState('');
+  const [eventQuery, setEventQuery] = useState('');
+  const [searchResults, setSearchResults] = useState<EventSummary[] | null>(null);
+  const [searching, setSearching] = useState(false);
   const [payloadWidth, setPayloadWidth] = useState(readPayloadWidth);
   const [draggingDivider, setDraggingDivider] = useState(false);
   const dividerDrag = useRef<{ startX: number; startWidth: number } | null>(null);
@@ -1917,6 +1940,36 @@ export function RewindPage({ ctx }: { ctx: PluginContext }): ReactNode {
     };
   }, [ctx, selectedEventId]);
 
+  useEffect(() => {
+    const query = eventQuery.trim();
+    if (query.length < 2 || selectedSessionId === null) {
+      setSearchResults(null);
+      setSearching(false);
+      return;
+    }
+    let cancelled = false;
+    setSearching(true);
+    const dispose = ctx.setTimeout(() => {
+      void searchEvents(ctx, selectedSessionId, query)
+        .then((page) => {
+          if (!cancelled) {
+            setSearchResults(page.items);
+            setSearching(false);
+          }
+        })
+        .catch((caught: unknown) => {
+          if (!cancelled) {
+            setSearching(false);
+            setError(errorMessage(caught));
+          }
+        });
+    }, 200);
+    return (): void => {
+      cancelled = true;
+      dispose();
+    };
+  }, [ctx, eventQuery, selectedSessionId]);
+
   const selectedSession = sessions.find((item) => item.session_id === selectedSessionId) ?? null;
   const filterNeedle = sessionFilter.trim().toLowerCase();
   const visibleSessions =
@@ -1931,6 +1984,7 @@ export function RewindPage({ ctx }: { ctx: PluginContext }): ReactNode {
   const live = running && selectedSession.session_id === activeSessionId;
   const visibleTurns =
     selectedSessionId === null ? [] : turns.filter((turn) => turn.session_id === selectedSessionId);
+  const searchActive = eventQuery.trim().length >= 2;
 
   const selectSession = (session: SessionSummary): void => {
     setSelectedSessionId(session.session_id);
@@ -1944,6 +1998,8 @@ export function RewindPage({ ctx }: { ctx: PluginContext }): ReactNode {
     setTurnsError(null);
     setSnapshots([]);
     setBranches([]);
+    setEventQuery('');
+    setSearchResults(null);
   };
 
   const refresh = (): void => {
@@ -2002,7 +2058,9 @@ export function RewindPage({ ctx }: { ctx: PluginContext }): ReactNode {
         </div>
         <div className="rp-head-right">
           {selectedSession !== null ? (
-            <span className="rp-pill rp-mono" title={selectedSession.model ?? undefined}>{selectedSession.model ?? 'unknown model'}</span>
+            <span className="rp-pill rp-mono" title={selectedSession.model ?? undefined}>
+              {selectedSession.model ?? 'unknown model'}
+            </span>
           ) : null}
           {running ? (
             <span className="rp-live">
@@ -2075,11 +2133,11 @@ export function RewindPage({ ctx }: { ctx: PluginContext }): ReactNode {
                       className="rp-dot"
                       style={{ color: toneColor(outcomeTone(session.outcome)) }}
                     />
-                    <span title={session.title ?? shortId(session.session_id)}>{session.title ?? shortId(session.session_id)}</span>
+                    <span title={session.title ?? shortId(session.session_id)}>
+                      {session.title ?? shortId(session.session_id)}
+                    </span>
                     <span className="rp-session-when">
-                      {session.last_event_at !== null
-                        ? formatRelative(session.last_event_at)
-                        : ''}
+                      {session.last_event_at !== null ? formatRelative(session.last_event_at) : ''}
                     </span>
                   </span>
                   <span className="rp-meta">
@@ -2177,54 +2235,99 @@ export function RewindPage({ ctx }: { ctx: PluginContext }): ReactNode {
               <div className="rp-stack" style={{ width: '100%' }}>
                 <div className="rp-eyebrow">
                   <span className="rp-dot" />
-                  Turns
+                  {searchActive ? 'Search results' : 'Turns'}
+                  {searchActive && searchResults !== null ? (
+                    <span className="rp-eyebrow-count">{searchResults.length}</span>
+                  ) : null}
                 </div>
                 {selectedSession === null ? (
                   <div className="rp-meta">Select a recorded session.</div>
-                ) : !turnsLoaded ? (
-                  <div className="rp-meta">Loading turns...</div>
-                ) : visibleTurns.length === 0 ? (
-                  <div className="rp-meta">
-                    {turnsEmptyMessage(selectedSession.event_count, turnsError)}
-                  </div>
                 ) : (
                   <>
-                    {visibleTurns.map((turn) => (
-                      <TimelineRow
-                        key={turn.id}
-                        turn={turn}
-                        expanded={expandedTurnId === turn.id}
-                        events={turnEvents[turn.id] ?? null}
-                        loading={expandedTurnId === turn.id && turnEvents[turn.id] === undefined}
-                        selectedEventId={selectedEventId}
-                        onToggle={() => {
-                          toggleTurn(turn);
-                        }}
-                        onFork={() => {
-                          if (selectedSession !== null) {
-                            setForkTarget({ session: selectedSession, event: turn });
-                          }
-                        }}
-                        onSelectEvent={(event) => {
-                          setSelectedEventId(event.id);
-                        }}
-                      />
-                    ))}
-                    {turnsHasMore ? (
-                      <button
-                        type="button"
-                        className="rp-load-more"
-                        onClick={() => {
-                          void loadEarlier();
-                        }}
-                        disabled={turnsLoading}
-                      >
-                        {turnsLoading ? 'Loading...' : 'Load earlier turns'}
-                      </button>
-                    ) : (
-                      <div className="rp-tail">
-                        {plural(visibleTurns.length, 'turn')} · start of the recording
+                    <input
+                      type="text"
+                      className="rp-search"
+                      placeholder="Search events in this session..."
+                      aria-label="Search events"
+                      value={eventQuery}
+                      onChange={(event) => {
+                        setEventQuery(event.target.value);
+                      }}
+                      onKeyDown={(event) => {
+                        if (event.key === 'Escape' && eventQuery !== '') {
+                          setEventQuery('');
+                          event.preventDefault();
+                          event.stopPropagation();
+                        }
+                      }}
+                    />
+                    {searchActive ? (
+                      searching ? (
+                        <div className="rp-meta">Searching...</div>
+                      ) : searchResults === null || searchResults.length === 0 ? (
+                        <div className="rp-meta">No event matches “{eventQuery.trim()}”.</div>
+                      ) : (
+                        <div className="rp-events rp-search-results">
+                          {searchResults.map((event) => (
+                            <EventRow
+                              key={event.id}
+                              event={event}
+                              selected={selectedEventId === event.id}
+                              onSelect={() => {
+                                setSelectedEventId(event.id);
+                              }}
+                            />
+                          ))}
+                        </div>
+                      )
+                    ) : !turnsLoaded ? (
+                      <div className="rp-meta">Loading turns...</div>
+                    ) : visibleTurns.length === 0 ? (
+                      <div className="rp-meta">
+                        {turnsEmptyMessage(selectedSession.event_count, turnsError)}
                       </div>
+                    ) : (
+                      <>
+                        {visibleTurns.map((turn) => (
+                          <TimelineRow
+                            key={turn.id}
+                            turn={turn}
+                            expanded={expandedTurnId === turn.id}
+                            events={turnEvents[turn.id] ?? null}
+                            loading={
+                              expandedTurnId === turn.id && turnEvents[turn.id] === undefined
+                            }
+                            selectedEventId={selectedEventId}
+                            onToggle={() => {
+                              toggleTurn(turn);
+                            }}
+                            onFork={() => {
+                              if (selectedSession !== null) {
+                                setForkTarget({ session: selectedSession, event: turn });
+                              }
+                            }}
+                            onSelectEvent={(event) => {
+                              setSelectedEventId(event.id);
+                            }}
+                          />
+                        ))}
+                        {turnsHasMore ? (
+                          <button
+                            type="button"
+                            className="rp-load-more"
+                            onClick={() => {
+                              void loadEarlier();
+                            }}
+                            disabled={turnsLoading}
+                          >
+                            {turnsLoading ? 'Loading...' : 'Load earlier turns'}
+                          </button>
+                        ) : (
+                          <div className="rp-tail">
+                            {plural(visibleTurns.length, 'turn')} · start of the recording
+                          </div>
+                        )}
+                      </>
                     )}
                   </>
                 )}
