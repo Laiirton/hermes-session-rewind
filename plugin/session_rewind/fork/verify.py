@@ -111,6 +111,7 @@ class VerifyRunner:
                 cwd=str(cwd),
                 capture_output=True,
                 text=True,
+                errors="replace",
                 timeout=timeout_seconds,
                 check=False,
                 env=_verify_env(),

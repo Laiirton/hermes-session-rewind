@@ -8,8 +8,17 @@ MAX_STRING_CHARS = 8192
 MAX_ITEMS = 100
 MAX_DEPTH = 8
 
+SECRET_KEY_NAMES = (
+    r"api[_-]?key|api[_-]?secret|access[_-]?token|refresh[_-]?token|session[_-]?token|"
+    r"client[_-]?secret|secret|secret[_-]?key|aws[_-]?secret[_-]?access[_-]?key|"
+    r"private[_-]?key|password|passwd|pass|pwd|token|authorization|cookie"
+)
+
 SECRET_PATTERNS: tuple[tuple[re.Pattern[str], str], ...] = (
     (re.compile(r"sk-[A-Za-z0-9-]{16,}"), "[REDACTED]"),
+    (re.compile(r"\b[sr]k_(?:live|test)_[A-Za-z0-9]{16,}"), "[REDACTED]"),
+    (re.compile(r"AIza[0-9A-Za-z_-]{35}"), "[REDACTED]"),
+    (re.compile(r"\bnpm_[A-Za-z0-9]{36}"), "[REDACTED]"),
     (
         re.compile(r"\beyJ[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}\b"),
         "[REDACTED]",
@@ -19,12 +28,24 @@ SECRET_PATTERNS: tuple[tuple[re.Pattern[str], str], ...] = (
     (re.compile(r"AKIA[0-9A-Z]{16}"), "[REDACTED]"),
     (re.compile(r"xox[baprs]-[A-Za-z0-9-]{10,}"), "[REDACTED]"),
     (re.compile(r"(?i)\bBearer\s+[A-Za-z0-9._~+/=-]{10,}"), "Bearer [REDACTED]"),
+    (re.compile(r"(?i)\bBasic\s+[A-Za-z0-9+/=]{16,}"), "Basic [REDACTED]"),
     (
-        re.compile(
-            r"(?i)(api[_-]?key|access[_-]?token|refresh[_-]?token|token|secret|password|passwd)"
-            r"\s*[:=]\s*['\"]?[A-Za-z0-9._~+/=-]{6,}"
-        ),
-        r"\1=[REDACTED]",
+        # user:password@ inside any scheme URL - the classic database-URL leak
+        re.compile(r"\b([a-z][a-z0-9+.-]*://[^/\s:@'\"]{1,}):([^@\s'\"/]{3,})@", re.IGNORECASE),
+        r"\1:[REDACTED]@",
+    ),
+    (
+        re.compile(r"https://hooks\.slack\.com/services/[A-Za-z0-9/_-]+"),
+        "https://hooks.slack.com/services/[REDACTED]",
+    ),
+    (
+        # quoted values may carry spaces: password="my secret phrase"
+        re.compile(rf"(?i)\b({SECRET_KEY_NAMES})(\s*[:=]\s*)(['\"])([^'\"]{{6,}})\3"),
+        r"\1\2\3[REDACTED]\3",
+    ),
+    (
+        re.compile(rf"(?i)\b({SECRET_KEY_NAMES})(\s*[:=]\s*['\"]?)([A-Za-z0-9._~+/=-]{{6,}})"),
+        r"\1\2[REDACTED]",
     ),
     (
         re.compile(r"-----BEGIN [A-Z ]*PRIVATE KEY-----[\s\S]*?-----END [A-Z ]*PRIVATE KEY-----"),
@@ -32,9 +53,7 @@ SECRET_PATTERNS: tuple[tuple[re.Pattern[str], str], ...] = (
     ),
 )
 
-SENSITIVE_KEYS = re.compile(
-    r"(?i)^(api[_-]?key|access[_-]?token|refresh[_-]?token|token|secret|password|passwd|authorization)$"
-)
+SENSITIVE_KEYS = re.compile(rf"(?i)^(?:{SECRET_KEY_NAMES})$")
 
 
 class Redactor:

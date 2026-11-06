@@ -137,6 +137,7 @@ class GitShadow:
                 [self._git, "-C", str(cwd), *args],
                 capture_output=True,
                 text=True,
+                errors="replace",
                 timeout=timeout,
                 check=False,
                 env=env,

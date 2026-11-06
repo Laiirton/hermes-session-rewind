@@ -105,3 +105,71 @@ def test_ordinary_payloads_are_not_redacted() -> None:
     text = _normalize({"args": {"command": "echo hello world", "count": 12}})
     assert "[REDACTED]" not in text
     assert "hello world" in text
+
+
+def test_redacts_credentials_embedded_in_urls() -> None:
+    normalizer = PayloadNormalizer(10000, Redactor(True))
+    text = normalizer.normalize(
+        {
+            "url": "postgres://admin:s3cr3t_pass@db.internal:5432/app",
+            "ok": "https://example.com/path?token=abcdefghij",
+        }
+    )
+    parsed = json.loads(text)
+    assert "s3cr3t_pass" not in parsed["url"]
+    assert parsed["url"].startswith("postgres://admin:[REDACTED]@db.internal")
+    assert "abcdefghij" not in parsed["ok"]
+    assert "token=[REDACTED]" in parsed["ok"]
+
+
+def test_redacts_quoted_values_with_spaces() -> None:
+    text = _normalize({"result": 'password="my secret phrase" and client_secret: "ab cd ef gh"'})
+    assert "my secret phrase" not in text
+    assert "ab cd ef gh" not in text
+    assert "[REDACTED]" in text
+
+
+def test_redacts_more_provider_token_shapes() -> None:
+    text = _normalize(
+        {
+            "google": "AIzaSyA1234567890abcdefghijklmnopqrstuvw",
+            "stripe": "sk_live_abcdefghijklmnop1234",
+            "npm": "npm_abcdefghijklmnopqrstuvwxyz0123456789AB",
+            "header": "Authorization: Basic dXNlcjpwYXNzd29yZA==",
+            "hook": "https://hooks.slack.com/services/T0000000/B0000000/XXXXXXXXXXXXXXXX",
+        }
+    )
+    assert "AIza" not in text
+    assert "sk_live_" not in text
+    assert "npm_abcdefghij" not in text
+    assert "dXNlcjpwYXNzd29yZA" not in text
+    assert "B0000000" not in text
+
+
+def test_more_sensitive_key_names_are_redacted_whatever_the_value() -> None:
+    text = _normalize(
+        {
+            "client_secret": "topsecret",
+            "private_key": "-----START-----",
+            "session_token": "abc123def456",
+            "cookie": "sessionid=abcdef; other=1",
+            "aws_secret_access_key": "wJalrXUtnFEMI",
+        }
+    )
+    assert "topsecret" not in text
+    assert "-----START-----" not in text
+    assert "abc123def456" not in text
+    assert "sessionid=abcdef" not in text
+    assert "wJalrXUtnFEMI" not in text
+
+
+def test_plain_words_are_not_caught_by_the_new_key_names() -> None:
+    text = _normalize(
+        {
+            "note": "passed=3 failed=0 authorize the user passwordless login",
+            "url": "https://example.com/authorize?client_id=public123",
+        }
+    )
+    assert "passed=3" in text
+    assert "passwordless" in text
+    assert "public123" in text

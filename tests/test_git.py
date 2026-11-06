@@ -111,6 +111,31 @@ def test_verify_runner(tmp_path: Path) -> None:
     assert timed.timed_out is True
 
 
+def test_verify_runner_replaces_output_that_is_not_valid_locale_text(tmp_path: Path) -> None:
+    script = tmp_path / "print_raw.py"
+    script.write_bytes(b"import sys\nsys.stdout.buffer.write(b'ok \\xff\\xfe done')\n")
+    runner = VerifyRunner()
+    result = runner.run("python print_raw.py", tmp_path, 10)
+    assert result.exit_code == 0
+    assert "ok" in result.output
+    assert "done" in result.output
+
+
+def test_git_output_that_is_not_valid_utf8_is_decoded_with_replacement(repo: Path) -> None:
+    (repo / "msg.txt").write_bytes(b"fix \xff\xfe thing\n")
+    commit = subprocess.run(
+        ["git", "-C", str(repo), "commit", "--allow-empty", "-F", "msg.txt"],
+        capture_output=True,
+        check=False,
+    )
+    assert commit.returncode == 0
+    shadow = GitShadow()
+    result = shadow.run(repo, ["log", "--format=%s", "-1"])
+    assert result.returncode == 0
+    assert "fix" in result.stdout
+    assert "thing" in result.stdout
+
+
 def test_verify_runner_drops_coverage_environment(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
