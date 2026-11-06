@@ -9,7 +9,9 @@ const ICON_PATHS: Record<string, string> = {
   folder: 'M3 7h6l2 2h10v11H3z',
   close: 'M5 5l14 14M19 5L5 19',
   chevron: 'M9 6l6 6-6 6',
-  info: 'M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18ZM12 11v6M12 7.5h.01'
+  info: 'M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18ZM12 11v6M12 7.5h.01',
+  copy: 'M9 9h11v11H9zM5 15V5a1 1 0 0 1 1-1h10',
+  check: 'M4 12l5 5L20 7'
 };
 
 export function Icon({

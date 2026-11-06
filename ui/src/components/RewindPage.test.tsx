@@ -13,6 +13,8 @@ import type { PluginContext } from '@hermes/plugin-sdk';
 import type {
   BranchDetail,
   BranchSummary,
+  EventDetail,
+  EventSummary,
   ForkPlan,
   SessionSummary,
   TurnPage,
@@ -207,6 +209,73 @@ describe('RewindPage timeline panel', () => {
     render(<RewindPage ctx={host.ctx} />);
     await screen.findByText('the a turn');
     expect(performance.now() - started).toBeLessThan(1000);
+  });
+
+  it('inspects a tool result with its embedded JSON unpacked and copyable', async () => {
+    const events: EventSummary[] = [
+      {
+        id: 1325,
+        session_id: 'session-a',
+        seq: 3,
+        ts: TS,
+        kind: 'tool_result',
+        name: 'web_search',
+        status: 'ok',
+        duration_ms: 2300,
+        turn_id: 'session-a',
+        tool_call_id: 't1',
+        api_request_id: null,
+        preview: 'beam model card'
+      }
+    ];
+    const detail: EventDetail = {
+      id: 1325,
+      session_id: 'session-a',
+      seq: 3,
+      ts: TS,
+      kind: 'tool_result',
+      name: 'web_search',
+      status: 'ok',
+      duration_ms: 2300,
+      turn_id: 'session-a',
+      tool_call_id: 't1',
+      api_request_id: null,
+      preview: 'beam model card',
+      task_id: null,
+      payload: {
+        args: { query: 'beam model card specs' },
+        result: '{"success": true, "data": {"title": "Beam Model Card"}}'
+      }
+    };
+    const turnsA = deferred<TurnPage>();
+    const host = harness((path) => {
+      if (path.startsWith('/events/')) {
+        return Promise.resolve(detail);
+      }
+      if (path.includes('/events')) {
+        return Promise.resolve({ items: events, after_seq: null, has_more: false });
+      }
+      return routeTurns(turnsA, turnsA)(path);
+    });
+    const writes: string[] = [];
+    host.ctx.os.writeClipboard = (text: string): void => {
+      writes.push(text);
+    };
+    render(<RewindPage ctx={host.ctx} />);
+    turnsA.resolve(page([turn('a', 'the a turn')]));
+    await screen.findByText('the a turn');
+
+    fireEvent.click(screen.getByText('the a turn'));
+    fireEvent.click(await screen.findByText('web_search'));
+
+    await screen.findByText('#1325');
+    expect(screen.getByText('"Beam Model Card"')).toBeDefined();
+    expect(screen.queryByText(/\\\\"success\\\\"/)).toBeNull();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Copy payload' }));
+    expect(writes).toEqual([
+      '{\n  "args": {\n    "query": "beam model card specs"\n  },\n  "result": {\n    "success": true,\n    "data": {\n      "title": "Beam Model Card"\n    }\n  }\n}'
+    ]);
   });
 });
 

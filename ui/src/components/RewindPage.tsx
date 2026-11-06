@@ -47,6 +47,7 @@ import {
 import { ForkDialog } from './ForkDialog';
 import { Icon } from './icons';
 import { mergeTurnPages } from '../mergeTurnPages';
+import { formatPayloadText, jsonTokens } from '../jsonFormat';
 
 interface ForkTarget {
   session: SessionSummary;
@@ -500,6 +501,117 @@ const PAGE_CSS = `
   padding-left: 18px;
   border-left: 1px solid var(--ui-stroke-tertiary);
 }
+.rp-inspect {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.rp-inspect-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  margin-top: 24px;
+  padding: 20px 12px;
+  font-size: 11px;
+  text-align: center;
+  color: var(--ui-text-tertiary);
+}
+.rp-inspect-empty svg {
+  color: var(--ui-text-quaternary, var(--ui-text-tertiary));
+}
+.rp-inspect-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+.rp-inspect-kind {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex: none;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.11em;
+  text-transform: uppercase;
+}
+.rp-inspect-kind .rp-dot {
+  width: 6px;
+  height: 6px;
+}
+.rp-inspect-name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--ui-text-primary);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.rp-inspect-meta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 10px;
+  color: var(--ui-text-tertiary);
+}
+.rp-inspect-sep {
+  color: var(--ui-text-quaternary, var(--ui-text-tertiary));
+}
+.rp-json-card {
+  overflow: hidden;
+  background: var(--ui-bg-elevated);
+  border: 1px solid var(--ui-stroke-secondary);
+  border-radius: calc(var(--radius-scalar, 0.2) * .5rem);
+}
+.rp-json-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 4px 6px 4px 10px;
+  border-bottom: 1px solid var(--ui-stroke-tertiary);
+}
+.rp-json-lang {
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ui-text-tertiary);
+}
+.rp-json {
+  margin: 0;
+  max-height: 60vh;
+  overflow: auto;
+  padding: 10px 12px;
+  font-family: var(--dt-font-mono, ui-monospace, SFMono-Regular, Menlo, Consolas, monospace);
+  font-size: 11px;
+  line-height: 1.55;
+  white-space: pre-wrap;
+  overflow-wrap: break-word;
+  tab-size: 2;
+}
+.rp-j-key {
+  color: var(--ui-text-primary);
+}
+.rp-j-string {
+  color: var(--ui-green);
+}
+.rp-j-number {
+  color: var(--ui-orange);
+}
+.rp-j-bool {
+  color: var(--ui-purple);
+}
+.rp-j-null {
+  color: var(--ui-purple);
+  font-style: italic;
+}
+.rp-j-punct {
+  color: var(--ui-text-tertiary);
+}
 .rp-panel {
   padding: 11px 12px;
   background: var(--ui-bg-card);
@@ -901,28 +1013,133 @@ function Metric({
   );
 }
 
-function Inspector({ detail }: { detail: EventDetail | null }): ReactNode {
-  if (detail === null) {
-    return <div className="rp-meta">Select an event to inspect its payload.</div>;
+function kindColor(kind: string, status: string | null): string {
+  if (kind === 'tool_result' && status === 'error') {
+    return 'var(--ui-red)';
   }
+  if (kind === 'assistant_response' || kind === 'tool_result') {
+    return 'var(--ui-green)';
+  }
+  if (kind === 'user_turn') {
+    return 'var(--ui-accent)';
+  }
+  if (kind === 'tool_call') {
+    return 'var(--ui-purple)';
+  }
+  if (kind === 'api_request' || kind === 'llm_call') {
+    return 'var(--ui-orange)';
+  }
+  if (kind === 'compaction') {
+    return 'var(--ui-text-secondary)';
+  }
+  return 'var(--ui-text-tertiary)';
+}
+
+function statusTone(status: string | null): 'ok' | 'err' | 'run' | null {
+  if (status === null) {
+    return null;
+  }
+  if (status === 'error') {
+    return 'err';
+  }
+  if (status === 'ok') {
+    return 'ok';
+  }
+  return 'run';
+}
+
+function CopyPayloadButton({ text, onCopy }: { text: string; onCopy: (text: string) => void }): ReactNode {
+  const [copied, setCopied] = useState(false);
+  useEffect(() => {
+    if (!copied) {
+      return;
+    }
+    const timer = window.setTimeout((): void => {
+      setCopied(false);
+    }, 1600);
+    return (): void => {
+      window.clearTimeout(timer);
+    };
+  }, [copied]);
   return (
-    <div className="flex flex-col gap-2">
-      <div className="flex items-center justify-between gap-2 text-xs">
-        <span className={`font-medium ${kindTone(detail.kind, detail.status)}`}>
+    <button
+      type="button"
+      className="rp-button rp-button-sm rp-quiet"
+      aria-label="Copy payload"
+      onClick={() => {
+        try {
+          onCopy(text);
+          setCopied(true);
+        } catch {
+          // The host refused the write - leave the button as it was.
+        }
+      }}
+    >
+      <Icon name={copied ? 'check' : 'copy'} size={12} />
+      {copied ? 'Copied' : 'Copy'}
+    </button>
+  );
+}
+
+function Inspector({
+  detail,
+  onCopy
+}: {
+  detail: EventDetail | null;
+  onCopy: (text: string) => void;
+}): ReactNode {
+  if (detail === null) {
+    return (
+      <div className="rp-inspect-empty">
+        <Icon name="info" size={14} />
+        <span>Select an event to inspect its payload.</span>
+      </div>
+    );
+  }
+  const payloadText = formatPayloadText(detail.payload);
+  const tone = statusTone(detail.status);
+  return (
+    <div className="rp-inspect">
+      <div className="rp-inspect-head">
+        <span
+          title={detail.kind}
+          className="rp-inspect-kind"
+          style={{ color: kindColor(detail.kind, detail.status) }}
+        >
+          <span className="rp-dot" />
           {kindLabel(detail.kind)}
         </span>
-        <span className="font-mono text-(--ui-text-tertiary)">
-          #{detail.id} · seq {detail.seq}
+        <span className="rp-inspect-name" title={detail.name ?? detail.kind}>
+          {detail.name ?? detail.kind}
         </span>
+        {tone !== null ? <span className="rp-badge" data-tone={tone}>{detail.status}</span> : null}
       </div>
-      <div className="text-xs text-(--ui-text-tertiary)">
-        {detail.name ?? 'event'}
-        {detail.status !== null ? ` · ${detail.status}` : ''}
-        {detail.duration_ms !== null ? ` · ${formatDuration(detail.duration_ms)}` : ''}
+      <div className="rp-inspect-meta">
+        <span className="rp-mono">#{detail.id}</span>
+        <span className="rp-inspect-sep">·</span>
+        <span className="rp-mono">seq {detail.seq}</span>
+        {detail.duration_ms !== null ? (
+          <>
+            <span className="rp-inspect-sep">·</span>
+            <span className="rp-mono" title={`${detail.duration_ms} ms`}>
+              {formatDuration(detail.duration_ms)}
+            </span>
+          </>
+        ) : null}
       </div>
-      <pre className="max-h-96 overflow-auto whitespace-pre-wrap break-words rounded border border-(--ui-stroke-tertiary) p-2 font-mono text-xs">
-        {JSON.stringify(detail.payload, null, 2)}
-      </pre>
+      <div className="rp-json-card">
+        <div className="rp-json-head">
+          <span className="rp-json-lang">json</span>
+          <CopyPayloadButton text={payloadText} onCopy={onCopy} />
+        </div>
+        <pre className="rp-json">
+          {jsonTokens(payloadText).map((token, index) => (
+            <span key={index} className={`rp-j-${token.type}`}>
+              {token.text}
+            </span>
+          ))}
+        </pre>
+      </div>
     </div>
   );
 }
@@ -1691,7 +1908,12 @@ export function RewindPage({ ctx }: { ctx: PluginContext }): ReactNode {
                 <span className="rp-dot" />
                 Event payload
               </div>
-              <Inspector detail={detail} />
+              <Inspector
+                detail={detail}
+                onCopy={(text) => {
+                  ctx.os.writeClipboard(text);
+                }}
+              />
             </div>
           </div>
         </main>
