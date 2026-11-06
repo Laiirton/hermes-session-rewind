@@ -10,7 +10,8 @@
     "build": "node esbuild.config.mjs",
     "lint": "eslint .",
     "format": "prettier --check .",
-    "test": "vitest run"
+    "test": "vitest run",
+    "sync": "npm run build && node scripts/sync-plugin.mjs"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.5",
