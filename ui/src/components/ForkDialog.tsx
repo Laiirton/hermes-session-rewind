@@ -472,6 +472,8 @@ const DIALOG_CSS = `
 }
 .rw-picker {
   position: fixed;
+  z-index: 5;
+  overscroll-behavior: contain;
   overflow-y: auto;
   display: flex;
   flex-direction: column;
@@ -501,8 +503,6 @@ const DIALOG_CSS = `
   display: flex;
   flex-direction: column;
   gap: 1px;
-  max-height: 236px;
-  overflow-y: auto;
 }
 .rw-group-head {
   display: flex;
@@ -728,6 +728,7 @@ export function ForkDialog({
   const [pickerOpen, setPickerOpen] = useState(false);
   const [pickerStyle, setPickerStyle] = useState<React.CSSProperties | null>(null);
   const triggerRef = useRef<HTMLButtonElement | null>(null);
+  const pickerRef = useRef<HTMLDivElement | null>(null);
 
   // O corpo do dialogo tem overflow-y: auto, que clipa um popover absoluto
   // que passe do painel (finding 133 seguido do report do usuario). Posicao
@@ -762,7 +763,19 @@ export function ForkDialog({
       });
     };
     place();
-    const stopScroll = ctx.addEventListener(window, 'scroll', place, { capture: true });
+    const onScroll = (event: Event): void => {
+      const target = event.target;
+      if (
+        pickerRef.current !== null &&
+        target instanceof Node &&
+        pickerRef.current.contains(target)
+      ) {
+        // Scroll interno da lista: o trigger nao se move, nada a reposicionar.
+        return;
+      }
+      place();
+    };
+    const stopScroll = ctx.addEventListener(window, 'scroll', onScroll, { capture: true });
     const stopResize = ctx.addEventListener(window, 'resize', place);
     return (): void => {
       stopScroll();
@@ -1253,7 +1266,7 @@ export function ForkDialog({
                 </span>
               </button>
               {pickerOpen ? (
-                <div className="rw-picker" style={pickerStyle ?? undefined}>
+                <div className="rw-picker" ref={pickerRef} style={pickerStyle ?? undefined}>
                   <input
                     className="rw-search"
                     value={modelQuery}
