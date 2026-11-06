@@ -329,6 +329,7 @@ const DIALOG_CSS = `
   gap: 12px;
 }
 .rw-field {
+  position: relative;
   display: flex;
   flex-direction: column;
   gap: 6px;
@@ -470,6 +471,13 @@ const DIALOG_CSS = `
   transform: rotate(90deg);
 }
 .rw-picker {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  right: 0;
+  z-index: 2;
+  max-height: 320px;
+  overflow-y: auto;
   display: flex;
   flex-direction: column;
   gap: 8px;
@@ -477,6 +485,7 @@ const DIALOG_CSS = `
   background: var(--ui-bg-elevated);
   border: 1px solid var(--ui-stroke-tertiary);
   border-radius: calc(var(--radius-scalar, 0.2) * .625rem);
+  box-shadow: var(--shadow-md);
 }
 .rw-search {
   box-sizing: border-box;
@@ -1133,7 +1142,9 @@ export function ForkDialog({
               <Icon name="message" size={12} />
             </span>
             <span className="rw-turn-time">{formatTime(event.ts)}</span>
-            <span className="rw-turn-text" title={event.preview || 'user turn'}>{event.preview || 'user turn'}</span>
+            <span className="rw-turn-text" title={event.preview || 'user turn'}>
+              {event.preview || 'user turn'}
+            </span>
           </div>
 
           {error !== null ? (
