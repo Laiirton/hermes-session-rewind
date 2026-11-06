@@ -144,6 +144,7 @@ function harness(
 afterEach(() => {
   cleanup();
   resetHostStub();
+  window.localStorage.clear();
 });
 
 describe('RewindPage timeline panel', () => {
@@ -276,6 +277,82 @@ describe('RewindPage timeline panel', () => {
     expect(writes).toEqual([
       '{\n  "args": {\n    "query": "beam model card specs"\n  },\n  "result": {\n    "success": true,\n    "data": {\n      "title": "Beam Model Card"\n    }\n  }\n}'
     ]);
+  });
+
+  it('resizes the payload panel and remembers the width', async () => {
+    const turnsA = deferred<TurnPage>();
+    const host = harness((path) => routeTurns(turnsA, turnsA)(path));
+    render(<RewindPage ctx={host.ctx} />);
+    turnsA.resolve(page([turn('a', 'the a turn')]));
+    await screen.findByText('the a turn');
+
+    const columns = document.querySelector('.rp-divider')?.parentElement as HTMLElement;
+    const divider = screen.getByRole('separator', { name: 'Resize event payload panel' });
+    expect(columns.style.getPropertyValue('--rp-payload-width')).toBe('292px');
+
+    fireEvent.keyDown(divider, { key: 'ArrowLeft' });
+    expect(columns.style.getPropertyValue('--rp-payload-width')).toBe('308px');
+    fireEvent.keyDown(divider, { key: 'ArrowRight' });
+    expect(columns.style.getPropertyValue('--rp-payload-width')).toBe('292px');
+
+    fireEvent.doubleClick(divider);
+    expect(window.localStorage.getItem('hermes-session-rewind:payload-width')).toBe('292');
+
+    fireEvent.keyDown(divider, { key: 'ArrowLeft' });
+    expect(window.localStorage.getItem('hermes-session-rewind:payload-width')).toBe('308');
+  });
+
+  it('draws the paired result as a nested row under its call', async () => {
+    const base = {
+      session_id: 'session-a',
+      seq: 3,
+      ts: TS,
+      name: null,
+      status: null,
+      duration_ms: null,
+      turn_id: 'session-a',
+      api_request_id: null,
+      preview: ''
+    };
+    const events: EventSummary[] = [
+      {
+        ...base,
+        id: 10,
+        kind: 'tool_call',
+        tool_call_id: 'call-1',
+        name: 'web_search',
+        preview: '{"query": "beam"}'
+      },
+      {
+        ...base,
+        id: 11,
+        kind: 'tool_result',
+        tool_call_id: 'call-1',
+        name: 'web_search',
+        status: 'ok',
+        duration_ms: 6200,
+        preview: 'beam takes text as input'
+      }
+    ];
+    const turnsA = deferred<TurnPage>();
+    const host = harness((path) => {
+      if (path.includes('/events')) {
+        return Promise.resolve({ items: events, after_seq: null, has_more: false });
+      }
+      return routeTurns(turnsA, turnsA)(path);
+    });
+    render(<RewindPage ctx={host.ctx} />);
+    turnsA.resolve(page([turn('a', 'the a turn')]));
+    await screen.findByText('the a turn');
+
+    fireEvent.click(screen.getByText('the a turn'));
+    await screen.findByText('web_search');
+
+    const nested = document.querySelectorAll('.rp-event[data-depth="1"]');
+    expect(nested).toHaveLength(1);
+    const nestedRow = nested[0];
+    expect(nestedRow?.textContent).toContain('beam takes text as input');
+    expect(nestedRow?.textContent).toContain('6.2s');
   });
 });
 

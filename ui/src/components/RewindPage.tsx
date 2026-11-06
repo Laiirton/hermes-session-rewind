@@ -1,6 +1,6 @@
 import { host, useValue } from '@hermes/plugin-sdk';
 import type { PluginContext } from '@hermes/plugin-sdk';
-import { useEffect, useRef, useState } from 'react';
+import { Fragment, useEffect, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
 
 import {
@@ -48,6 +48,7 @@ import { ForkDialog } from './ForkDialog';
 import { Icon } from './icons';
 import { mergeTurnPages } from '../mergeTurnPages';
 import { formatPayloadText, jsonTokens } from '../jsonFormat';
+import { COLLAPSED_KINDS, pairToolEvents } from '../turnEvents';
 
 interface ForkTarget {
   session: SessionSummary;
@@ -55,6 +56,37 @@ interface ForkTarget {
 }
 
 const CONFIRM_SCOPE = '[data-rw-confirm]';
+
+const PAYLOAD_WIDTH_KEY = 'hermes-session-rewind:payload-width';
+const PAYLOAD_WIDTH_DEFAULT = 292;
+
+function clampPayloadWidth(width: number): number {
+  if (!Number.isFinite(width)) {
+    return PAYLOAD_WIDTH_DEFAULT;
+  }
+  return Math.min(560, Math.max(240, Math.round(width)));
+}
+
+function readPayloadWidth(): number {
+  try {
+    const stored = window.localStorage.getItem(PAYLOAD_WIDTH_KEY);
+    if (stored === null) {
+      return PAYLOAD_WIDTH_DEFAULT;
+    }
+    return clampPayloadWidth(Number(stored)) || PAYLOAD_WIDTH_DEFAULT;
+  } catch {
+    // Storage unavailable - fall back to the default width.
+    return PAYLOAD_WIDTH_DEFAULT;
+  }
+}
+
+function storePayloadWidth(width: number): void {
+  try {
+    window.localStorage.setItem(PAYLOAD_WIDTH_KEY, String(width));
+  } catch {
+    // Storage unavailable - the width just does not survive a reload.
+  }
+}
 
 function confirmOwnsEscape(): boolean {
   const active = document.activeElement;
@@ -426,24 +458,53 @@ const PAGE_CSS = `
   display: flex;
   flex-direction: column;
   gap: 1px;
+  min-width: 0;
   padding: 0 6px 8px 30px;
 }
 .rp-event {
+  position: relative;
   display: flex;
   align-items: center;
+  align-self: stretch;
   gap: 8px;
-  width: 100%;
-  padding: 3px 6px;
+  min-width: 0;
+  padding: 4px 6px;
   font-size: 11px;
   text-align: left;
   border-radius: calc(var(--radius-scalar, 0.2) * .5rem);
   transition: background-color 120ms ease-out;
+}
+.rp-event[data-depth="1"] {
+  margin-left: 30px;
+}
+.rp-event[data-depth="1"]::before {
+  content: '';
+  position: absolute;
+  left: -16px;
+  top: -1px;
+  bottom: -1px;
+  width: 1px;
+  background: var(--ui-stroke-tertiary);
+}
+.rp-event[data-depth="1"]::after {
+  content: '';
+  position: absolute;
+  left: -16px;
+  top: 50%;
+  width: 12px;
+  height: 1px;
+  background: var(--ui-stroke-tertiary);
 }
 .rp-event:hover {
   background: var(--ui-control-hover-background);
 }
 .rp-event[aria-current="true"] {
   background: color-mix(in srgb, var(--ui-accent) 12%, transparent);
+  box-shadow: inset 2px 0 0 var(--ui-accent);
+}
+.rp-event-icon {
+  display: inline-flex;
+  flex: none;
 }
 .rp-event-kind {
   width: 62px;
@@ -454,6 +515,7 @@ const PAGE_CSS = `
   text-transform: uppercase;
   text-overflow: ellipsis;
   white-space: nowrap;
+  color: var(--ui-text-tertiary);
 }
 .rp-event-text {
   flex: 1;
@@ -462,6 +524,16 @@ const PAGE_CSS = `
   color: var(--ui-text-tertiary);
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+.rp-event-name {
+  color: var(--ui-text-primary);
+}
+.rp-event-preview {
+  color: var(--ui-text-quaternary, var(--ui-text-tertiary));
+}
+.rp-event .rp-badge {
+  flex: none;
+  padding: 0 6px;
 }
 .rp-event-time {
   width: 54px;
@@ -495,11 +567,30 @@ const PAGE_CSS = `
   color: var(--ui-text-tertiary);
 }
 .rp-payload {
-  width: 292px;
+  width: var(--rp-payload-width, 292px);
   flex: none;
   overflow-y: auto;
   padding-left: 18px;
   border-left: 1px solid var(--ui-stroke-tertiary);
+}
+.rp-divider {
+  position: relative;
+  z-index: 1;
+  width: 5px;
+  flex: none;
+  margin-left: -3px;
+  cursor: col-resize;
+  touch-action: none;
+  border-radius: 999px;
+  transition: background-color 120ms ease-out;
+}
+.rp-divider:hover,
+.rp-divider[data-dragging="true"] {
+  background: color-mix(in srgb, var(--ui-accent) 45%, transparent);
+}
+.rp-divider:focus-visible {
+  outline: none;
+  background: color-mix(in srgb, var(--ui-accent) 45%, transparent);
 }
 .rp-inspect {
   display: flex;
@@ -807,6 +898,9 @@ const PAGE_CSS = `
     padding-left: 0;
     border-left: 0;
   }
+  .rp-divider {
+    display: none;
+  }
 }
 @media (max-width: 560px) {
   .rp-compare {
@@ -831,30 +925,45 @@ function turnDuration(turn: TurnSummary): string {
 
 function EventRow({
   event,
+  nested = false,
   selected,
   onSelect
 }: {
   event: EventSummary;
+  nested?: boolean;
   selected: boolean;
   onSelect: () => void;
 }): ReactNode {
+  const named = !nested && event.name !== null;
   return (
     <button
       type="button"
       className="rp-event"
+      data-depth={nested ? '1' : '0'}
       aria-current={selected ? 'true' : undefined}
       onClick={onSelect}
     >
-      <span title={event.kind} className={`rp-event-kind ${kindTone(event.kind, event.status)}`}>
+      <span
+        title={event.kind}
+        className="rp-event-icon"
+        style={{ color: kindColor(event.kind, event.status) }}
+      >
+        <Icon name={kindIcon(event.kind)} size={12} />
+      </span>
+      <span title={event.kind} className="rp-event-kind">
         {kindLabel(event.kind)}
       </span>
-      <span className="rp-event-text">{event.name ?? event.preview}</span>
+      <span className="rp-event-text">
+        {named ? <span className="rp-event-name">{event.name}</span> : null}
+        {event.preview !== '' ? (
+          <span className="rp-event-preview">{event.preview}</span>
+        ) : null}
+      </span>
+      {event.status === 'error' ? <span className="rp-badge" data-tone="err">error</span> : null}
       <span className="rp-event-time rp-mono">{formatDuration(event.duration_ms)}</span>
     </button>
   );
 }
-
-const COLLAPSED_KINDS = new Set(['api_request', 'llm_call']);
 
 function TimelineRow({
   turn,
@@ -875,8 +984,8 @@ function TimelineRow({
   onFork: () => void;
   onSelectEvent: (event: EventSummary) => void;
 }): ReactNode {
-  const visible = (events ?? []).filter((event) => !COLLAPSED_KINDS.has(event.kind));
-  const hidden = (events ?? []).length - visible.length;
+  const pairs = pairToolEvents(events ?? []);
+  const hidden = (events ?? []).filter((event) => COLLAPSED_KINDS.has(event.kind)).length;
   return (
     <div className="rp-turn">
       <div className="rp-turn-bar">
@@ -906,15 +1015,29 @@ function TimelineRow({
             <div className="rp-aside-note">Loading events...</div>
           ) : (
             <>
-              {visible.map((event) => (
-                <EventRow
-                  key={event.id}
-                  event={event}
-                  selected={selectedEventId === event.id}
-                  onSelect={() => {
-                    onSelectEvent(event);
-                  }}
-                />
+              {pairs.map((pair) => (
+                <Fragment key={pair.call.id}>
+                  <EventRow
+                    event={pair.call}
+                    selected={selectedEventId === pair.call.id}
+                    onSelect={() => {
+                      onSelectEvent(pair.call);
+                    }}
+                  />
+                  {pair.result !== null ? (
+                    <EventRow
+                      event={pair.result}
+                      nested
+                      selected={selectedEventId === pair.result.id}
+                      onSelect={() => {
+                        const result = pair.result;
+                        if (result !== null) {
+                          onSelectEvent(result);
+                        }
+                      }}
+                    />
+                  ) : null}
+                </Fragment>
               ))}
               {hidden > 0 ? (
                 <div className="rp-aside-note">
@@ -961,26 +1084,26 @@ function kindLabel(kind: string): string {
   }
 }
 
-function kindTone(kind: string, status: string | null): string {
-  if (kind === 'tool_result' && status === 'error') {
-    return 'text-(--ui-red)';
-  }
-  if (kind === 'assistant_response' || kind === 'tool_result') {
-    return 'text-(--ui-green)';
-  }
+function kindIcon(kind: string): string {
   if (kind === 'user_turn') {
-    return 'text-(--ui-accent)';
+    return 'message';
+  }
+  if (kind === 'assistant_response') {
+    return 'reply';
   }
   if (kind === 'tool_call') {
-    return 'text-(--ui-purple)';
+    return 'tool';
+  }
+  if (kind === 'tool_result') {
+    return 'inbox';
   }
   if (kind === 'api_request' || kind === 'llm_call') {
-    return 'text-(--ui-orange)';
+    return 'zap';
   }
   if (kind === 'compaction') {
-    return 'text-(--ui-text-secondary)';
+    return 'layers';
   }
-  return 'text-(--ui-text-tertiary)';
+  return 'event';
 }
 
 function stateBadge(state: string): string {
@@ -1508,6 +1631,14 @@ export function RewindPage({ ctx }: { ctx: PluginContext }): ReactNode {
   const [sessionsLoaded, setSessionsLoaded] = useState(false);
   const [turnsLoaded, setTurnsLoaded] = useState(false);
   const [turnsError, setTurnsError] = useState<string | null>(null);
+  const [payloadWidth, setPayloadWidth] = useState(readPayloadWidth);
+  const [draggingDivider, setDraggingDivider] = useState(false);
+  const dividerDrag = useRef<{ startX: number; startWidth: number } | null>(null);
+  const payloadWidthRef = useRef(payloadWidth);
+
+  useEffect(() => {
+    payloadWidthRef.current = payloadWidth;
+  }, [payloadWidth]);
 
   useEffect(() => {
     let cancelTimer: (() => void) | null = null;
@@ -1845,7 +1976,10 @@ export function RewindPage({ ctx }: { ctx: PluginContext }): ReactNode {
             </div>
           ) : null}
 
-          <div className="rp-columns" style={{ gap: 0 }}>
+          <div
+            className="rp-columns"
+            style={{ gap: 0, '--rp-payload-width': `${payloadWidth}px` } as React.CSSProperties}
+          >
             <div className="rp-turns">
               <div className="rp-stack" style={{ width: '100%' }}>
                 <div className="rp-eyebrow">
@@ -1903,6 +2037,64 @@ export function RewindPage({ ctx }: { ctx: PluginContext }): ReactNode {
                 )}
               </div>
             </div>
+            <div
+              role="separator"
+              aria-orientation="vertical"
+              aria-label="Resize event payload panel"
+              tabIndex={0}
+              className="rp-divider"
+              data-dragging={draggingDivider ? 'true' : undefined}
+              onPointerDown={(event) => {
+                dividerDrag.current = { startX: event.clientX, startWidth: payloadWidth };
+                setDraggingDivider(true);
+                event.currentTarget.setPointerCapture(event.pointerId);
+              }}
+              onPointerMove={(event) => {
+                const drag = dividerDrag.current;
+                if (drag === null) {
+                  return;
+                }
+                setPayloadWidth(clampPayloadWidth(drag.startWidth - (event.clientX - drag.startX)));
+              }}
+              onPointerUp={(event) => {
+                if (dividerDrag.current === null) {
+                  return;
+                }
+                dividerDrag.current = null;
+                setDraggingDivider(false);
+                storePayloadWidth(payloadWidthRef.current);
+                if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+                  event.currentTarget.releasePointerCapture(event.pointerId);
+                }
+              }}
+              onPointerCancel={(event) => {
+                if (dividerDrag.current === null) {
+                  return;
+                }
+                dividerDrag.current = null;
+                setDraggingDivider(false);
+                if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+                  event.currentTarget.releasePointerCapture(event.pointerId);
+                }
+              }}
+              onKeyDown={(event) => {
+                if (event.key === 'ArrowLeft') {
+                  const next = clampPayloadWidth(payloadWidthRef.current + 16);
+                  setPayloadWidth(next);
+                  storePayloadWidth(next);
+                  event.preventDefault();
+                } else if (event.key === 'ArrowRight') {
+                  const next = clampPayloadWidth(payloadWidthRef.current - 16);
+                  setPayloadWidth(next);
+                  storePayloadWidth(next);
+                  event.preventDefault();
+                }
+              }}
+              onDoubleClick={() => {
+                setPayloadWidth(PAYLOAD_WIDTH_DEFAULT);
+                storePayloadWidth(PAYLOAD_WIDTH_DEFAULT);
+              }}
+            />
             <div className="rp-payload">
               <div className="rp-eyebrow">
                 <span className="rp-dot" />
