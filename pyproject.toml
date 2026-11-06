@@ -23,6 +23,17 @@ line-length = 100
 select = ["E", "F", "I", "B", "UP", "SIM", "ERA", "T20", "C4", "RUF"]
 ignore = ["RUF001", "RUF002", "RUF003"]
 
+[tool.ruff.lint.per-file-ignores]
+# Os handlers espelham o contrato de hooks do host: parametros extras existem
+# para casar por nome mesmo quando este plugin nao os le. Renomear quebraria o contrato.
+"plugin/session_rewind/capture/hooks.py" = ["ARG002"]
+# Fixtures de pytest em testes sao usadas por efeito colateral; stubs recebem
+# argumentos para casar com a assinatura do codigo real.
+"tests/**" = ["ARG001", "ARG002", "ARG005"]
+# O SQL dinamico de repositories.py so interpola contadores de placeholders ("?")
+# e clausulas WHERE internas; todos os valores trafegam por binding de parametros.
+"plugin/session_rewind/store/repositories.py" = ["S608"]
+
 [tool.ruff.format]
 quote-style = "double"
 

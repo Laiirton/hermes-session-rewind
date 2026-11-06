@@ -46,7 +46,7 @@ def test_register_uses_public_plugin_surface(
     sys.modules.pop("session_rewind.plugin", None)
 
     closers: list[Callable[[], None]] = []
-    monkeypatch.setattr(atexit, "register", lambda func: closers.append(func))
+    monkeypatch.setattr(atexit, "register", closers.append)
 
     ctx = FakeContext()
     session_rewind.register(ctx)

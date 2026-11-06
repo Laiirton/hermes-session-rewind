@@ -259,7 +259,7 @@ def _optional_text(args: dict[str, Any], key: str) -> str | None:
     if value is None:
         return None
     if not isinstance(value, str):
-        raise ValueError(f"{key} must be a string")
+        raise TypeError(f"{key} must be a string")
     return value.strip() or None
 
 
@@ -268,7 +268,7 @@ def _optional_int(args: dict[str, Any], key: str) -> int | None:
     if value is None:
         return None
     if isinstance(value, bool) or not isinstance(value, int):
-        raise ValueError(f"{key} must be an integer")
+        raise TypeError(f"{key} must be an integer")
     if not 0 <= value <= SQLITE_MAX_INT:
         raise ValueError(f"{key} is out of range")
     return int(value)

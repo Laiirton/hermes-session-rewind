@@ -4,11 +4,10 @@ import sqlite3
 import time
 from pathlib import Path
 
-from session_rewind.capture.normalize import PayloadNormalizer
 from session_rewind.capture.queue import CaptureItem, CaptureService
 from session_rewind.settings import Settings
 from session_rewind.store.db import Database
-from session_rewind.store.repositories import ReadStore
+from session_rewind.store.repositories import ReadStore, WriteStore
 
 
 class _FlakyService(CaptureService):
@@ -21,14 +20,13 @@ class _FlakyService(CaptureService):
 
     def _write_batch(
         self,
-        store: object,
-        normalizer: PayloadNormalizer,
+        store: WriteStore,
         batch: list[CaptureItem],
     ) -> None:
         if self._failures > 0:
             self._failures -= 1
             raise sqlite3.OperationalError("database is locked")
-        super()._write_batch(store, normalizer, batch)  # type: ignore[arg-type]
+        super()._write_batch(store, batch)
 
 
 def _wait_for_events(database: Database, session_id: str, seconds: float) -> int:
