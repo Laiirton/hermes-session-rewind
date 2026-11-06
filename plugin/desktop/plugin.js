@@ -359,7 +359,7 @@ import{host as Jr,KEYBINDS_AREA as Qr,PALETTE_AREA as Xr,ROUTES_AREA as et,SIDEB
   flex-direction: column;
   gap: 8px;
   padding: 10px;
-  background: var(--ui-bg-card);
+  background: var(--ui-bg-elevated);
   border: 1px solid var(--ui-stroke-tertiary);
   border-radius: calc(var(--radius-scalar, 0.2) * .625rem);
 }
@@ -386,20 +386,17 @@ import{host as Jr,KEYBINDS_AREA as Qr,PALETTE_AREA as Xr,ROUTES_AREA as et,SIDEB
   overflow-y: auto;
 }
 .rw-group-head {
-  position: sticky;
-  top: 0;
-  z-index: 1;
   display: flex;
   align-items: baseline;
   justify-content: space-between;
   gap: 8px;
-  padding: 8px 8px 3px;
+  padding: 8px 8px 4px;
   font-size: 10px;
   font-weight: 600;
   letter-spacing: 0.08em;
   text-transform: uppercase;
   color: var(--ui-text-tertiary);
-  background: var(--ui-bg-card);
+  border-bottom: 1px solid var(--ui-stroke-tertiary);
 }
 .rw-panel .rw-option {
   display: flex;
@@ -446,7 +443,6 @@ import{host as Jr,KEYBINDS_AREA as Qr,PALETTE_AREA as Xr,ROUTES_AREA as et,SIDEB
   gap: 2px;
   margin-bottom: 4px;
   padding-bottom: 8px;
-  border-bottom: 1px solid var(--ui-stroke-tertiary);
   border-radius: 0;
 }
 .rw-option-sub {
