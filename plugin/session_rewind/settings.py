@@ -1,8 +1,10 @@
 from __future__ import annotations
 
-from collections.abc import Mapping
+from collections.abc import Callable, Mapping
 from dataclasses import dataclass
 from typing import Any, Protocol
+
+SettingsProvider = Callable[[], "Settings"]
 
 
 class SettingsSource(Protocol):
@@ -51,6 +53,17 @@ class Settings:
     @property
     def max_payload_bytes(self) -> int:
         return self.max_payload_kb * 1024
+
+
+def current_settings(static: Settings, provider: SettingsProvider | None) -> Settings:
+    """Resolves the settings for one use: the live provider wins when present,
+    and any failure to read it keeps the settings the plugin started with."""
+    if provider is None:
+        return static
+    try:
+        return provider()
+    except Exception:
+        return static
 
 
 def load_settings() -> Settings:

@@ -13,24 +13,37 @@ from .fork.service import build_fork_service
 from .gitrepo.shadow import GitShadow
 from .settings import Settings
 from .store.db import Database, EventRecord
-from .store.retention import RetentionRunner
+from .store.retention import RetentionRunner, RetentionScheduler
 from .tools import RewindTools, registrations
 
 
 def register(ctx: Any) -> None:
     settings = Settings.from_context(ctx)
+
+    def live_settings() -> Settings:
+        return Settings.from_context(ctx)
+
     database = Database(plugin_data_dir("session-rewind") / "rewind.sqlite3")
     database.migrate()
-    RetentionRunner(database, settings, GitShadow()).run()
-    build_fork_service(database, settings).sweep(None)
-    snapshots = SnapshotService(database=database, settings=settings)
+
+    def sweep() -> None:
+        current = Settings.from_context(ctx)
+        RetentionRunner(database, current, GitShadow()).run()
+        build_fork_service(database, current).sweep(None)
+
+    sweep()
+    snapshots = SnapshotService(
+        database=database, settings=settings, settings_provider=live_settings
+    )
     snapshots.start()
 
     def on_event(record: EventRecord, event_id: int) -> None:
         if record.kind == "user_turn":
             snapshots.request(record.session_id, record.ts, event_id)
 
-    service = CaptureService(database=database, settings=settings, event_sink=on_event)
+    service = CaptureService(
+        database=database, settings=settings, event_sink=on_event, settings_provider=live_settings
+    )
     service.start()
     recorder = HookRecorder(service=service, settings=settings)
     for name, hook_handler in _hooks(recorder):
@@ -44,7 +57,11 @@ def register(ctx: Any) -> None:
             handler=tool_handler,
         )
 
+    scheduler = RetentionScheduler(sweep)
+    scheduler.start()
+
     def close() -> None:
+        scheduler.stop()
         service.close()
         snapshots.close()
 

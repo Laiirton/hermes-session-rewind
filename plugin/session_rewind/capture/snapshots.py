@@ -7,7 +7,7 @@ from pathlib import Path
 
 from ..gitrepo.shadow import GitError, GitShadow
 from ..logging import get_logger
-from ..settings import Settings
+from ..settings import Settings, SettingsProvider, current_settings
 from ..store.db import Database
 from ..store.repositories import ReadStore, WriteStore
 
@@ -29,9 +29,11 @@ class SnapshotService:
         database: Database,
         settings: Settings,
         shadow: GitShadow | None = None,
+        settings_provider: SettingsProvider | None = None,
     ) -> None:
         self._database = database
         self._settings = settings
+        self._settings_provider = settings_provider
         self._shadow = shadow or GitShadow()
         self._queue: queue.Queue[SnapshotRequest] = queue.Queue(maxsize=QUEUE_SIZE)
         self._closing = threading.Event()
@@ -52,7 +54,8 @@ class SnapshotService:
         self._thread.start()
 
     def request(self, session_id: str, ts: float, event_id: int | None) -> None:
-        if not self._settings.snapshot_enabled or self._settings.record_paused:
+        settings = current_settings(self._settings, self._settings_provider)
+        if not settings.snapshot_enabled or settings.record_paused:
             return
         try:
             self._queue.put_nowait(SnapshotRequest(session_id, ts, event_id))
@@ -127,8 +130,9 @@ class SnapshotService:
         self._last[request.session_id] = (request.ts, snapshot.tree_sha)
 
     def _repo_root(self, session_id: str) -> Path | None:
-        if self._settings.workspace_root:
-            path = Path(self._settings.workspace_root).expanduser()
+        settings = current_settings(self._settings, self._settings_provider)
+        if settings.workspace_root:
+            path = Path(settings.workspace_root).expanduser()
             return path if self._shadow.is_repo(path) else None
         try:
             session = ReadStore(self._database).get_session(session_id)

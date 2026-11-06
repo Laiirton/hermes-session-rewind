@@ -7,7 +7,7 @@ from typing import Any
 from ..gitrepo.shadow import GitError, GitShadow
 from ..gitrepo.worktree import WorktreeManager
 from ..sessiondb.transcript import SessionDBTranscriptReader
-from ..settings import Settings
+from ..settings import Settings, SettingsProvider, current_settings
 from ..store.db import Database
 from ..store.repositories import ReadStore, WriteStore
 from .planner import ForkError, ForkPlan, ForkPlanner, ForkRequest
@@ -17,11 +17,15 @@ PREPARED_TTL_SECONDS = 900.0
 RUN_STALE_SECONDS = 900.0
 
 
-def build_fork_service(database: Database, settings: Settings) -> ForkService:
+def build_fork_service(
+    database: Database,
+    settings: Settings,
+    settings_provider: SettingsProvider | None = None,
+) -> ForkService:
     shadow = GitShadow()
     worktrees = WorktreeManager(shadow)
     planner = ForkPlanner(database, settings, shadow, worktrees, SessionDBTranscriptReader())
-    return ForkService(database, settings, planner, VerifyRunner(), worktrees)
+    return ForkService(database, settings, planner, VerifyRunner(), worktrees, settings_provider)
 
 
 class ForkService:
@@ -32,9 +36,11 @@ class ForkService:
         planner: ForkPlanner,
         verifier: VerifyRunner,
         worktrees: WorktreeManager,
+        settings_provider: SettingsProvider | None = None,
     ) -> None:
         self._database = database
         self._settings = settings
+        self._settings_provider = settings_provider
         self._planner = planner
         self._verifier = verifier
         self._worktrees = worktrees
@@ -121,7 +127,7 @@ class ForkService:
         result = self._verifier.run(
             command,
             Path(worktree),
-            self._settings.verify_timeout_seconds,
+            current_settings(self._settings, self._settings_provider).verify_timeout_seconds,
             (root,) if root is not None else (),
         )
         store = WriteStore(self._database.connect())

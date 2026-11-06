@@ -10,7 +10,7 @@ from dataclasses import dataclass, field
 from typing import Any
 
 from ..logging import get_logger
-from ..settings import Settings
+from ..settings import Settings, SettingsProvider, current_settings
 from ..store.db import Database, EventRecord
 from ..store.repositories import WriteStore
 from .normalize import PayloadNormalizer, Redactor
@@ -42,9 +42,11 @@ class CaptureService:
         database: Database,
         settings: Settings,
         event_sink: Callable[[EventRecord, int], None] | None = None,
+        settings_provider: SettingsProvider | None = None,
     ) -> None:
         self._database = database
         self._settings = settings
+        self._settings_provider = settings_provider
         self._event_sink = event_sink
         self._queue: queue.Queue[CaptureItem] = queue.Queue(maxsize=QUEUE_SIZE)
         self._closing = threading.Event()
@@ -69,7 +71,7 @@ class CaptureService:
         self._thread.start()
 
     def submit(self, item: CaptureItem) -> None:
-        if self._settings.record_paused:
+        if current_settings(self._settings, self._settings_provider).record_paused:
             return
         try:
             self._queue.put_nowait(item)
@@ -93,10 +95,6 @@ class CaptureService:
         return value
 
     def _run(self) -> None:
-        normalizer = PayloadNormalizer(
-            self._settings.max_payload_bytes,
-            Redactor(self._settings.redact_secrets),
-        )
         store: WriteStore | None = None
         failures = 0
         try:
@@ -117,7 +115,7 @@ class CaptureService:
                         self._requeue(batch)
                         continue
                 try:
-                    self._write_batch(store, normalizer, batch)
+                    self._write_batch(store, batch)
                     failures = 0
                 except (sqlite3.Error, OSError):
                     LOGGER.exception("capture batch failed; reopening the store")
@@ -133,7 +131,7 @@ class CaptureService:
             if store is None:
                 self._count_dropped(self._queue.qsize())
             else:
-                self._drain(store, normalizer)
+                self._drain(store)
         except Exception:
             LOGGER.exception("capture writer stopped")
         finally:
@@ -163,11 +161,15 @@ class CaptureService:
         if lost:
             self._count_dropped(lost)
 
+    @staticmethod
+    def _clean_text(value: str) -> str:
+        return value.strip()
+
     def _count_dropped(self, count: int) -> None:
         with self._dropped_lock:
             self._dropped += count
 
-    def _drain(self, store: WriteStore, normalizer: PayloadNormalizer) -> None:
+    def _drain(self, store: WriteStore) -> None:
         batch: list[CaptureItem] = []
         while True:
             try:
@@ -175,14 +177,12 @@ class CaptureService:
             except queue.Empty:
                 break
         if batch:
-            self._write_batch(store, normalizer, batch)
+            self._write_batch(store, batch)
 
-    def _write_batch(
-        self,
-        store: WriteStore,
-        normalizer: PayloadNormalizer,
-        batch: list[CaptureItem],
-    ) -> None:
+    def _write_batch(self, store: WriteStore, batch: list[CaptureItem]) -> None:
+        settings = current_settings(self._settings, self._settings_provider)
+        redactor = Redactor(settings.redact_secrets)
+        normalizer = PayloadNormalizer(settings.max_payload_bytes, redactor)
         records: list[EventRecord] = []
         sessions: dict[str, dict[str, Any]] = {}
         started: dict[str, float] = {}
@@ -204,8 +204,8 @@ class CaptureService:
                     task_id=item.task_id,
                     tool_call_id=item.tool_call_id,
                     api_request_id=item.api_request_id,
-                    name=item.name,
-                    status=item.status,
+                    name=self._clean_text(redactor.redact_text(item.name or "")) or None,
+                    status=self._clean_text(redactor.redact_text(item.status or "")) or None,
                     duration_ms=item.duration_ms,
                 )
             )
