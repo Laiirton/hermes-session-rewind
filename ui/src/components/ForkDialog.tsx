@@ -987,7 +987,6 @@ export function ForkDialog({
       }
       let childId: string;
       let childStoredId: string;
-      let freshSession = false;
       if (throughId !== null && runtimeId !== undefined) {
         const branch = await labelled(
           'could not branch the session',
@@ -1015,9 +1014,8 @@ export function ForkDialog({
         );
         childId = created.session_id;
         childStoredId = created.stored_session_id;
-        freshSession = true;
       }
-      if (freshSession && plan.worktree_path !== null) {
+      if (plan.worktree_path !== null) {
         const attach = (): Promise<unknown> =>
           host.request('session.cwd.set', { session_id: childId, cwd: plan.worktree_path });
         try {

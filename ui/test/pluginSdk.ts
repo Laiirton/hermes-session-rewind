@@ -14,10 +14,13 @@ const defaultCatalog = {
 
 let modelOptions: unknown = defaultCatalog;
 let configSetFails = false;
+let nativeFork = false;
+let workspaceAttachFails = false;
 
 export interface HostCall {
   kind: 'request' | 'openSession' | 'notify';
   name: string;
+  args?: unknown;
 }
 
 const calls: HostCall[] = [];
@@ -30,9 +33,19 @@ export function setConfigSetFailure(fails: boolean): void {
   configSetFails = fails;
 }
 
+export function setNativeForkScenario(enabled: boolean): void {
+  nativeFork = enabled;
+}
+
+export function setWorkspaceAttachFailure(fails: boolean): void {
+  workspaceAttachFails = fails;
+}
+
 export function resetHostStub(): void {
   modelOptions = defaultCatalog;
   configSetFails = false;
+  nativeFork = false;
+  workspaceAttachFails = false;
   calls.length = 0;
 }
 
@@ -58,13 +71,37 @@ export const host = {
     calls.push({ kind: 'openSession', name: 'openSession' });
     return {};
   },
-  request: async (method: string): Promise<unknown> => {
-    calls.push({ kind: 'request', name: method });
+  request: async (method: string, args?: unknown): Promise<unknown> => {
+    calls.push({ kind: 'request', name: method, args });
     if (method === 'model.options') {
       return modelOptions;
     }
     if (method === 'config.set' && configSetFails) {
       throw new Error('Session revision unavailable; reopen the session before editing metadata');
+    }
+    if (method === 'session.active_list') {
+      return nativeFork ? { sessions: [{ id: 'parent-runtime', session_key: 'session-a' }] } : {};
+    }
+    if (method === 'session.title') {
+      return { title: 'chat a', session_key: 'stored-parent' };
+    }
+    if (method === 'session.history') {
+      return nativeFork
+        ? {
+            count: 3,
+            messages: [
+              { role: 'user', text: 'earlier task', timestamp: 1_699_999_990, row_id: 10 },
+              { role: 'assistant', text: 'earlier answer', timestamp: 1_699_999_995, row_id: 11 },
+              { role: 'user', text: 'the a turn', timestamp: 1_700_000_000, row_id: 12 }
+            ]
+          }
+        : {};
+    }
+    if (method === 'session.branch' || method === 'session.create') {
+      return { session_id: 'runtime-child', stored_session_id: 'stored-child' };
+    }
+    if (method === 'session.cwd.set' && workspaceAttachFails) {
+      throw new Error('the child session is not ready');
     }
     return {};
   },

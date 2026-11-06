@@ -7,7 +7,9 @@ import {
   hostCalls,
   resetHostStub,
   setConfigSetFailure,
-  setModelOptions
+  setModelOptions,
+  setNativeForkScenario,
+  setWorkspaceAttachFailure
 } from '../../test/pluginSdk';
 import type { PluginContext } from '@hermes/plugin-sdk';
 import type {
@@ -714,6 +716,55 @@ describe('RewindPage model picker', () => {
     );
     const warning = hostCalls().find((call) => call.name.startsWith('warning:'));
     expect(warning?.name).toContain('nvidia/nemotron-3.5');
+  });
+});
+
+describe('RewindPage native branch workspace', () => {
+  async function startNativeFork(): Promise<Harness> {
+    const turnsA = deferred<TurnPage>();
+    const turnsB = deferred<TurnPage>();
+    const host = harness(routeFork(turnsA, turnsB));
+    render(<RewindPage ctx={host.ctx} />);
+    turnsA.resolve(page([turn('a', 'the a turn')]));
+    await screen.findByText('the a turn');
+    fireEvent.click(screen.getByRole('button', { name: 'Rewind' }));
+    const dialog = await screen.findByRole('dialog');
+    fireEvent.click(within(dialog).getByRole('button', { name: /Prepare branch/ }));
+    await within(dialog).findByDisplayValue('the recorded context');
+    fireEvent.click(within(dialog).getByRole('button', { name: /Fork & run/ }));
+    return host;
+  }
+
+  it('attaches the prepared worktree on the native branch before starting', async () => {
+    setNativeForkScenario(true);
+
+    await startNativeFork();
+
+    await waitFor(() =>
+      expect(hostCalls().some((call) => call.name === 'prompt.submit')).toBe(true)
+    );
+    const names = hostCalls().map((call) => call.name);
+    expect(names).toContain('session.branch');
+    expect(names).not.toContain('session.create');
+    const attachIndex = names.indexOf('session.cwd.set');
+    expect(attachIndex).toBeGreaterThanOrEqual(0);
+    expect(attachIndex).toBeLessThan(names.indexOf('openSession'));
+    expect(names.indexOf('openSession')).toBeLessThan(names.indexOf('prompt.submit'));
+    const attach = hostCalls().find((call) => call.name === 'session.cwd.set');
+    expect(attach?.args).toEqual({
+      session_id: 'runtime-child',
+      cwd: '/work/.hermes-rewind/abcdef12'
+    });
+  });
+
+  it('aborts before the rerun when the native attach fails', async () => {
+    setNativeForkScenario(true);
+    setWorkspaceAttachFailure(true);
+    const host = await startNativeFork();
+    await screen.findByText(/could not be attached/);
+    expect(screen.getByRole('dialog')).toBeDefined();
+    expect(hostCalls().some((call) => call.name === 'prompt.submit')).toBe(false);
+    expect(host.calls().some((call) => call.path.includes('/commit'))).toBe(false);
   });
 });
 
