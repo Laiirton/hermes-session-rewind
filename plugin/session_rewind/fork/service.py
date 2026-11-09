@@ -89,7 +89,11 @@ class ForkService:
             raise ForkError("the rerun did not produce a new session; close its tab and retry")
         claimed = read.get_branch_by_child(child_session_id)
         if claimed is not None and str(claimed["id"]) != branch_id:
-            raise ForkError("that session is already the rerun of another branch")
+            raise ForkError(
+                "that session is already the rerun of another branch",
+                reason="child_already_claimed",
+                claimed_branch_id=str(claimed["id"]),
+            )
         now = time.time()
         store = WriteStore(self._database.connect())
         try:
@@ -195,7 +199,7 @@ class ForkService:
         finally:
             store.close()
 
-    def workspace_state(self, branch_id: str) -> tuple[str, int | None]:
+    def workspace_state(self, branch_id: str) -> tuple[str, int | None, int | None]:
         read = ReadStore(self._database)
         branch = read.get_branch(branch_id)
         if branch is None:
@@ -205,8 +209,12 @@ class ForkService:
             raise ForkError("this branch has no workspace to clean")
         target = Path(worktree)
         if not target.exists():
-            return worktree, 0
-        return worktree, self._worktrees.uncommitted(target)
+            return worktree, 0, 0
+        return (
+            worktree,
+            self._worktrees.uncommitted(target),
+            self._worktrees.orphan_commits(target),
+        )
 
     def cleanup(self, branch_id: str) -> None:
         read = ReadStore(self._database)
@@ -226,6 +234,21 @@ class ForkService:
             store.set_branch_state(branch_id, "cleaned", time.time())
         finally:
             store.close()
+
+    def workspace_diff(self, branch_id: str) -> dict[str, Any]:
+        read = ReadStore(self._database)
+        branch = read.get_branch(branch_id)
+        if branch is None:
+            raise ForkError("branch not found")
+        worktree = branch.get("worktree_path")
+        if not isinstance(worktree, str) or not worktree:
+            return {"branch_id": branch_id, "worktree_path": "", "diff": [], "stat": ""}
+        target = Path(worktree)
+        if not target.exists():
+            return {"branch_id": branch_id, "worktree_path": worktree, "diff": [], "stat": ""}
+        diff = self._worktrees.diff_entries(target)
+        stat = self._worktrees.diff_stat(target)
+        return {"branch_id": branch_id, "worktree_path": worktree, "diff": diff, "stat": stat}
 
     def _remove_worktree(self, branch: dict[str, Any]) -> None:
         worktree = branch.get("worktree_path")

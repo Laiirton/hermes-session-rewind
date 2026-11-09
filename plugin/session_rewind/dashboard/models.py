@@ -12,6 +12,16 @@ class HealthResponse(BaseModel):
     version: str
     sessions: int
     events: int
+    branches: int = 0
+    snapshots: int = 0
+    db_bytes: int = 0
+    uptime_seconds: float = 0.0
+
+
+class RetentionPreviewResponse(BaseModel):
+    cutoff: float
+    session_ids: list[str] = []
+    sessions: int = 0
 
 
 class SessionSummary(BaseModel):
@@ -156,10 +166,27 @@ class CompareSession(SessionSummary):
     frozen_at: float | None = None
 
 
+class DiffEntry(BaseModel):
+    path: str
+    status: str
+    additions: int = 0
+    deletions: int = 0
+    text: str | None = None
+
+
+class WorkspaceDiffResponse(BaseModel):
+    worktree_path: str
+    branch_id: str
+    diff: list[DiffEntry] = []
+    stat: str = ""
+
+
 class CompareResponse(BaseModel):
     left: CompareSession | None
     right: CompareSession | None
     verdict: str
+    diff: list[DiffEntry] = []
+    diff_stat: str = ""
 
 
 class BookmarkRequest(BaseModel):
@@ -236,6 +263,13 @@ class VerifyResponse(BaseModel):
 class WorkspaceStateResponse(BaseModel):
     worktree_path: str
     uncommitted: int | None
+    orphan_commits: int | None = None
+
+
+class ForkCommitErrorResponse(BaseModel):
+    detail: str
+    reason: str | None = None
+    claimed_branch_id: str | None = None
 
 
 class VerifyResolveResponse(BaseModel):

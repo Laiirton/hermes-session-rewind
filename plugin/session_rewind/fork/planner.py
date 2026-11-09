@@ -32,7 +32,16 @@ class TranscriptReader(Protocol):
 
 
 class ForkError(RuntimeError):
-    pass
+    def __init__(
+        self,
+        message: str,
+        *,
+        reason: str | None = None,
+        claimed_branch_id: str | None = None,
+    ) -> None:
+        super().__init__(message)
+        self.reason = reason
+        self.claimed_branch_id = claimed_branch_id
 
 
 @dataclass(frozen=True, slots=True)
