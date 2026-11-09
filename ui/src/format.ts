@@ -61,12 +61,68 @@ export function errorMessage(caught: unknown): string {
 function readDetail(payload: string): string | undefined {
   try {
     const parsed = JSON.parse(payload) as { detail?: unknown };
-    return typeof parsed.detail === 'string' && parsed.detail.length > 0
-      ? parsed.detail
-      : undefined;
+    if (typeof parsed.detail === 'string' && parsed.detail.length > 0) {
+      return parsed.detail;
+    }
+    if (parsed.detail !== null && typeof parsed.detail === 'object') {
+      const detail = parsed.detail as { detail?: unknown; reason?: unknown };
+      return typeof detail.detail === 'string' && detail.detail.length > 0
+        ? detail.detail
+        : undefined;
+    }
+    return undefined;
   } catch {
     return undefined;
   }
+}
+
+export function parseCommitError(caught: unknown): {
+  detail: string;
+  claimReason: string | null;
+  claimedBranchId: string | null;
+} {
+  const raw =
+    caught instanceof Error
+      ? caught.message
+      : typeof caught === 'string'
+        ? caught
+        : 'Unexpected error';
+  const envelope = RPC_ENVELOPE.exec(raw);
+  const payload = envelope?.[1];
+  let detail = errorMessage(caught);
+  let claimReason: string | null = null;
+  let claimedBranchId: string | null = null;
+  if (payload === undefined) {
+    return { detail, claimReason, claimedBranchId };
+  }
+  try {
+    const parsed = JSON.parse(payload) as {
+      detail?: { detail?: unknown; reason?: unknown; claimed_branch_id?: unknown };
+    };
+    const nested = parsed.detail;
+    if (nested !== null && typeof nested === 'object') {
+      if (typeof nested.detail === 'string' && nested.detail.length > 0) {
+        detail = `could not record the branch: ${nested.detail}`;
+      }
+      if (typeof nested.reason === 'string') {
+        claimReason = nested.reason;
+      }
+      if (typeof nested.claimed_branch_id === 'string') {
+        claimedBranchId = nested.claimed_branch_id;
+      }
+    }
+  } catch {
+    // No structured detail — keep the plain message.
+  }
+  return { detail, claimReason, claimedBranchId };
+}
+
+export function reusedChildNote(branchId: string): string {
+  return (
+    `The chat app returned the rerun session of branch ${branchId} — ` +
+    'the same title already existed there, so nothing new was created. ' +
+    'Close that tab, then rewind again; the next attempt opens a fresh rerun session.'
+  );
 }
 
 export function shortId(value: string, length = 8): string {
@@ -126,6 +182,9 @@ export function formatClock(ts: number): string {
   });
 }
 
+export const OPEN_RECORDING_HINT =
+  'Recording — no end-of-session signal was captured yet, so Rewind cannot tell whether this session is still open. If its window is gone, the rerun still starts normally and carries the recorded context.';
+
 export function openRecordingNote(lastEventAt: number | null): string {
   if (lastEventAt === null) {
     return 'recording, nothing captured yet';
@@ -143,9 +202,22 @@ export function turnsEmptyMessage(eventCount: number, error: string | null): str
   return `The recording holds ${plural(eventCount, 'event')} but no user turn.`;
 }
 
-export function cleanupWarning(uncommitted: number | null): string {
-  if (uncommitted === null) {
+export function cleanupWarning(
+  uncommitted: number | null,
+  orphanCommits: number | null = 0
+): string {
+  if (uncommitted === null || orphanCommits === null) {
     return 'Git could not read this workspace, so it may hold edits that were never committed. Deleting it would remove them for good.';
   }
-  return `This workspace holds ${plural(uncommitted, 'uncommitted file')}. Deleting it removes them for good; the rerun conversation stays in the recording.`;
+  const parts: string[] = [];
+  if (uncommitted > 0) {
+    parts.push(`${uncommitted} uncommitted file${uncommitted === 1 ? '' : 's'}`);
+  }
+  if (orphanCommits > 0) {
+    parts.push(`${orphanCommits} commit${orphanCommits === 1 ? '' : 's'} not on any branch`);
+  }
+  if (parts.length === 0) {
+    return 'This workspace holds nothing uncommitted. Deleting it removes only the checkout; the rerun conversation stays in the recording.';
+  }
+  return `This workspace holds ${parts.join(' and ')}. Deleting it removes ${parts.length === 1 ? 'it' : 'them'} for good; the rerun conversation stays in the recording.`;
 }

@@ -5,7 +5,7 @@ import type { ReactNode } from 'react';
 
 import { commitFork, prepareFork, resolveVerify } from '../api';
 import type { EventSummary, ForkPlan, SessionSummary, VerifyResolution } from '../api';
-import { errorMessage, formatTime, shortId } from '../format';
+import { errorMessage, formatTime, OPEN_RECORDING_HINT, parseCommitError, reusedChildNote, shortId } from '../format';
 import { branchPoint } from '../forkPrefix';
 import {
   differsFromSession,
@@ -1095,7 +1095,12 @@ export function ForkDialog({
       onCreated(plan.branch_id);
       onClose();
     } catch (caught) {
-      setError(errorMessage(caught));
+      const parsed = parseCommitError(caught);
+      if (parsed.claimReason === 'child_already_claimed' && parsed.claimedBranchId !== null) {
+        setError(reusedChildNote(parsed.claimedBranchId));
+      } else {
+        setError(parsed.detail);
+      }
     } finally {
       setBusyAction(null);
     }
@@ -1129,6 +1134,11 @@ export function ForkDialog({
       notes.push({
         warn: false,
         text: 'This session is closed, so the rerun starts a new chat carrying the recorded context instead of branching the original transcript.'
+      });
+    } else {
+      notes.push({
+        warn: false,
+        text: OPEN_RECORDING_HINT
       });
     }
     if (plan.fork_row_count === 0 && session.ended_at === null) {

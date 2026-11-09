@@ -21,12 +21,17 @@ const browserGlobals = {
   ReactNode: 'readonly'
 };
 
+const nodeGlobals = {
+  process: 'readonly',
+  console: 'readonly'
+};
+
 export default tseslint.config(
   { ignores: ['dist', '../plugin/desktop/plugin.js', 'src/types/hermes-plugin-sdk.d.ts'] },
   js.configs.recommended,
   ...tseslint.configs.strict,
   {
-    files: ['src/**/*.{ts,tsx}', '*.mjs'],
+    files: ['src/**/*.{ts,tsx}'],
     languageOptions: {
       ecmaVersion: 2022,
       sourceType: 'module',
@@ -41,6 +46,27 @@ export default tseslint.config(
       'react-refresh/only-export-components': 'warn',
       '@typescript-eslint/explicit-function-return-type': 'error',
       '@typescript-eslint/consistent-type-imports': 'error',
+      '@typescript-eslint/no-unused-vars': ['error', { argsIgnorePattern: '^_' }],
+      eqeqeq: ['error', 'always'],
+      curly: ['error', 'all']
+    }
+  },
+  {
+    files: ['*.mjs', 'scripts/**/*.mjs'],
+    languageOptions: {
+      ecmaVersion: 2022,
+      sourceType: 'module',
+      globals: nodeGlobals
+    },
+    plugins: {
+      'react-hooks': reactHooks,
+      'react-refresh': reactRefresh
+    },
+    rules: {
+      ...reactHooks.configs.recommended.rules,
+      'react-refresh/only-export-components': 'warn',
+      '@typescript-eslint/explicit-function-return-type': 'off',
+      '@typescript-eslint/consistent-type-imports': 'off',
       '@typescript-eslint/no-unused-vars': ['error', { argsIgnorePattern: '^_' }],
       eqeqeq: ['error', 'always'],
       curly: ['error', 'all']

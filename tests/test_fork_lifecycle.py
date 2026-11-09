@@ -231,10 +231,12 @@ def test_commit_refuses_a_child_already_claimed_by_another_branch(database: Data
     finally:
         store.close()
 
-    with pytest.raises(ForkError, match="already the rerun of another branch"):
+    with pytest.raises(ForkError, match="already the rerun of another branch") as exc_info:
         _service(database).commit(
             "branch-claim-b", "s_child_used", "s_child_used", None, None, None, None
         )
+    assert exc_info.value.reason == "child_already_claimed"
+    assert exc_info.value.claimed_branch_id == "branch-claim-a"
 
 
 def test_verify_refuses_a_workspace_that_was_cleaned(

@@ -770,7 +770,7 @@ describe('RewindPage native branch workspace', () => {
 
 describe('RewindPage cleanup confirmation', () => {
   it('names the uncommitted files before the workspace is deleted', async () => {
-    const state = { calls: [] as string[], uncommitted: 2 };
+    const state = { calls: [] as string[], uncommitted: 2, orphanCommits: 0 };
     await openBranchPanel(state);
 
     fireEvent.click(screen.getByRole('button', { name: 'Cleanup' }));
@@ -786,8 +786,18 @@ describe('RewindPage cleanup confirmation', () => {
     expect(screen.queryByText(/holds 2 uncommitted files/)).toBeNull();
   });
 
+  it('asks when the workspace holds a commit no branch points at', async () => {
+    const state = { calls: [] as string[], uncommitted: 0, orphanCommits: 1 };
+    await openBranchPanel(state);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Cleanup' }));
+
+    expect(await screen.findByText(/commit not on any branch/)).toBeDefined();
+    expect(state.calls.some((path) => path.includes('/cleanup'))).toBe(false);
+  });
+
   it('deletes a workspace with nothing uncommitted without asking', async () => {
-    const state = { calls: [] as string[], uncommitted: 0 };
+    const state = { calls: [] as string[], uncommitted: 0, orphanCommits: 0 };
     await openBranchPanel(state);
 
     fireEvent.click(screen.getByRole('button', { name: 'Cleanup' }));
@@ -799,7 +809,7 @@ describe('RewindPage cleanup confirmation', () => {
   });
 
   it('asks when git cannot read the workspace and keeps Escape inside the dialog', async () => {
-    const state = { calls: [] as string[], uncommitted: null };
+    const state = { calls: [] as string[], uncommitted: null, orphanCommits: 0 };
     await openBranchPanel(state);
 
     fireEvent.click(screen.getByRole('button', { name: 'Cleanup' }));
@@ -843,6 +853,7 @@ function branchDetail(worktree: string | null): BranchDetail {
 function routeBranchFlow(state: {
   calls: string[];
   uncommitted: number | null;
+  orphanCommits?: number;
 }): (path: string) => Promise<unknown> | undefined {
   return (path: string) => {
     state.calls.push(path);
@@ -864,7 +875,8 @@ function routeBranchFlow(state: {
     if (path.includes('/workspace')) {
       return Promise.resolve({
         worktree_path: '/work/.hermes-rewind/branch-1',
-        uncommitted: state.uncommitted
+        uncommitted: state.uncommitted,
+        orphan_commits: state.orphanCommits ?? 0
       });
     }
     if (path.includes('/cleanup')) {
@@ -877,6 +889,7 @@ function routeBranchFlow(state: {
 async function openBranchPanel(state: {
   calls: string[];
   uncommitted: number | null;
+  orphanCommits?: number;
 }): Promise<Harness> {
   const host = harness(routeBranchFlow(state));
   render(<RewindPage ctx={host.ctx} />);

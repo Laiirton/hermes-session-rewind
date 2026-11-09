@@ -16,6 +16,8 @@ let modelOptions: unknown = defaultCatalog;
 let configSetFails = false;
 let nativeFork = false;
 let workspaceAttachFails = false;
+let createCount = 0;
+const createTitles: string[] = [];
 
 export interface HostCall {
   kind: 'request' | 'openSession' | 'notify';
@@ -41,11 +43,17 @@ export function setWorkspaceAttachFailure(fails: boolean): void {
   workspaceAttachFails = fails;
 }
 
+export function sessionCreateTitles(): string[] {
+  return [...createTitles];
+}
+
 export function resetHostStub(): void {
   modelOptions = defaultCatalog;
   configSetFails = false;
   nativeFork = false;
   workspaceAttachFails = false;
+  createCount = 0;
+  createTitles.length = 0;
   calls.length = 0;
 }
 
@@ -97,8 +105,19 @@ export const host = {
           }
         : {};
     }
-    if (method === 'session.branch' || method === 'session.create') {
+    if (method === 'session.branch') {
       return { session_id: 'runtime-child', stored_session_id: 'stored-child' };
+    }
+    if (method === 'session.create') {
+      const title = (args as { title?: unknown } | undefined)?.title;
+      if (typeof title === 'string') {
+        createTitles.push(title);
+      }
+      createCount += 1;
+      return {
+        session_id: `runtime-child${createCount === 1 ? '' : `-dup${createCount}`}`,
+        stored_session_id: `stored-child${createCount === 1 ? '' : `-dup${createCount}`}`
+      };
     }
     if (method === 'session.cwd.set' && workspaceAttachFails) {
       throw new Error('the child session is not ready');

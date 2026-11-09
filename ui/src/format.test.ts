@@ -6,10 +6,13 @@ import {
   formatClock,
   formatRelative,
   frozenOutcome,
+  OPEN_RECORDING_HINT,
   outcomeLabel,
   outcomeTone,
   openRecordingNote,
+  parseCommitError,
   plural,
+  reusedChildNote,
   sessionsCountLabel,
   turnsEmptyMessage,
   verifyOutcome
@@ -60,6 +63,46 @@ describe('errorMessage', () => {
       "Error invoking remote method 'hermes:api': Error: 422: " +
       '{"detail":[{"loc":["query","cmd"],"msg":"value is not a valid integer"}]}';
     expect(errorMessage(new Error(raw))).toBe(raw);
+  });
+
+  it('unwraps a nested commit-error detail object', () => {
+    const raw =
+      "could not record the branch: Error invoking remote method 'hermes:api': " +
+      'Error: 400: {"detail":{"detail":"that session is already the rerun of another branch",' +
+      '"reason":"child_already_claimed","claimed_branch_id":"b-1"}}';
+    expect(errorMessage(new Error(raw))).toBe(
+      'could not record the branch: that session is already the rerun of another branch'
+    );
+  });
+});
+
+describe('parseCommitError', () => {
+  it('reads the structured claim reason and branch id from the nested detail', () => {
+    const raw =
+      "could not record the branch: Error invoking remote method 'hermes:api': " +
+      'Error: 400: {"detail":{"detail":"that session is already the rerun of another branch",' +
+      '"reason":"child_already_claimed","claimed_branch_id":"branch-42"}}';
+    const parsed = parseCommitError(new Error(raw));
+    expect(parsed.claimReason).toBe('child_already_claimed');
+    expect(parsed.claimedBranchId).toBe('branch-42');
+    expect(parsed.detail).toContain('already the rerun of another branch');
+  });
+
+  it('keeps the plain detail for a non-structured error', () => {
+    expect(parseCommitError(new Error('branch not found'))).toEqual({
+      detail: 'branch not found',
+      claimReason: null,
+      claimedBranchId: null
+    });
+  });
+});
+
+describe('reusedChildNote', () => {
+  it('names the branch that claimed the session and the next step', () => {
+    const note = reusedChildNote('branch-42');
+    expect(note).toContain('branch-42');
+    expect(note).toMatch(/close that tab/i);
+    expect(note).toMatch(/fresh rerun session/i);
   });
 });
 
@@ -125,6 +168,13 @@ describe('openRecordingNote', () => {
   });
 });
 
+describe('OPEN_RECORDING_HINT', () => {
+  it('is honest about the missing end signal without behaving like a warning', () => {
+    expect(OPEN_RECORDING_HINT).toMatch(/no end-of-session signal/i);
+    expect(OPEN_RECORDING_HINT).toMatch(/still starts normally/i);
+  });
+});
+
 describe('turnsEmptyMessage', () => {
   it('names the failure when the query failed', () => {
     expect(turnsEmptyMessage(74, 'HTTP 500')).toBe('The turns could not be loaded: HTTP 500');
@@ -159,8 +209,21 @@ describe('cleanupWarning', () => {
     expect(cleanupWarning(3)).toContain('holds 3 uncommitted files.');
   });
 
+  it('names commits that no branch points at even when status is clean', () => {
+    expect(cleanupWarning(0, 1)).toContain('holds 1 commit not on any branch');
+    expect(cleanupWarning(0, 2)).toContain('holds 2 commits not on any branch');
+    expect(cleanupWarning(1, 1)).toContain(
+      'holds 1 uncommitted file and 1 commit not on any branch'
+    );
+  });
+
   it('says the workspace could not be read rather than calling it clean', () => {
     expect(cleanupWarning(null)).toContain('could not read');
+    expect(cleanupWarning(0, null)).toContain('could not read');
+  });
+
+  it('does not ask when there is nothing to lose', () => {
+    expect(cleanupWarning(0, 0)).toContain('holds nothing uncommitted');
   });
 });
 

@@ -130,10 +130,27 @@ export interface CompareSession extends SessionSummary {
   frozen_at: number | null;
 }
 
+export interface DiffEntry {
+  path: string;
+  status: string;
+  additions: number;
+  deletions: number;
+  text: string | null;
+}
+
 export interface CompareResponse {
   left: CompareSession | null;
   right: CompareSession | null;
   verdict: string;
+  diff: DiffEntry[];
+  diff_stat: string;
+}
+
+export interface WorkspaceDiff {
+  branch_id: string;
+  worktree_path: string;
+  diff: DiffEntry[];
+  stat: string;
 }
 
 export interface ForkPrepareInput {
@@ -188,6 +205,13 @@ export interface VerifyResolution {
 export interface WorkspaceState {
   worktree_path: string;
   uncommitted: number | null;
+  orphan_commits?: number | null;
+}
+
+export interface CommitErrorDetail {
+  detail: string;
+  reason?: string | null;
+  claimed_branch_id?: string | null;
 }
 
 function post<T>(ctx: PluginContext, path: string, body: unknown): Promise<T> {
@@ -231,13 +255,21 @@ export async function searchEvents(
   ctx: PluginContext,
   sessionId: string,
   query: string,
-  limit = 30
+  limit = 30,
+  kind?: string | null,
+  toolName?: string | null
 ): Promise<SearchResponse> {
   const params = new URLSearchParams({
     q: query,
     session_id: sessionId,
     limit: String(limit)
   });
+  if (kind) {
+    params.set('kind', kind);
+  }
+  if (toolName) {
+    params.set('tool_name', toolName);
+  }
   return ctx.rest<SearchResponse>(`/search?${params.toString()}`);
 }
 
@@ -295,6 +327,47 @@ export function getWorkspaceState(ctx: PluginContext, branchId: string): Promise
   return ctx.rest<WorkspaceState>(`/forks/${encodeURIComponent(branchId)}/workspace`);
 }
 
+export function getWorkspaceDiff(ctx: PluginContext, branchId: string): Promise<WorkspaceDiff> {
+  return ctx.rest<WorkspaceDiff>(`/forks/${encodeURIComponent(branchId)}/diff`);
+}
+
+export interface RetentionPreview {
+  cutoff: number;
+  session_ids: string[];
+  sessions: number;
+}
+
+export function getRetentionPreview(ctx: PluginContext, days?: number): Promise<RetentionPreview> {
+  const qs = days === undefined ? '' : `?days=${encodeURIComponent(String(days))}`;
+  return ctx.rest<RetentionPreview>(`/retention/preview${qs}`);
+}
+
 export function cleanupFork(ctx: PluginContext, branchId: string): Promise<BranchDetail> {
   return post<BranchDetail>(ctx, `/forks/${encodeURIComponent(branchId)}/cleanup`, {});
+}
+
+export interface Bookmark {
+  id: number;
+  session_id: string;
+  event_id: number | null;
+  label: string;
+  note: string | null;
+  created_at: number;
+}
+
+export function listBookmarks(ctx: PluginContext, sessionId: string): Promise<Bookmark[]> {
+  return ctx.rest<Bookmark[]>(`/sessions/${encodeURIComponent(sessionId)}/bookmarks`);
+}
+
+export function createBookmark(
+  ctx: PluginContext,
+  sessionId: string,
+  label: string,
+  eventId: number | null = null
+): Promise<Bookmark> {
+  return post<Bookmark>(ctx, '/bookmarks', {
+    session_id: sessionId,
+    event_id: eventId,
+    label
+  });
 }
