@@ -8,7 +8,7 @@ description: >
   subprocesses (shadow refs, worktrees) and the user-provided verify command;
   reads state.db read-only; no network, no credentials, no telemetry, no updater.
 repo: https://github.com/Laiirton/hermes-session-rewind
-sha: "0000000000000000000000000000000000000000"
+sha: ""
 subdir: plugin
 tier: community
 category: desktop
