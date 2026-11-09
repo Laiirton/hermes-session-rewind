@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import subprocess
 import sys
 import time
 from pathlib import Path
@@ -239,13 +240,40 @@ def test_workspace_state_counts_uncommitted_files(
     target = _prepared_branch(database, git_repo, "ws-branch", time.time())
     service = _service(database, WorktreeManager(shadow))
 
-    assert service.workspace_state("ws-branch") == (str(target), 0)
+    assert service.workspace_state("ws-branch") == (str(target), 0, 0)
 
     (target / "draft.py").write_text("x = 1\n", encoding="utf-8")
 
-    path, uncommitted = service.workspace_state("ws-branch")
+    path, uncommitted, orphan = service.workspace_state("ws-branch")
     assert path == str(target)
     assert uncommitted == 1
+    assert orphan == 0
+
+
+def test_workspace_state_counts_commits_not_on_any_branch(
+    database: Database,
+    git_repo: Path,
+) -> None:
+    target = _prepared_branch(database, git_repo, "ws-committed", time.time())
+    service = _service(database, WorktreeManager(GitShadow()))
+
+    (target / "result.py").write_text("x = 1\n", encoding="utf-8")
+    for args in (
+        ["add", "result.py"],
+        ["-c", "user.email=rewind@test", "-c", "user.name=rewind", "commit", "-m", "rerun work"],
+    ):
+        result = subprocess.run(
+            ["git", "-C", str(target), *args],
+            check=False,
+            capture_output=True,
+            text=True,
+        )
+        assert result.returncode == 0, result.stderr
+
+    path, uncommitted, orphan = service.workspace_state("ws-committed")
+    assert path == str(target)
+    assert uncommitted == 0
+    assert orphan == 1
 
 
 def test_workspace_state_reports_unknown_when_git_cannot_be_read(
@@ -274,7 +302,7 @@ def test_workspace_state_reports_unknown_when_git_cannot_be_read(
         store.close()
     service = _service(database, WorktreeManager(GitShadow()))
 
-    assert service.workspace_state("ws-broken") == (str(broken), None)
+    assert service.workspace_state("ws-broken") == (str(broken), None, None)
 
 
 def test_workspace_state_rejects_a_branch_without_a_workspace(database: Database) -> None:

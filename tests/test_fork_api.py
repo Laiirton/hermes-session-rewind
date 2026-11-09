@@ -111,12 +111,17 @@ def test_workspace_state_reports_uncommitted_edits(database: Database, git_repo:
 
     clean = client.get(f"{PREFIX}/forks/{branch_id}/workspace")
     assert clean.status_code == 200
-    assert clean.json() == {"worktree_path": plan["worktree_path"], "uncommitted": 0}
+    assert clean.json() == {
+        "worktree_path": plan["worktree_path"],
+        "uncommitted": 0,
+        "orphan_commits": 0,
+    }
 
     worktree = Path(str(plan["worktree_path"]))
     (worktree / "draft.py").write_text("print('uncommitted')\n", encoding="utf-8")
     dirty = client.get(f"{PREFIX}/forks/{branch_id}/workspace")
     assert dirty.json()["uncommitted"] == 1
+    assert dirty.json()["orphan_commits"] == 0
 
     missing = client.get(f"{PREFIX}/forks/nope/workspace")
     assert missing.status_code == 400
